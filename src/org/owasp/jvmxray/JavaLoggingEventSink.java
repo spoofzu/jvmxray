@@ -5,7 +5,7 @@ import java.util.logging.Logger;
 
 public class JavaLoggingEventSink extends NullSecurityManager {
 
-	private static final Logger logger = Logger.getLogger("org.owasp.security.logging.util.JavaLoggingEventSink");
+	private static final Logger logger = Logger.getLogger("org.owasp.jvmxray.JavaLoggingEventSink");
 
 	@Override
 	protected void fireEvent(String message) {
@@ -14,13 +14,30 @@ public class JavaLoggingEventSink extends NullSecurityManager {
 		
 	}
 	
-	public EnumSet<Events> assignEvents() {
+	public EnumSet<Events> assignEvents() {   
 		
-		// To process user events from command line simple call, return super.getEnabledEvents();
+		// Hard code your properties.
+		//
+		// EnumSet<Events> events = EnumSet.of(
+		// Events.PERMISSION, Events.CLASSLOADER_CREATE
+		// );
+		//return EnumSet.allOf(Events.class);
 		
-		EnumSet<Events> events = EnumSet.of(Events.PERMISSION);
+		// Or enter them as properties and let super class do the work.
+		//
+		StringBuffer buff = new StringBuffer();
+		buff.append("CLASSLOADER_CREATE, EXEC, EXIT, FACTORY,");
+		buff.append("FILE_DELETE, FILE_EXECUTE, FILE_READ, FILE_WRITE,");
+		buff.append("LINK, PACKAGE_ACCESS, PACKAGE_DEFINE, PERMISSION,");
+		buff.append("PRINT, PROPERTIES_ANY, PROPERTIES_NAMED, SOCKET_ACCEPT,");
+		buff.append("SOCKET_CONNECT, SOCKET_LISTEN, SOCKET_MULTICAST");
 		
-		return events;
+    	String pv = System.getProperty(SECURITY_EVENTS, "zzzz");
+    	if( pv == "zzzz" ) { // If no events specified, capture all events.
+    		System.setProperty(SECURITY_EVENTS, buff.toString());
+    	} 
+		
+		return super.assignEvents();
 	}
 
 }

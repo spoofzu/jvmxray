@@ -347,22 +347,33 @@ public abstract class NullSecurityManager extends SecurityManager {
      * is printed, no default is assigned, and processing aborts.
      */
     private void assignSecurityManagerDefault() {
-    	
+
 		SafeExecute s = new SafeExecute() {
 			public void work() {
 		    	String pv = System.getProperty(SECURITY_MANAGER_OPTION, "zzzz");
 		    	if ( pv != "zzzz" ) {
+		    		
+		        	// TODOMS: Idea is to call methods of smd within methods of NullSecurityManager to chain
+		        	//         SecurityManager functionality.  Unfortunately, it's going to take more work
+		        	//         to determine if NullSecurityManager context information is appropriate.  For
+		        	//         example returning context as provided by NullSecurityManager.getClassContext()
+		        	//         and NullSecurityManager.getSecurityContext() or if smd.getClassContext() and
+		        	//         smd.getSecurityContext() is more appropriate or something else.  For now, I'm
+		        	//         disabling this feature.
+		        	//
+		    		fireSafeEvent("User supported security managers not supported at the moment." );
+		    		System.exit(10);
+		    		
 			    	try {
 			    		Class<?> smc = Class.forName(pv);
 			    		Object sm = smc.getDeclaredConstructor().newInstance();
 			    		if (sm instanceof java.lang.SecurityManager) {
 			    			smd = (SecurityManager)sm;
-			    			System.setSecurityManager(smd);
 			    		}
 			    	} catch(Exception e ) {
 			    		fireSafeEvent("SecurityManager implementation not loaded. msg="+e.getMessage()+" class="+pv);
 			    		e.printStackTrace();
-			    		System.exit(10);
+			    		System.exit(20);
 			    		
 			    	}
 		    	}
