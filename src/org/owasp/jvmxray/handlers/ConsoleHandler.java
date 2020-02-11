@@ -1,12 +1,14 @@
-package org.owasp.jvmxray;
+package org.owasp.jvmxray.handlers;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.TimeZone;
 
+import org.owasp.jvmxray.api.NullSecurityManager;
 
-public class ConsoleLogEventSink extends NullSecurityManager {
+
+public class ConsoleHandler extends NullSecurityManager {
 	
 	private SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z"); //2016-11-16 12:08:43
 	
@@ -19,17 +21,25 @@ public class ConsoleLogEventSink extends NullSecurityManager {
 		System.out.println(dt+" "+message);
 	
 	}
+	
+	@Override
+	public FilterActions filterEvent(String message ) {
+		//TODO: Need to determine a practical set of filtering as a default.
+		return FilterActions.ALLOW;
+	}
 
 	public EnumSet<Events> assignEvents() {
 	
-		// Hard code your properties.
+		// For testing you can hardcode your event types.
 		//
 		// EnumSet<Events> events = EnumSet.of(
 		// Events.PERMISSION, Events.CLASSLOADER_CREATE
 		// );
 		//return EnumSet.allOf(Events.class);
-		
-		// Or enter them as properties and let super class do the work.
+		//
+		// Normally, they should be assigned as properties so they can be set on
+		// the command line or properties at startup.  Here we set them and let
+		// the superclass assign them.
 		//
 		StringBuffer buff = new StringBuffer();
 		buff.append("CLASSLOADER_CREATE, EXEC, EXIT, FACTORY,");

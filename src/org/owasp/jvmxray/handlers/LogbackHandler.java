@@ -1,13 +1,15 @@
-package org.owasp.jvmxray;
+package org.owasp.jvmxray.handlers;
 
 import java.util.EnumSet;
 
+import org.owasp.jvmxray.api.NullSecurityManager;
+import org.owasp.jvmxray.api.NullSecurityManager.FilterActions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LogbackLoggingEventSink extends NullSecurityManager {
+public class LogbackHandler extends NullSecurityManager {
 	
-	private static final Logger logger = LoggerFactory.getLogger("org.owasp.jvmxray.LogbackLoggingEventSink");
+	private static final Logger logger = LoggerFactory.getLogger("org.owasp.jvmxray.handlers.LogbackHandler");
 	
 	@Override
 	public void fireEvent(String message) {
@@ -16,16 +18,24 @@ public class LogbackLoggingEventSink extends NullSecurityManager {
 		
 	}
 
+	@Override
+	public FilterActions filterEvent(String message ) {
+		//TODO: Need to determine a practical set of filtering as a default.
+		return FilterActions.ALLOW;
+	}
+	
 	public EnumSet<Events> assignEvents() {  
 		
-		// Hard code your properties.
+		// For testing you can hardcode your event types.
 		//
 		// EnumSet<Events> events = EnumSet.of(
 		// Events.PERMISSION, Events.CLASSLOADER_CREATE
 		// );
 		//return EnumSet.allOf(Events.class);
-		
-		// Or enter them as properties and let super class do the work.
+		//
+		// Normally, they should be assigned as properties so they can be set on
+		// the command line or properties at startup.  Here we set them and let
+		// the superclass assign them.
 		//
 		StringBuffer buff = new StringBuffer();
 		buff.append("CLASSLOADER_CREATE, EXEC, EXIT, FACTORY,");

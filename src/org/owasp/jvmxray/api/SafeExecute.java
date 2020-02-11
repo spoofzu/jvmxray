@@ -1,4 +1,4 @@
-package org.owasp.jvmxray;
+package org.owasp.jvmxray.api;
 
 /**
  * This class is a wrapper for executing operations with the context of the

@@ -1,4 +1,4 @@
-package org.owasp.jvmxray;
+package org.owasp.jvmxray.api.test;
 
 import java.io.File;
 import java.io.IOException;
@@ -7,6 +7,7 @@ import java.net.URL;
 import java.net.URLConnection;
 
 import org.junit.Test;
+import org.owasp.jvmxray.handlers.ConsoleHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -16,7 +17,7 @@ import ch.qos.logback.core.joran.spi.JoranException;
 
 public class JavaEventTest {
 	
-	private static final Logger logger = LoggerFactory.getLogger("org.owasp.security.logging.util.JavaEventTest");
+	private static final Logger logger = LoggerFactory.getLogger("org.owasp.jvmxray.api.test.JavaEventTest");
 	
 	// Using @Begin annotation would be customary but we need to ensure
 	// logging is initialized prior to it's use.
@@ -33,9 +34,9 @@ public class JavaEventTest {
 		}
 		
 		// Choose the event sink.
-		//LogbackLoggingEventSink s = new LogbackLoggingEventSink();
-		ConsoleLogEventSink s = new ConsoleLogEventSink();
-		System.setSecurityManager(s);
+		//LogbackHanlder h = new LogbackHanlder();
+		ConsoleHandler h = new ConsoleHandler();
+		System.setSecurityManager(h);
 		
 	}
 	

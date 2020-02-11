@@ -1,4 +1,4 @@
-package org.owasp.jvmxray;
+package org.owasp.jvmxray.api;
 
 import java.io.FileDescriptor;
 import java.net.InetAddress;
@@ -16,15 +16,15 @@ import java.util.EnumSet;
  * To use <code>NullSecurityManager</code> with new applications you can assign the security
  * manager early at startup time by the following,<br/>
  * <code>
- * System.setSecurityManager(new LogbackEventSink());
+ * System.setSecurityManager(new LogbackHandler());
  * </code>
- * Substitute the event sink <code>LogbackEventSink</code> with any available sink or
+ * Substitute the event sink <code>LogbackHandler</code> with any available sink or
  * use any sink that extends <code>NullSecurityManager</code>.
  * <p/>Legacy Applications<br/>
  * To use <code>NullSecurityManager</code> with legacy applications assign an implementation
  * via the command line (or Java property setting) like the following,<br/>
  * <code>
- * -Djava.security.manager="org.owasp.security.logging.util.LogbackEventSink"
+ * -Djava.security.manager="org.owasp.jvmxray.handlers.LogbackHandler"
  * </code>
  * The <code>NullSecurityManager</code> does not offer protection for resources and does not
  * respect Java policy settings.  The benefit of this system is for monitoring application
@@ -90,7 +90,7 @@ public abstract class NullSecurityManager extends SecurityManager {
 	 * Return the events of interest in the implementation when you override,
 	 * <code>NullSecurityManager.getEnabledEvents()</code>
 	 */
-	public enum Events {
+	protected enum Events {
 		ACCESS,
 		CLASSLOADER_CREATE,
 		EXEC,
@@ -113,7 +113,12 @@ public abstract class NullSecurityManager extends SecurityManager {
 		SOCKET_MULTICAST
 	}
 	
-	public NullSecurityManager() {
+	public enum FilterActions {
+		ALLOW,
+		DENY
+	}
+	
+	protected NullSecurityManager() {
 		super();
 		assignSecurityManagerDefault();
 		usrevents = assignEvents();
@@ -298,16 +303,18 @@ public abstract class NullSecurityManager extends SecurityManager {
 	}
 
 	/**
-	 * Fire a thread safe event.  This is required since the callers
-	 * implementation to handle may trigger additional nested permission
-	 * resulting in a stack overflow.
+	 * Fire a thread safe event.  This is required since callers
+	 * may trigger additional nested security manager permission
+	 * calls resulting in a stack overflow.  We also implement
+	 * the callers filter handling.
 	 * @param message Message associated with the event.
 	 */
 	private void fireSafeEvent(String message) {
 		
 		SafeExecute s = new SafeExecute() {
 			public void work() {
-				fireEvent( message );
+				if( filterEvent(message) == FilterActions.ALLOW )
+					fireEvent( message );
 			}
 		};
 		s.execute(this);
@@ -321,6 +328,14 @@ public abstract class NullSecurityManager extends SecurityManager {
 	 * @param message Message associated with the event.
 	 */
 	protected abstract void fireEvent(String message);
+	
+	/**
+	 * Filter events.  The result of the user definable filter operation
+	 * determines if fireEvent() is called.
+	 * @param FilterActions FilterActions.ALLOW, framework calls fireEvent().
+	 * FilterActions.DENY, fireEvent() will not be called.
+	 */
+	protected abstract FilterActions filterEvent(String message);
 	
 	/**
 	 * Test if target type of event handling is enabled.
