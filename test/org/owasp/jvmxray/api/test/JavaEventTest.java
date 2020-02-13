@@ -49,26 +49,26 @@ public class JavaEventTest {
 		try{
 			//create a temp file
 	    	File temp = File.createTempFile("temp-file-name", ".tmp"); 
-	    	boolean r = temp.canRead();
-	    	boolean w = temp.canWrite();
-	    	boolean e = temp.canExecute();  // NOTE triggers execute event check.
-	    	StringBuffer buff = new StringBuffer();
-	    	buff.append("File="+temp.getName()+"file permissions=");
-	    	if (r) buff.append("R");
-	    	if (w) buff.append("W");
-	    	if (e) buff.append("X");
-	    	logger.info(buff.toString());
+//	    	boolean r = temp.canRead();
+//	    	boolean w = temp.canWrite();
+//	    	boolean e = temp.canExecute();  // NOTE triggers execute event check.
+//	    	StringBuffer buff = new StringBuffer();
+//	    	buff.append("File="+temp.getName()+"file permissions=");
+//	    	if (r) buff.append("R");
+//	    	if (w) buff.append("W");
+//	    	if (e) buff.append("X");
+//	    	logger.info(buff.toString());
 	    }catch(IOException e){
 	    	e.printStackTrace();
 	    }
-		logger.info("complete - file management");
+		//logger.info("complete - file management");
 		
 	}
 	
 	@Test
 	public void testSystemProperties() {
 		System.setProperty("notepad","imlovenit");
-		logger.info("complete - property test");
+		//logger.info("complete - property test");
 	}
 	
 	@Test
@@ -76,12 +76,12 @@ public class JavaEventTest {
 		
 		try {
 			Process p = Runtime.getRuntime().exec("cd ."+File.separatorChar);
-			logger.info("process exit code="+p.exitValue());
+			//logger.info("process exit code="+p.exitValue());
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		
-		logger.info("complete - execution test");
+		//logger.info("complete - execution test");
 	}
 	
 	@Test
@@ -93,7 +93,7 @@ public class JavaEventTest {
 			echoSocket.close();
 		} catch (IOException e) {}
 		
-		logger.info("complete - socket connection test");
+		//logger.info("complete - socket connection test");
 	}
 	
 	@Test
@@ -105,7 +105,7 @@ public class JavaEventTest {
 			connection.getContent();
 		} catch (IOException e) {}
 		
-		logger.info("complete - url connection test");
+		//logger.info("complete - url connection test");
 	}
 	
 	@Test

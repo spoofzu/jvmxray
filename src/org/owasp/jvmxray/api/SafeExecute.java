@@ -11,21 +11,23 @@ package org.owasp.jvmxray.api;
  */
 public class SafeExecute {
 
-	private boolean bSupressRecursion = false;
+//	private boolean bSupressRecursion = false;
 	
 	public SafeExecute() {
 	}
 	
-	public synchronized void execute(SecurityManager sm) {
+	public synchronized void execute(NullSecurityManager sm) {
 		
 		try {
-			if( bSupressRecursion ) return;
-			bSupressRecursion = true;
+//			if( bSupressRecursion ) return;
+//			bSupressRecursion = true;
+			sm.setEnabled(false);
 			work();
 		}catch(Exception e) {
 			e.printStackTrace();
 		}finally{
-			bSupressRecursion = false;
+//			bSupressRecursion = false;
+			sm.setEnabled(true);
 		}
 	}
 	
