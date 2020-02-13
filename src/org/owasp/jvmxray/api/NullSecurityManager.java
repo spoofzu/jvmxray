@@ -1,9 +1,18 @@
 package org.owasp.jvmxray.api;
 
 import java.io.FileDescriptor;
+import java.io.IOException;
+import java.io.InputStream;
+import java.lang.reflect.Constructor;
 import java.net.InetAddress;
 import java.security.Permission;
 import java.util.EnumSet;
+import java.util.Enumeration;
+import java.util.Properties;
+
+import org.owasp.jvmxray.filters.FilterDomainList;
+import org.owasp.jvmxray.filters.FilterDomainRule;
+
 
 /**
  * 
@@ -47,12 +56,12 @@ public abstract class NullSecurityManager extends SecurityManager {
 	 * Java's default SecurityManager the default security properties specify it's fully qualified
 	 * class name, <code>java.lang.securitymanager</code>.
 	 */
-	public static final String SECURITY_MANAGER_OPTION = "nullsecuritymanager.securitymanager";
+	public static final String SECURITY_MANAGER_OPTION = "jvmxray.securitymanager";
 	
 	/**
 	 * Property name of the events to capture.
 	 */
-	public static final String SECURITY_EVENTS = "nullsecuritymanager.events";
+	public static final String SECURITY_EVENTS = "jvmxray.events";
 	
 	/**
 	 * Set of events to process.
@@ -60,6 +69,8 @@ public abstract class NullSecurityManager extends SecurityManager {
 	EnumSet<Events> usrevents = EnumSet.noneOf(Events.class);
 	
 	private SecurityManager smd = null;
+	
+	private FilterDomainList rulelist = new FilterDomainList();
 			
 	/**
 	 * Event types supported the <code>NullSecurityManager</code>.  The list of protected resources
@@ -90,7 +101,7 @@ public abstract class NullSecurityManager extends SecurityManager {
 	 * Return the events of interest in the implementation when you override,
 	 * <code>NullSecurityManager.getEnabledEvents()</code>
 	 */
-	protected enum Events {
+	public enum Events {
 		ACCESS,
 		CLASSLOADER_CREATE,
 		EXEC,
@@ -115,13 +126,15 @@ public abstract class NullSecurityManager extends SecurityManager {
 	
 	public enum FilterActions {
 		ALLOW,
+		NEUTRAL,
 		DENY
 	}
 	
 	protected NullSecurityManager() {
 		super();
 		assignSecurityManagerDefault();
-		usrevents = assignEvents();
+		initializeFromProperties();
+		//usrevents = assignEvents();
 	}
 	
 	@Override
@@ -137,164 +150,166 @@ public abstract class NullSecurityManager extends SecurityManager {
 	@Override
 	public void checkPermission(Permission perm) {
 		if( isEventEnabled(Events.PERMISSION) )
-			fireSafeEvent("PERMISSION, p="+perm.getName());
+			fireSafeEvent(Events.PERMISSION, "p="+perm.getName(), perm);
 	}
 
 	@Override
 	public void checkPermission(Permission perm, Object context) {
 		if( isEventEnabled(Events.PERMISSION) )
-			fireSafeEvent("PERMISSION_WITH_CONTEXT, p="+perm.getName()+" c="+context.toString());
+			fireSafeEvent(Events.PERMISSION, "p="+perm.getName(), perm, context);
 	}
 
 	@Override
 	public void checkCreateClassLoader() {
 		if( isEventEnabled(Events.CLASSLOADER_CREATE) )
-			fireSafeEvent("CLASSLOADER_CREATE");
+			fireSafeEvent(Events.CLASSLOADER_CREATE, "");
 	}
 
 	@Override
 	public void checkAccess(Thread t) {
 		if( isEventEnabled(Events.ACCESS) )
-			fireSafeEvent("ACCESS, t="+t.toString());
+			fireSafeEvent(Events.ACCESS, "t="+t.toString(), t);
 	}
 
 	@Override
 	public void checkAccess(ThreadGroup g) {
 		if( isEventEnabled(Events.ACCESS) )
-			fireSafeEvent("ACCESS, tg="+g.toString());
+			fireSafeEvent(Events.ACCESS, "tg="+g.toString(), g);
 	}
 
 	@Override
 	public void checkExit(int status) {
 		if( isEventEnabled(Events.EXIT) )
-			fireSafeEvent("EXIT, s="+status);
+			fireSafeEvent(Events.EXIT, "s="+status, status);
 	}
 
 	@Override
 	public void checkExec(String cmd) {
 		if( isEventEnabled(Events.FILE_EXECUTE) )
-			fireSafeEvent("FILE_EXECUTE, cmd="+cmd);
+			fireSafeEvent(Events.FILE_EXECUTE, "cmd="+cmd, cmd);
 	}
 
 	@Override
 	public void checkLink(String lib) {
 		if( isEventEnabled(Events.LINK) )
-			fireSafeEvent("LINK, lib="+lib);
+			fireSafeEvent(Events.LINK,"lib="+lib, lib);
 	}
 
 	@Override
 	public void checkRead(FileDescriptor fd) {
-		if( isEventEnabled(Events.FILE_READ) )
-			fireSafeEvent("FILE_READ, fd="+fd.toString());
+// NOTE: Don't believe we can get the file name so this is not useful.
+//		if( isEventEnabled(Events.FILE_READ) )
+//			fireSafeEvent(Events.FILE_READ, "fd="+fd.toString(), fd);
 	}
 
 	@Override
 	public void checkRead(String file) {
 		if( isEventEnabled(Events.FILE_READ) )
-			fireSafeEvent("FILE_READ, f="+file);
+			fireSafeEvent(Events.FILE_READ, "f="+file, file);
 	}
 
 	@Override
 	public void checkRead(String file, Object context) {
 		if( isEventEnabled(Events.FILE_READ) )
-			fireSafeEvent("FILE_READ, f="+file+" c="+context.toString());
+			fireSafeEvent(Events.FILE_READ, "f="+file+" c="+context.toString(), file, context);
 	}
 
 	@Override
 	public void checkWrite(FileDescriptor fd) {
-		if( isEventEnabled(Events.FILE_WRITE) )
-			fireSafeEvent("FILE_WRITE, fd="+fd.toString());
+// NOTE: Don't believe we can get the file name so this is not useful.
+//		if( isEventEnabled(Events.FILE_WRITE) )
+//			fireSafeEvent(Events.FILE_WRITE, "fd="+fd.toString(), fd);
 	}
 
 	@Override
 	public void checkWrite(String file) {
 		if( isEventEnabled(Events.FILE_WRITE) )
-			fireSafeEvent("FILE_WRITE, f="+file);
+			fireSafeEvent(Events.FILE_WRITE, "f="+file, file);
 	}
 
 	@Override
 	public void checkDelete(String file) {
 		if( isEventEnabled(Events.FILE_DELETE) )
-			fireSafeEvent("FILE_DELETE, f="+file);
+			fireSafeEvent(Events.FILE_DELETE, "f="+file, file);
 	}
 
 	@Override
 	public void checkConnect(String host, int port) {
 		if( isEventEnabled(Events.SOCKET_CONNECT) )
-			fireSafeEvent("SOCKET_CONNECT, h="+host+" p="+port);
+			fireSafeEvent(Events.SOCKET_CONNECT, host, port);
 	}
 
 	@Override
 	public void checkConnect(String host, int port, Object context) {
 		if( isEventEnabled(Events.SOCKET_CONNECT) )
-			fireSafeEvent("SOCKET_CONNECT, h="+host+" p="+port+" c="+context.toString());
+			fireSafeEvent(Events.SOCKET_CONNECT, "h="+host+" p="+port, host, port, context);
 	}
 
 	@Override
 	public void checkListen(int port) {
 		if( isEventEnabled(Events.SOCKET_LISTEN) )
-			fireSafeEvent("SOCKET_LISTEN, p="+port);
+			fireSafeEvent(Events.SOCKET_LISTEN, "p="+port, port);
 	}
 
 	@Override
 	public void checkAccept(String host, int port) {
 		if( isEventEnabled(Events.SOCKET_ACCEPT) )
-			fireSafeEvent("SOCKET_ACCEPT, h="+host+" p="+port);
+			fireSafeEvent(Events.SOCKET_ACCEPT, "h="+host+" p="+port, host, port);
 	}
 
 	@Override
 	public void checkMulticast(InetAddress maddr) {
 		if( isEventEnabled(Events.SOCKET_MULTICAST) )
-			fireSafeEvent("SOCKET_MULTICAST, addr="+maddr.toString());
+			fireSafeEvent(Events.SOCKET_MULTICAST, "addr="+maddr.toString(), maddr);
 	}
 
 	@Override
 	@Deprecated 
 	public void checkMulticast(InetAddress maddr, byte ttl) {
 		if( isEventEnabled(Events.SOCKET_MULTICAST) )
-			fireSafeEvent("SOCKET_MULTICAST, addr="+maddr.toString()+" ttl="+Integer.toHexString(ttl));
+			fireSafeEvent(Events.SOCKET_MULTICAST, "addr="+maddr.toString()+" ttl="+Integer.toHexString(ttl), maddr, ttl);
 	}
 
 	@Override
 	public void checkPropertiesAccess() {
 		if( isEventEnabled(Events.PROPERTIES_ANY) )
-			fireSafeEvent("PROPERTIES_ANY");
+			fireSafeEvent(Events.PROPERTIES_ANY, "");
 	}
 
 	@Override
 	public void checkPropertyAccess(String key) {
 		if( isEventEnabled(Events.PROPERTIES_NAMED) )
-			fireSafeEvent("PROPERTIES_NAMED, key="+key);
+			fireSafeEvent(Events.PROPERTIES_NAMED, "key="+key, key);
 	}
 
 	@Override
 	public void checkPrintJobAccess() {
 		if( isEventEnabled(Events.PRINT) )
-			fireSafeEvent("PRINT");
+			fireSafeEvent(Events.PRINT, "");
 	}
 
 	@Override
 	public void checkPackageAccess(String pkg) {
 		if( isEventEnabled(Events.PACKAGE_ACCESS) )
-			fireSafeEvent("PACKAGE_ACCESS, pkg="+pkg);
+			fireSafeEvent(Events.PACKAGE_ACCESS, "pkg="+pkg, pkg);
 	}
 
 	@Override
 	public void checkPackageDefinition(String pkg) {
 		if( isEventEnabled(Events.PACKAGE_DEFINE) )
-			fireSafeEvent("PACKAGE_DEFINITION, pkg="+pkg);
+			fireSafeEvent(Events.PACKAGE_DEFINE, "pkg="+pkg, pkg);
 	}
 
 	@Override
 	public void checkSetFactory() {
 		if( isEventEnabled(Events.FACTORY) )
-			fireSafeEvent("FACTORY");
+			fireSafeEvent(Events.FACTORY, "");
 	}
 
 	@Override
 	public void checkSecurityAccess(String target) {
 		if( isEventEnabled(Events.ACCESS) )
-			fireSafeEvent("ACCESS, pkg="+target);
+			fireSafeEvent(Events.ACCESS, "pkg="+target, target);
 	}
 
 	@Override
@@ -309,12 +324,12 @@ public abstract class NullSecurityManager extends SecurityManager {
 	 * the callers filter handling.
 	 * @param message Message associated with the event.
 	 */
-	private void fireSafeEvent(String message) {
+	private void fireSafeEvent(Events event, String message, Object ...obj ) {
 		
 		SafeExecute s = new SafeExecute() {
 			public void work() {
-				if( filterEvent(message) == FilterActions.ALLOW )
-					fireEvent( message );
+				if( filterEvent(event, obj) == FilterActions.ALLOW )
+					fireEvent( event, message );
 			}
 		};
 		s.execute(this);
@@ -327,15 +342,18 @@ public abstract class NullSecurityManager extends SecurityManager {
 	 * and Java logging.
 	 * @param message Message associated with the event.
 	 */
-	protected abstract void fireEvent(String message);
+	protected abstract void fireEvent(Events event, String message);
 	
 	/**
-	 * Filter events.  The result of the user definable filter operation
-	 * determines if fireEvent() is called.
+	 * xxx
 	 * @param FilterActions FilterActions.ALLOW, framework calls fireEvent().
 	 * FilterActions.DENY, fireEvent() will not be called.
 	 */
-	protected abstract FilterActions filterEvent(String message);
+	private FilterActions filterEvent(Events event, Object ...obj) {
+		
+		return rulelist.filterEvents( event, obj);
+		
+	}
 	
 	/**
 	 * Test if target type of event handling is enabled.
@@ -376,21 +394,22 @@ public abstract class NullSecurityManager extends SecurityManager {
 		        	//         smd.getSecurityContext() is more appropriate or something else.  For now, I'm
 		        	//         disabling this feature.
 		        	//
-		    		fireSafeEvent("User supported security managers not supported at the moment." );
-		    		System.exit(10);
+		    		String error = "Chaining security managers is not yet supported.";
+		    		RuntimeException e1 = new RuntimeException(error);
+		    		throw e1;
 		    		
-			    	try {
-			    		Class<?> smc = Class.forName(pv);
-			    		Object sm = smc.getDeclaredConstructor().newInstance();
-			    		if (sm instanceof java.lang.SecurityManager) {
-			    			smd = (SecurityManager)sm;
-			    		}
-			    	} catch(Exception e ) {
-			    		fireSafeEvent("SecurityManager implementation not loaded. msg="+e.getMessage()+" class="+pv);
-			    		e.printStackTrace();
-			    		System.exit(20);
-			    		
-			    	}
+//			    	try {
+//			    		Class<?> smc = Class.forName(pv);
+//			    		Object sm = smc.getDeclaredConstructor().newInstance();
+//			    		if (sm instanceof java.lang.SecurityManager) {
+//			    			smd = (SecurityManager)sm;
+//			    		}
+//			    	} catch(Exception e2 ) {
+//			    		System.err.println("SecurityManager implementation not loaded. msg="+e2.getMessage()+" class="+pv);
+//			    		e2.printStackTrace();
+//			    		System.exit(20);
+//			    		
+//			    	}
 		    	}
 			}
 		};
@@ -398,34 +417,110 @@ public abstract class NullSecurityManager extends SecurityManager {
 
     }
     
-    /**
-     * Default behavior is to assign events from property values (via command line).
-     * May be overridden by implementers of NullSecurityManager to enable events of
-     * interest.
-     * @return An EnumSet of events to fire.
-     */
-    protected EnumSet<Events> assignEvents() {
-    	
-    	EnumSet<Events> tevents = EnumSet.noneOf(Events.class);
-    	
-		SafeExecute s = new SafeExecute() {
-			public void work() {
-		    	String se = System.getProperty(SECURITY_EVENTS, "zzzz");
-		    	if( !se.equals("zzzz") ) {
-		    		String[] tokens = se.toUpperCase().split(",");
-		    		for( String event: tokens ) {
-		    			tevents.add(Events.valueOf(event.trim()));
-		
-		    		}
-		    	}
-			}
-		};
-		s.execute(this);
+//    /**
+//     * Default behavior is to assign events from property values (via command line).
+//     * May be overridden by implementers of NullSecurityManager to enable events of
+//     * interest.
+//     * @return An EnumSet of events to fire.
+//     */
+//    protected EnumSet<Events> assignEvents() {
+//    	
+//    	EnumSet<Events> tevents = EnumSet.noneOf(Events.class);
+//    	
+//		SafeExecute s = new SafeExecute() {
+//			public void work() {
+//		    	String se = System.getProperty(SECURITY_EVENTS, "zzzz");
+//		    	if( !se.equals("zzzz") ) {
+//		    		String[] tokens = se.toUpperCase().split(",");
+//		    		for( String event: tokens ) {
+//		    			tevents.add(Events.valueOf(event.trim()));
+//		
+//		    		}
+//		    	}
+//			}
+//		};
+//		s.execute(this);
+//    
+//    	return tevents;
+//    	
+//    }
     
-    	return tevents;
+	
+    private void initializeFromProperties() {
+    
+    	try {
+    	
+    		// Load jvmxray.properties
+	    	Properties p = new Properties();
+	    	InputStream in = null;
+	    	try {
+		    	 in = getClass().getResourceAsStream("/jvmxray.properties");
+		    	 p.load(in);
+	    	}finally {
+	       	 if( in != null )
+				try {
+					in.close();
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+	    	}
+	    	
+	    	// Iterate over all the properties
+	    	for( int i=1; i < 500; i++ ) {
+	    		
+	    		// Common settings for all filters.
+	    		String fclass = p.getProperty("jvmxray.filter"+i+".class");
+	    		String events = p.getProperty("jvmxray.filter"+i+".events");
+	    		String defaults = p.getProperty("jvmxray.filter"+i+".default");
+	    		
+	    		// No more filters or missing filter.  Continue to look for
+	    		// next numbered fitler.
+	    		if( fclass == null || events == null || defaults == null )
+	    			continue;
+	    		
+	    		// Collect all properties specific to the filter.
+	    		Properties np = new Properties();
+	    		Enumeration<String> e = (Enumeration<String>) p.propertyNames();
+	    		while (e.hasMoreElements() ) {
+	    			String key = e.nextElement();
+	    			String value = p.getProperty(key);
+	    			String prefix = "jvmxray.filter"+i;
+	    			if( key.startsWith(prefix) ) {
+	    				np.put(key,value);
+	    			}
+	    		}
+	    	
+	             // Take any new events and add it to the list of supported events in
+	             // usrevents.
+	    		EnumSet<Events> gvents = EnumSet.noneOf(Events.class);
+	             String[] sevents = events.split(",");
+	             for( int i3=0; i3 < sevents.length; i3++ ) {
+	            	 String levent = sevents[i3].trim();
+	            	 if ( !usrevents.contains(levent) ) {
+	            		 gvents.add(Events.valueOf(levent));
+	            		 usrevents.add(Events.valueOf(levent));
+	
+	            	 }
+	             }
+	            	 
+	        	 // Create instance of specified filter using reflection
+	    		 Class c = getClass().getClassLoader().loadClass(fclass);
+	             Constructor cd = c.getConstructor(EnumSet.class, FilterActions.class, Properties.class);
+	             FilterActions filteraction = FilterActions.valueOf(defaults);
+	             FilterDomainRule fdr = (FilterDomainRule)cd.newInstance(gvents,filteraction, np);
+	             
+	            		 
+	             // Add the rule to the list
+	         	 rulelist.add( fdr );
+	             
+	    	}
+	   
+    	
+    	} catch( Exception e ) {
+    		e.printStackTrace();
+    	}
     	
     }
     
     
-	
 }

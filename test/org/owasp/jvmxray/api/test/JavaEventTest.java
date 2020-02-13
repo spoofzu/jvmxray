@@ -21,6 +21,9 @@ public class JavaEventTest {
 	
 	// Using @Begin annotation would be customary but we need to ensure
 	// logging is initialized prior to it's use.
+	
+	// TODOMS: FYI NEED TO MOVE LOGGING INTIALIZATION CODE INTO APPROPRITE HANDLERS.  NOT APPROPRIATE TO DO THIS
+	// IN TEST
 	static {
 		
 		// Initialize logback logging
