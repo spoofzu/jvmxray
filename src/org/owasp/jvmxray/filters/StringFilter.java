@@ -43,37 +43,53 @@ public class StringFilter extends FilterDomainRule {
 				
 				String v1 = (String)obj[0];
 		
-				// Collect all properties specific to the filter.
+				// Remove non-criterial properties
+				boolean bCritieriaPresent = false;
 				Properties np = new Properties();
 				Enumeration<String> e = (Enumeration<String>) p.propertyNames();
-				boolean startswithpropertypresent = false;
 				while (e.hasMoreElements() ) {
 					String key = e.nextElement();
 					String value = p.getProperty(key);
-					if( key.contains("startswith") ) {
-						if ( v1.toString().startsWith(value) ) {
-							startswithpropertypresent = true;
-							results = defaultfilter; 
-							break;
-						}
-					} else if( key.contains("endswith") ) {
-						if ( v1.toString().endsWith(value) ) {
-							startswithpropertypresent = true;
-							results = defaultfilter; 
-							break;
-						}
-					} else if( key.contains("matches") ) {
-						if ( v1.toString().matches(value) ) {
-							startswithpropertypresent = true;
-							results = defaultfilter; 
-							break;
+					if (key.contains("startswith") ||
+					    key.contains("endswith") ||
+						key.contains("matches")) {
+						np.setProperty(key,value);
+						bCritieriaPresent = true;
+					}
+				}
+				
+				// Collect all properties specific to the filter.
+				e = (Enumeration<String>) np.propertyNames();
+				while (bCritieriaPresent && e.hasMoreElements() ) {
+					String key = e.nextElement();
+					String value = np.getProperty(key);
+					// Break on first positive match.  Iterate over the
+					// numbered criteria, which may be out of order.
+					for( int idx=1; idx < 500 ; idx++ ) {
+						if( key.contains("startswith"+idx) ) {
+							if ( v1.toString().startsWith(value) ) {
+								results = defaultfilter; 
+								break;
+							}
+						} else if( key.contains("endswith"+idx) ) {
+							if ( v1.toString().endsWith(value) ) {
+								results = defaultfilter; 
+								break;
+							}
+						} else if( key.contains("matches"+idx) ) {
+							if ( v1.toString().matches(value) ) {
+								results = defaultfilter; 
+								break;
+							}
 						}
 					}
 				}
 				
-				if ( !startswithpropertypresent ) {
-					results = (defaultfilter == FilterActions.ALLOW) ? FilterActions.DENY : FilterActions.ALLOW;
-				}
+				// Handles the case where no criteria is present so we process ALLOW or DENY
+				// at the event level.
+				if ( !bCritieriaPresent ) {
+					results = defaultfilter;
+				} 
 			}
 	
 		}
