@@ -428,34 +428,6 @@ public abstract class NullSecurityManager extends SecurityManager {
 
     }
     
-//    /**
-//     * Default behavior is to assign events from property values (via command line).
-//     * May be overridden by implementers of NullSecurityManager to enable events of
-//     * interest.
-//     * @return An EnumSet of events to fire.
-//     */
-//    protected EnumSet<Events> assignEvents() {
-//    	
-//    	EnumSet<Events> tevents = EnumSet.noneOf(Events.class);
-//    	
-//		SafeExecute s = new SafeExecute() {
-//			public void work() {
-//		    	String se = System.getProperty(SECURITY_EVENTS, "zzzz");
-//		    	if( !se.equals("zzzz") ) {
-//		    		String[] tokens = se.toUpperCase().split(",");
-//		    		for( String event: tokens ) {
-//		    			tevents.add(Events.valueOf(event.trim()));
-//		
-//		    		}
-//		    	}
-//			}
-//		};
-//		s.execute(this);
-//    
-//    	return tevents;
-//    	
-//    }
-    
 	
     private void initializeFromProperties() {
     
