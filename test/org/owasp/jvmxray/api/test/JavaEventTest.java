@@ -7,7 +7,7 @@ import java.net.URL;
 import java.net.URLConnection;
 
 import org.junit.Test;
-import org.owasp.jvmxray.handlers.ConsoleHandler;
+import org.owasp.jvmxray.adaptors.ConsoleAdaptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +38,7 @@ public class JavaEventTest {
 		
 		// Choose the event sink.
 		//LogbackHanlder h = new LogbackHanlder();
-		ConsoleHandler h = new ConsoleHandler();
+		ConsoleAdaptor h = new ConsoleAdaptor();
 		System.setSecurityManager(h);
 		
 	}

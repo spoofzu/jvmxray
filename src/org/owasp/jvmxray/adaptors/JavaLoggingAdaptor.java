@@ -1,13 +1,13 @@
-package org.owasp.jvmxray.handlers;
+package org.owasp.jvmxray.adaptors;
 
 import java.util.logging.Logger;
 
 import org.owasp.jvmxray.api.NullSecurityManager;
 
 
-public class JavaLoggingHandler extends NullSecurityManager {
+public class JavaLoggingAdaptor extends NullSecurityManager {
 
-	private static final Logger logger = Logger.getLogger("org.owasp.jvmxray.handlers.JavaLoggignHandler");
+	private static final Logger logger = Logger.getLogger("org.owasp.jvmxray.adaptors.JavaLoggingAdaptor");
 
 	@Override
 	protected void fireEvent(Events event, String message) {

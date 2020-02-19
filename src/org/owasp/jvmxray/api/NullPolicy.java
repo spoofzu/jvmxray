@@ -52,19 +52,25 @@ public class NullPolicy extends Policy {
 
 	    @Override
 	    public synchronized PermissionCollection getPermissions(CodeSource codesource) {
-//    		if( busy ) return ALL_PERMISSIONS_SINGLETON;
-//    		busy = true;
-//	    	System.out.println("NullPolicy.getPermissions(CodeSource)-->"+codesource.toString());
-//    		busy = false;
+			
+	    	StringBuffer buff = new StringBuffer();
+			buff.append( "NULLPOLICY " );
+			buff.append( "cs= " );
+			buff.append( codesource.toString() );
+			System.out.println(buff.toString());
+			
 	        return ALL_PERMISSIONS_SINGLETON;
 	    }
 	
 	    @Override
 	    public synchronized PermissionCollection getPermissions(ProtectionDomain domain) {
-//    		if( busy ) return ALL_PERMISSIONS_SINGLETON;
-//    		busy = true;
-//    		System.out.println("NullPolicy.getPermissions(ProtectionDomain)-->"+domain.toString());
-//    		busy = false;
+	    	
+	    	StringBuffer buff = new StringBuffer();
+			buff.append( "NULLPOLICY " );
+			buff.append( "pd= " );
+			buff.append( domain.toString() );
+			System.out.println(buff.toString());
+			
 	        return ALL_PERMISSIONS_SINGLETON;
 	    }
 	   

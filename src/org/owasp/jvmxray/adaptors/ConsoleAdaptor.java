@@ -1,4 +1,4 @@
-package org.owasp.jvmxray.handlers;
+package org.owasp.jvmxray.adaptors;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -8,7 +8,7 @@ import org.owasp.jvmxray.api.NullSecurityManager;
 
 
 
-public class ConsoleHandler extends NullSecurityManager {
+public class ConsoleAdaptor extends NullSecurityManager {
 	
 	private SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z"); // 2016-11-16 12:08:43 PST
 	
@@ -20,6 +20,7 @@ public class ConsoleHandler extends NullSecurityManager {
 		String dt = df.format(new Date());
 		
 		StringBuffer buff = new StringBuffer();
+		buff.append( "CONSOLEADAPTOR " );
 		buff.append( dt );
 		buff.append( ' ' );
 		buff.append( event.toString() );
@@ -27,7 +28,6 @@ public class ConsoleHandler extends NullSecurityManager {
 		buff.append( message.toString() );
 		
 		System.out.println(buff.toString());
-//		System.out.println("jvmxray-->"+message);
 	
 	}
 

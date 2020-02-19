@@ -1,13 +1,13 @@
-package org.owasp.jvmxray.handlers;
+package org.owasp.jvmxray.adaptors;
 
 
 import org.owasp.jvmxray.api.NullSecurityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LogbackHandler extends NullSecurityManager {
+public class LogbackAdapter extends NullSecurityManager {
 	
-	private static final Logger logger = LoggerFactory.getLogger("org.owasp.jvmxray.handlers.LogbackHandler");
+	private static final Logger logger = LoggerFactory.getLogger("org.owasp.jvmxray.adaptors.LogbackAdapter");
 	
 	@Override
 	public void fireEvent(Events event, String message) {

@@ -50,7 +50,9 @@ import org.owasp.jvmxray.filters.FilterDomainRule;
  */
 public abstract class NullSecurityManager extends SecurityManager {
 
-	// Debugging info, https://docs.oracle.com/javase/7/docs/technotes/guides/security/troubleshooting-security.html
+	// Useful INFO
+	// Debugging, https://docs.oracle.com/javase/7/docs/technotes/guides/security/troubleshooting-security.html
+	// Permissions, https://docs.oracle.com/en/java/javase/12/security/permissions-jdk1.html#GUID-8B521D4F-1502-42EA-BA70-8E3322A163B5
 	
 	/**
 	 * System property name of the security manager to use, <code>nullsecuritymanager.securitymanager</code>
@@ -140,9 +142,9 @@ public abstract class NullSecurityManager extends SecurityManager {
 		super();
 		assignSecurityManagerDefault();
 		initializeFromProperties();
-		//usrevents = assignEvents();
+		// usrevents = assignEvents();
 		// Turn off default access control checks as specified by java policy file defaults.
-		//Policy.setPolicy(new NullPolicy());
+		// Policy.setPolicy(new NullPolicy());
 	}
 	
 	@Override
@@ -158,13 +160,13 @@ public abstract class NullSecurityManager extends SecurityManager {
 	@Override
 	public synchronized void checkPermission(Permission perm) {
 		if( isEventEnabled(Events.PERMISSION) )
-			fireSafeEvent(Events.PERMISSION, "p="+perm.getName(), perm);
+			fireSafeEvent(Events.PERMISSION, "n="+perm.getName()+",a="+perm.getActions()+",s="+perm.toString(), perm);
 	}
 
 	@Override
 	public synchronized void checkPermission(Permission perm, Object context) {
 		if( isEventEnabled(Events.PERMISSION) )
-			fireSafeEvent(Events.PERMISSION, "p="+perm.getName(), perm, context);
+			fireSafeEvent(Events.PERMISSION, "n="+perm.getName()+",a="+perm.getActions()+",s="+perm.toString()+",ctx="+context.toString(), perm, context);
 	}
 
 	@Override
@@ -219,7 +221,7 @@ public abstract class NullSecurityManager extends SecurityManager {
 	@Override
 	public synchronized void checkRead(String file, Object context) {
 		if( isEventEnabled(Events.FILE_READ) )
-			fireSafeEvent(Events.FILE_READ, "f="+file+" c="+context.toString(), file, context);
+			fireSafeEvent(Events.FILE_READ, "f="+file+",c="+context.toString(), file, context);
 	}
 
 	@Override
@@ -244,13 +246,13 @@ public abstract class NullSecurityManager extends SecurityManager {
 	@Override
 	public synchronized void checkConnect(String host, int port) {
 		if( isEventEnabled(Events.SOCKET_CONNECT) )
-			fireSafeEvent(Events.SOCKET_CONNECT, host, port);
+			fireSafeEvent(Events.SOCKET_CONNECT, "h="+host+",p="+port, host, port);
 	}
 
 	@Override
 	public synchronized void checkConnect(String host, int port, Object context) {
 		if( isEventEnabled(Events.SOCKET_CONNECT) )
-			fireSafeEvent(Events.SOCKET_CONNECT, "h="+host+" p="+port, host, port, context);
+			fireSafeEvent(Events.SOCKET_CONNECT, "h="+host+",p="+port+",ctx="+context.toString(), host, port, context);
 	}
 
 	@Override
@@ -262,7 +264,7 @@ public abstract class NullSecurityManager extends SecurityManager {
 	@Override
 	public synchronized void checkAccept(String host, int port) {
 		if( isEventEnabled(Events.SOCKET_ACCEPT) )
-			fireSafeEvent(Events.SOCKET_ACCEPT, "h="+host+" p="+port, host, port);
+			fireSafeEvent(Events.SOCKET_ACCEPT, "h="+host+",p="+port, host, port);
 	}
 
 	@Override
@@ -396,39 +398,35 @@ public abstract class NullSecurityManager extends SecurityManager {
      */
     private void assignSecurityManagerDefault() {
 
-		SafeExecute s = new SafeExecute() {
-			public void work() {
-		    	String pv = System.getProperty(SECURITY_MANAGER_OPTION, "zzzz");
-		    	if ( pv != "zzzz" ) {
-		    		
-		        	// TODOMS: Idea is to call methods of smd within methods of NullSecurityManager to chain
-		        	//         SecurityManager functionality.  Unfortunately, it's going to take more work
-		        	//         to determine if NullSecurityManager context information is appropriate.  For
-		        	//         example returning context as provided by NullSecurityManager.getClassContext()
-		        	//         and NullSecurityManager.getSecurityContext() or if smd.getClassContext() and
-		        	//         smd.getSecurityContext() is more appropriate or something else.  For now, I'm
-		        	//         disabling this feature.
-		        	//
-		    		String error = "Chaining security managers is not yet supported.";
-		    		RuntimeException e1 = new RuntimeException(error);
-		    		throw e1;
-		    		
-//			    	try {
-//			    		Class<?> smc = Class.forName(pv);
-//			    		Object sm = smc.getDeclaredConstructor().newInstance();
-//			    		if (sm instanceof java.lang.SecurityManager) {
-//			    			smd = (SecurityManager)sm;
-//			    		}
-//			    	} catch(Exception e2 ) {
-//			    		System.err.println("SecurityManager implementation not loaded. msg="+e2.getMessage()+" class="+pv);
-//			    		e2.printStackTrace();
-//			    		System.exit(20);
-//			    		
-//			    	}
-		    	}
-			}
-		};
-		s.execute(this);
+
+    	String pv = System.getProperty(SECURITY_MANAGER_OPTION, "zzzz");
+    	if ( pv != "zzzz" ) {
+    		
+        	// TODOMS: Idea is to call methods of smd within methods of NullSecurityManager to chain
+        	//         SecurityManager functionality.  Unfortunately, it's going to take more work
+        	//         to determine if NullSecurityManager context information is appropriate.  For
+        	//         example returning context as provided by NullSecurityManager.getClassContext()
+        	//         and NullSecurityManager.getSecurityContext() or if smd.getClassContext() and
+        	//         smd.getSecurityContext() is more appropriate or something else.  For now, I'm
+        	//         disabling this feature.
+        	//
+    		String error = "Chaining security managers is unsupported.";
+    		RuntimeException e1 = new RuntimeException(error);
+    		throw e1;
+    		
+//	    	try {
+//	    		Class<?> smc = Class.forName(pv);
+//	    		Object sm = smc.getDeclaredConstructor().newInstance();
+//	    		if (sm instanceof java.lang.SecurityManager) {
+//	    			smd = (SecurityManager)sm;
+//	    		}
+//	    	} catch(Exception e2 ) {
+//	    		System.err.println("SecurityManager implementation not loaded. msg="+e2.getMessage()+" class="+pv);
+//	    		e2.printStackTrace();
+//	    		System.exit(20);
+//	    		
+//	    	}
+    	}
 
     }
     
