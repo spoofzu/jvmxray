@@ -74,6 +74,8 @@ public abstract class NullSecurityManager extends SecurityManager {
 	private SecurityManager smd = null;
 	
 	private FilterDomainList rulelist = new FilterDomainList();
+	
+	private volatile boolean bSupressRecursion = false;
 
 			
 	/**
@@ -144,12 +146,12 @@ public abstract class NullSecurityManager extends SecurityManager {
 	}
 	
 	@Override
-	protected Class<?>[] getClassContext() {
+	protected synchronized Class<?>[] getClassContext() {
 		return super.getClassContext();
 	}
 
 	@Override
-	public Object getSecurityContext() {
+	public synchronized Object getSecurityContext() {
 		return super.getSecurityContext();
 	}
 
@@ -319,7 +321,7 @@ public abstract class NullSecurityManager extends SecurityManager {
 	}
 
 	@Override
-	public ThreadGroup getThreadGroup() {
+	public synchronized ThreadGroup getThreadGroup() {
 		return super.getThreadGroup();
 	}
 
@@ -332,13 +334,19 @@ public abstract class NullSecurityManager extends SecurityManager {
 	 */
 	private void fireSafeEvent(Events event, String message, Object ...obj ) {
 		
-		SafeExecute s = new SafeExecute() {
-			public void work() {
-				if( filterEvent(event, obj) == FilterActions.ALLOW )
-					fireEvent( event, message );
+		try {
+			if( bSupressRecursion ) {
+				return;
 			}
-		};
-		s.execute(this);
+			if( filterEvent(event, obj) == FilterActions.ALLOW ) {
+				bSupressRecursion = true;
+				fireEvent( event, message );
+				bSupressRecursion = false;
+			}
+		}catch(Throwable t) {
+			t.printStackTrace();
+			bSupressRecursion = false;
+		}
 	}
 	
 	/**

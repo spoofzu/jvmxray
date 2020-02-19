@@ -15,19 +15,19 @@ public class ConsoleHandler extends NullSecurityManager {
 	@Override
 	public void fireEvent(Events event, String message) {
 	
-//		TimeZone stz = TimeZone.getDefault(); // Default timezone of the server.
-//		df.setTimeZone(stz); 
-//		String dt = df.format(new Date());
-//		
-//		StringBuffer buff = new StringBuffer();
-//		buff.append( dt );
-//		buff.append( ' ' );
-//		buff.append( event.toString() );
-//		buff.append( ' ' );
-//		buff.append( message.toString() );
+		TimeZone stz = TimeZone.getDefault(); // Default timezone of the server.
+		df.setTimeZone(stz); 
+		String dt = df.format(new Date());
 		
-//		System.out.println(buff.toString());
-		System.out.println("jvmxray-->"+message);
+		StringBuffer buff = new StringBuffer();
+		buff.append( dt );
+		buff.append( ' ' );
+		buff.append( event.toString() );
+		buff.append( ' ' );
+		buff.append( message.toString() );
+		
+		System.out.println(buff.toString());
+//		System.out.println("jvmxray-->"+message);
 	
 	}
 

@@ -11,7 +11,7 @@ package org.owasp.jvmxray.api;
  */
 public class SafeExecute {
 
-	private boolean bSupressRecursion = false;
+	private static volatile boolean bSupressRecursion = false;
 	
 	public SafeExecute() {
 	}
