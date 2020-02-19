@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.net.InetAddress;
 import java.security.Permission;
+import java.security.Policy;
 import java.util.EnumSet;
 import java.util.Enumeration;
 import java.util.Properties;
@@ -49,6 +50,8 @@ import org.owasp.jvmxray.filters.FilterDomainRule;
  */
 public abstract class NullSecurityManager extends SecurityManager {
 
+	// Debugging info, https://docs.oracle.com/javase/7/docs/technotes/guides/security/troubleshooting-security.html
+	
 	/**
 	 * System property name of the security manager to use, <code>nullsecuritymanager.securitymanager</code>
 	 * If the property is unspecified then no security manager is used, this is the default.  If a 
@@ -72,8 +75,6 @@ public abstract class NullSecurityManager extends SecurityManager {
 	
 	private FilterDomainList rulelist = new FilterDomainList();
 
-	// determines if event processing is enabled or disabled.
-	private boolean isenabled = true;
 			
 	/**
 	 * Event types supported the <code>NullSecurityManager</code>.  The list of protected resources
@@ -138,6 +139,8 @@ public abstract class NullSecurityManager extends SecurityManager {
 		assignSecurityManagerDefault();
 		initializeFromProperties();
 		//usrevents = assignEvents();
+		// Turn off default access control checks as specified by java policy file defaults.
+		//Policy.setPolicy(new NullPolicy());
 	}
 	
 	@Override
@@ -151,167 +154,167 @@ public abstract class NullSecurityManager extends SecurityManager {
 	}
 
 	@Override
-	public void checkPermission(Permission perm) {
-		if( isEnabled() && isEventEnabled(Events.PERMISSION) )
+	public synchronized void checkPermission(Permission perm) {
+		if( isEventEnabled(Events.PERMISSION) )
 			fireSafeEvent(Events.PERMISSION, "p="+perm.getName(), perm);
 	}
 
 	@Override
-	public void checkPermission(Permission perm, Object context) {
-		if( isEnabled() && isEventEnabled(Events.PERMISSION) )
+	public synchronized void checkPermission(Permission perm, Object context) {
+		if( isEventEnabled(Events.PERMISSION) )
 			fireSafeEvent(Events.PERMISSION, "p="+perm.getName(), perm, context);
 	}
 
 	@Override
-	public void checkCreateClassLoader() {
-		if( isEnabled() && isEventEnabled(Events.CLASSLOADER_CREATE) )
+	public synchronized void checkCreateClassLoader() {
+		if( isEventEnabled(Events.CLASSLOADER_CREATE) )
 			fireSafeEvent(Events.CLASSLOADER_CREATE, "");
 	}
 
 	@Override
-	public void checkAccess(Thread t) {
-		if( isEnabled() && isEventEnabled(Events.ACCESS) )
+	public synchronized void checkAccess(Thread t) {
+		if( isEventEnabled(Events.ACCESS) )
 			fireSafeEvent(Events.ACCESS, "t="+t.toString(), t);
 	}
 
 	@Override
-	public void checkAccess(ThreadGroup g) {
-		if( isEnabled() && isEventEnabled(Events.ACCESS) )
+	public synchronized void checkAccess(ThreadGroup g) {
+		if( isEventEnabled(Events.ACCESS) )
 			fireSafeEvent(Events.ACCESS, "tg="+g.toString(), g);
 	}
 
 	@Override
-	public void checkExit(int status) {
-		if( isEnabled() && isEventEnabled(Events.EXIT) )
+	public synchronized void checkExit(int status) {
+		if( isEventEnabled(Events.EXIT) )
 			fireSafeEvent(Events.EXIT, "s="+status, status);
 	}
 
 	@Override
-	public void checkExec(String cmd) {
-		if( isEnabled() && isEventEnabled(Events.FILE_EXECUTE) )
+	public synchronized void checkExec(String cmd) {
+		if( isEventEnabled(Events.FILE_EXECUTE) )
 			fireSafeEvent(Events.FILE_EXECUTE, "cmd="+cmd, cmd);
 	}
 
 	@Override
-	public void checkLink(String lib) {
-		if( isEnabled() && isEventEnabled(Events.LINK) )
+	public synchronized void checkLink(String lib) {
+		if( isEventEnabled(Events.LINK) )
 			fireSafeEvent(Events.LINK,"lib="+lib, lib);
 	}
 
 	@Override
-	public void checkRead(FileDescriptor fd) {
+	public synchronized void checkRead(FileDescriptor fd) {
 // NOTE: Don't believe we can get the file name so this is not useful.
 //		if( isEnabled() && isEventEnabled(Events.FILE_READ) )
 //			fireSafeEvent(Events.FILE_READ, "fd="+fd.toString(), fd);
 	}
 
 	@Override
-	public void checkRead(String file) {
-		if( isEnabled() && isEventEnabled(Events.FILE_READ) )
+	public synchronized void checkRead(String file) {
+		if( isEventEnabled(Events.FILE_READ) )
 			fireSafeEvent(Events.FILE_READ, "f="+file, file);
 	}
 
 	@Override
-	public void checkRead(String file, Object context) {
-		if( isEnabled() && isEventEnabled(Events.FILE_READ) )
+	public synchronized void checkRead(String file, Object context) {
+		if( isEventEnabled(Events.FILE_READ) )
 			fireSafeEvent(Events.FILE_READ, "f="+file+" c="+context.toString(), file, context);
 	}
 
 	@Override
-	public void checkWrite(FileDescriptor fd) {
+	public synchronized void checkWrite(FileDescriptor fd) {
 // NOTE: Don't believe we can get the file name so this is not useful.
 //		if( isEnabled() && isEventEnabled(Events.FILE_WRITE) )
 //			fireSafeEvent(Events.FILE_WRITE, "fd="+fd.toString(), fd);
 	}
 
 	@Override
-	public void checkWrite(String file) {
-		if( isEnabled() && isEventEnabled(Events.FILE_WRITE) )
+	public synchronized void checkWrite(String file) {
+		if( isEventEnabled(Events.FILE_WRITE) )
 			fireSafeEvent(Events.FILE_WRITE, "f="+file, file);
 	}
 
 	@Override
-	public void checkDelete(String file) {
-		if( isEnabled() && isEventEnabled(Events.FILE_DELETE) )
+	public synchronized void checkDelete(String file) {
+		if( isEventEnabled(Events.FILE_DELETE) )
 			fireSafeEvent(Events.FILE_DELETE, "f="+file, file);
 	}
 
 	@Override
-	public void checkConnect(String host, int port) {
-		if( isEnabled() && isEventEnabled(Events.SOCKET_CONNECT) )
+	public synchronized void checkConnect(String host, int port) {
+		if( isEventEnabled(Events.SOCKET_CONNECT) )
 			fireSafeEvent(Events.SOCKET_CONNECT, host, port);
 	}
 
 	@Override
-	public void checkConnect(String host, int port, Object context) {
-		if( isEnabled() && isEventEnabled(Events.SOCKET_CONNECT) )
+	public synchronized void checkConnect(String host, int port, Object context) {
+		if( isEventEnabled(Events.SOCKET_CONNECT) )
 			fireSafeEvent(Events.SOCKET_CONNECT, "h="+host+" p="+port, host, port, context);
 	}
 
 	@Override
-	public void checkListen(int port) {
-		if( isEnabled() && isEventEnabled(Events.SOCKET_LISTEN) )
+	public synchronized void checkListen(int port) {
+		if( isEventEnabled(Events.SOCKET_LISTEN) )
 			fireSafeEvent(Events.SOCKET_LISTEN, "p="+port, port);
 	}
 
 	@Override
-	public void checkAccept(String host, int port) {
-		if( isEnabled() && isEventEnabled(Events.SOCKET_ACCEPT) )
+	public synchronized void checkAccept(String host, int port) {
+		if( isEventEnabled(Events.SOCKET_ACCEPT) )
 			fireSafeEvent(Events.SOCKET_ACCEPT, "h="+host+" p="+port, host, port);
 	}
 
 	@Override
-	public void checkMulticast(InetAddress maddr) {
-		if( isEnabled() && isEventEnabled(Events.SOCKET_MULTICAST) )
+	public synchronized void checkMulticast(InetAddress maddr) {
+		if( isEventEnabled(Events.SOCKET_MULTICAST) )
 			fireSafeEvent(Events.SOCKET_MULTICAST, "addr="+maddr.toString(), maddr);
 	}
 
 	@Override
 	@Deprecated 
-	public void checkMulticast(InetAddress maddr, byte ttl) {
-		if( isEnabled() && isEventEnabled(Events.SOCKET_MULTICAST) )
+	public synchronized void checkMulticast(InetAddress maddr, byte ttl) {
+		if( isEventEnabled(Events.SOCKET_MULTICAST) )
 			fireSafeEvent(Events.SOCKET_MULTICAST, "addr="+maddr.toString()+" ttl="+Integer.toHexString(ttl), maddr, ttl);
 	}
 
 	@Override
-	public void checkPropertiesAccess() {
-		if( isEnabled() && isEventEnabled(Events.PROPERTIES_ANY) )
+	public synchronized void checkPropertiesAccess() {
+		if( isEventEnabled(Events.PROPERTIES_ANY) )
 			fireSafeEvent(Events.PROPERTIES_ANY, "");
 	}
 
 	@Override
-	public void checkPropertyAccess(String key) {
-		if( isEnabled() && isEventEnabled(Events.PROPERTIES_NAMED) )
+	public synchronized void checkPropertyAccess(String key) {
+		if( isEventEnabled(Events.PROPERTIES_NAMED) )
 			fireSafeEvent(Events.PROPERTIES_NAMED, "key="+key, key);
 	}
 
 	@Override
-	public void checkPrintJobAccess() {
-		if( isEnabled() && isEventEnabled(Events.PRINT) )
+	public synchronized void checkPrintJobAccess() {
+		if( isEventEnabled(Events.PRINT) )
 			fireSafeEvent(Events.PRINT, "");
 	}
 
 	@Override
-	public void checkPackageAccess(String pkg) {
-		if( isEnabled() && isEventEnabled(Events.PACKAGE_ACCESS) )
+	public synchronized void checkPackageAccess(String pkg) {
+		if( isEventEnabled(Events.PACKAGE_ACCESS) )
 			fireSafeEvent(Events.PACKAGE_ACCESS, "pkg="+pkg, pkg);
 	}
 
 	@Override
-	public void checkPackageDefinition(String pkg) {
-		if( isEnabled() && isEventEnabled(Events.PACKAGE_DEFINE) )
+	public synchronized void checkPackageDefinition(String pkg) {
+		if( isEventEnabled(Events.PACKAGE_DEFINE) )
 			fireSafeEvent(Events.PACKAGE_DEFINE, "pkg="+pkg, pkg);
 	}
 
 	@Override
-	public void checkSetFactory() {
-		if( isEnabled() && isEventEnabled(Events.FACTORY) )
+	public synchronized void checkSetFactory() {
+		if( isEventEnabled(Events.FACTORY) )
 			fireSafeEvent(Events.FACTORY, "");
 	}
 
 	@Override
-	public void checkSecurityAccess(String target) {
-		if( isEnabled() && isEventEnabled(Events.ACCESS) )
+	public synchronized void checkSecurityAccess(String target) {
+		if( isEventEnabled(Events.ACCESS) )
 			fireSafeEvent(Events.ACCESS, "pkg="+target, target);
 	}
 
@@ -365,22 +368,15 @@ public abstract class NullSecurityManager extends SecurityManager {
 	 */
     private boolean isEventEnabled(Events event) {
     	
-    	boolean isenabled = false;
+    	boolean iseventenabled = false;
     	for (Events c : usrevents) {
     		if ( event==c ) {
-    			isenabled = true;
+    			iseventenabled = true;
     		}
     	}
-    	return isenabled;
+    	return iseventenabled;
     }
-    
-    public void setEnabled( boolean status ) {
-    	this.isenabled = status;
-    }
-    
-    private boolean isEnabled() {
-    	return this.isenabled;
-    }
+  
     
     /**
      * Assigns a SecurityManager implementation to use with the NullSecurityManager.
