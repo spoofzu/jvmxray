@@ -6,10 +6,12 @@ import java.util.EnumSet;
 import java.util.Enumeration;
 import java.util.Properties;
 
+import org.owasp.jvmxray.api.FilterDomainRule;
 import org.owasp.jvmxray.api.NullSecurityManager.Events;
 
 /**
  * Filter to handle the first argument of each event type as a String.
+ * Supports different matching criteria like startwith, endswith, and matches.
  * @author Milton Smith
  *
  */
@@ -18,6 +20,9 @@ public class StringFilter extends FilterDomainRule {
 	private FilterActions defaultfilter;
 	private EnumSet<Events> events;
 	private Properties p;
+	private Properties np;
+	private boolean bCritieriaPresent = false;
+	Enumeration<String> propertyNameEnum = null;
 	
 	public StringFilter(EnumSet<Events> events, FilterActions defaultfilter, Properties p) {
 		
@@ -27,6 +32,20 @@ public class StringFilter extends FilterDomainRule {
 		this.events = events;
 		this.defaultfilter = defaultfilter;
 		this.p = p;
+		
+		// Remove non-criteria properties
+		Properties np = new Properties();
+		propertyNameEnum = (Enumeration<String>) p.propertyNames();
+		while (propertyNameEnum.hasMoreElements() ) {
+			String key = propertyNameEnum.nextElement();
+			String value = p.getProperty(key);
+			if (key.contains("startswith") ||
+			    key.contains("endswith") ||
+				key.contains("matches")) {
+				np.setProperty(key,value);
+				bCritieriaPresent = true;
+			}
+		}
 		
 	}
 
@@ -43,25 +62,9 @@ public class StringFilter extends FilterDomainRule {
 				
 				String v1 = (String)obj[0];
 		
-				// Remove non-criterial properties
-				boolean bCritieriaPresent = false;
-				Properties np = new Properties();
-				Enumeration<String> e = (Enumeration<String>) p.propertyNames();
-				while (e.hasMoreElements() ) {
-					String key = e.nextElement();
-					String value = p.getProperty(key);
-					if (key.contains("startswith") ||
-					    key.contains("endswith") ||
-						key.contains("matches")) {
-						np.setProperty(key,value);
-						bCritieriaPresent = true;
-					}
-				}
-				
 				// Collect all properties specific to the filter.
-				e = (Enumeration<String>) np.propertyNames();
-				while (bCritieriaPresent && e.hasMoreElements() ) {
-					String key = e.nextElement();
+				while (bCritieriaPresent && propertyNameEnum.hasMoreElements() ) {
+					String key = propertyNameEnum.nextElement();
 					String value = np.getProperty(key);
 					// Break on first positive match.  Iterate over the
 					// numbered criteria, which may be out of order.

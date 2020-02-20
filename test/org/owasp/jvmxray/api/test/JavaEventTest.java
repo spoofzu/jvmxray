@@ -15,6 +15,12 @@ import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.util.ContextInitializer;
 import ch.qos.logback.core.joran.spi.JoranException;
 
+/**
+ * 
+ * A simple unit test to assess basic functions of the api.  
+ * @author Milton Smith
+ *
+ */
 public class JavaEventTest {
 	
 	private static final Logger logger = LoggerFactory.getLogger("org.owasp.jvmxray.api.test.JavaEventTest");

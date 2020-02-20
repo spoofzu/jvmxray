@@ -11,39 +11,24 @@ import java.util.EnumSet;
 import java.util.Enumeration;
 import java.util.Properties;
 
-import org.owasp.jvmxray.filters.FilterDomainList;
-import org.owasp.jvmxray.filters.FilterDomainRule;
-
 
 /**
  * 
  * <code>NullSecurityManager</code> integrates with the Java security policy management
- * and provides visibility into privileges requested by the application.  Use the
- * <code>NullSecurityManager</code> to identify resources by your application
- * during runtime.  The <code>NullSecurityManager</code> can be used in applications
- * you design or in legacy applications.
- * <p/>New Applications<br/>
- * To use <code>NullSecurityManager</code> with new applications you can assign the security
- * manager early at startup time by the following,<br/>
- * <code>
- * System.setSecurityManager(new LogbackHandler());
- * </code>
- * Substitute the event sink <code>LogbackHandler</code> with any available sink or
- * use any sink that extends <code>NullSecurityManager</code>.
- * <p/>Legacy Applications<br/>
- * To use <code>NullSecurityManager</code> with legacy applications assign an implementation
- * via the command line (or Java property setting) like the following,<br/>
- * <code>
- * -Djava.security.manager="org.owasp.jvmxray.handlers.LogbackHandler"
- * </code>
+ * and provides visibility into privileges requested by applications.  Use the
+ * <code>NullSecurityManager</code> to identify protected resources used by your application
+ * during runtime.  The <code>NullSecurityManager</code> is not used directly but instead
+ * subclassed by adaptors.  A few adaptors are provided like <code>ConsoleAdaptor</code>,
+ * <code>JavaLoggingAdaptor</code>, and <code>LogbackAdaptor</code>
  * The <code>NullSecurityManager</code> does not offer protection for resources and does not
  * respect Java policy settings.  The benefit of this system is for monitoring application
- * activities leading to compromise.
- * <p/>SPECIAL NOTE<br/>
- * Depending on the design of your application, the implementation of <code>NullSecurityManager</code>
- * you use, and the events you choose to log, it may negatively impact performance.  It's
+ * access to protected resources during operation.
+ * <p/>
+ * <b>SPECIAL NOTE</b>
+ * Depending upon the design of your application and which events you choose to log, use 
+ * of this software can negatively impact your applications performance.  It's
  * recommended you profile your application in a test environment to understand 
- * any potential performance impacts.
+ * any potential performance impacts prior to deployment.
  * 
  * @author Milton Smith
  *
@@ -58,26 +43,42 @@ public abstract class NullSecurityManager extends SecurityManager {
 	 * System property name of the security manager to use, <code>nullsecuritymanager.securitymanager</code>
 	 * If the property is unspecified then no security manager is used, this is the default.  If a 
 	 * specified security manager is provided, NullSecurityManager will pass-thru it's calls.  To use
-	 * Java's default SecurityManager the default security properties specify it's fully qualified
-	 * class name, <code>java.lang.securitymanager</code>.
+	 * Java's default SecurityManager specify it's fully qualified.<br/>
+	 * THIS PROPERTY IS NOT SUPPORTED AT THIS TIME
+	 * class name, <code>java.lang.SecurityManager</code>.
 	 */
 	public static final String SECURITY_MANAGER_OPTION = "jvmxray.securitymanager";
 	
 	/**
-	 * Property name of the events to capture.
+	 * Property name of the events to capture.  Acceptable events are those specified by the enum Events.
+	 * The default is all events.
 	 */
 	public static final String SECURITY_EVENTS = "jvmxray.events";
 	
 	/**
+	 * Stacktrace detail property.  Settings are specified in NullSecurityManager.Callstack
+	 * and described in the jvmxray.properties file.
+	 */
+	public static final String SECURITY_STACKTRACE = "jvmxray.event.stacktrace";
+	
+	/**
 	 * Set of events to process.
 	 */
-	EnumSet<Events> usrevents = EnumSet.noneOf(Events.class);
+	private EnumSet<Events> usrevents = EnumSet.noneOf(Events.class);
 	
-	private SecurityManager smd = null;
+	/**
+	 * Callstack options. 
+	 */
+	private Callstack callstackopt = Callstack.NONE;
+	
+	
+	//private SecurityManager smd = null;
 	
 	private FilterDomainList rulelist = new FilterDomainList();
 	
 	private volatile boolean bSupressRecursion = false;
+	
+	private StackTraceElement[] stacktrace = null;
 
 			
 	/**
@@ -132,10 +133,28 @@ public abstract class NullSecurityManager extends SecurityManager {
 		SOCKET_MULTICAST
 	}
 	
+	/**
+	 * Implemented by filters but generally, <br/>
+	 * ALLOW events captured on match.
+	 * NEUTRAL, events pass through to next filter.
+	 * DENY, events removed on match.
+	 */
 	public enum FilterActions {
 		ALLOW,
 		NEUTRAL,
 		DENY
+	}
+	
+	/**
+	 * Callstack options for captured events. <br/>
+	 * NONE Do not include stacktrace, default.
+	 * LIMITED, Include limited information.  Class call stack, without method or line number references.
+	 * FULL, Include full stack trace information.
+	 */
+	public enum Callstack {
+		NONE,
+		LIMITED,
+		FULL
 	}
 	
 	protected NullSecurityManager() {
@@ -159,167 +178,314 @@ public abstract class NullSecurityManager extends SecurityManager {
 
 	@Override
 	public synchronized void checkPermission(Permission perm) {
-		if( isEventEnabled(Events.PERMISSION) )
-			fireSafeEvent(Events.PERMISSION, "n="+perm.getName()+",a="+perm.getActions()+",s="+perm.toString(), perm);
+		if( isEventEnabled(Events.PERMISSION) ) {
+			String callstack = "";
+			if( callstackopt != Callstack.NONE ) {
+				stacktrace = Thread.currentThread().getStackTrace();
+			}
+			callstack = generateCallStack(callstackopt);
+			processEvent(Events.PERMISSION, new Object[] {perm,callstack}, "n=%s, a=%s, s=%s, stack=%s", perm.getName(),perm.getActions(),perm.toString(), callstack);
+		}
 	}
 
 	@Override
 	public synchronized void checkPermission(Permission perm, Object context) {
-		if( isEventEnabled(Events.PERMISSION) )
-			fireSafeEvent(Events.PERMISSION, "n="+perm.getName()+",a="+perm.getActions()+",s="+perm.toString()+",ctx="+context.toString(), perm, context);
+		if( isEventEnabled(Events.PERMISSION) ) {
+			String callstack = "";
+			if( callstackopt != Callstack.NONE ) {
+				stacktrace = Thread.currentThread().getStackTrace();
+			}
+			callstack = generateCallStack(callstackopt);
+			processEvent(Events.PERMISSION, new Object[] {perm,context,callstack}, "n=%s, a=%s, s=%s, ctx=%s, stack=%s", perm.getName(),perm.getActions(),perm.toString(),context.toString(), callstack);
+		}
 	}
 
 	@Override
 	public synchronized void checkCreateClassLoader() {
-		if( isEventEnabled(Events.CLASSLOADER_CREATE) )
-			fireSafeEvent(Events.CLASSLOADER_CREATE, "");
+		if( isEventEnabled(Events.CLASSLOADER_CREATE) ) {
+			String callstack = "";
+			if( callstackopt != Callstack.NONE ) {
+				stacktrace = Thread.currentThread().getStackTrace();
+			}
+			callstack = generateCallStack(callstackopt);
+			processEvent(Events.CLASSLOADER_CREATE, new Object[] {callstack}, "stack=%s", callstack);
+		}
 	}
 
 	@Override
 	public synchronized void checkAccess(Thread t) {
-		if( isEventEnabled(Events.ACCESS) )
-			fireSafeEvent(Events.ACCESS, "t="+t.toString(), t);
+		if( isEventEnabled(Events.ACCESS) ) {
+			String callstack = "";
+			if( callstackopt != Callstack.NONE ) {
+				stacktrace = Thread.currentThread().getStackTrace();
+			}
+			callstack = generateCallStack(callstackopt);
+			processEvent(Events.ACCESS, new Object[] {t,callstack}, "t=%s, stack=%s", t.toString(), callstack);
+		}
 	}
 
 	@Override
 	public synchronized void checkAccess(ThreadGroup g) {
-		if( isEventEnabled(Events.ACCESS) )
-			fireSafeEvent(Events.ACCESS, "tg="+g.toString(), g);
+		if( isEventEnabled(Events.ACCESS) ) {
+			String callstack = "";
+			if( callstackopt != Callstack.NONE ) {
+				stacktrace = Thread.currentThread().getStackTrace();
+			}
+			callstack = generateCallStack(callstackopt);
+			processEvent(Events.ACCESS, new Object[] {g,callstack}, "tg=%s, stack=%s", g.toString(), callstack);
+		}
 	}
 
 	@Override
 	public synchronized void checkExit(int status) {
-		if( isEventEnabled(Events.EXIT) )
-			fireSafeEvent(Events.EXIT, "s="+status, status);
+		if( isEventEnabled(Events.EXIT) ) {
+			String callstack = "";
+			if( callstackopt != Callstack.NONE ) {
+				stacktrace = Thread.currentThread().getStackTrace();
+			}
+			callstack = generateCallStack(callstackopt);
+			processEvent(Events.EXIT, new Object[] {status,callstack}, "s=%s, stack=%s", status, callstack);
+		}
 	}
 
 	@Override
 	public synchronized void checkExec(String cmd) {
-		if( isEventEnabled(Events.FILE_EXECUTE) )
-			fireSafeEvent(Events.FILE_EXECUTE, "cmd="+cmd, cmd);
+		if( isEventEnabled(Events.FILE_EXECUTE) ) {
+			String callstack = "";
+			if( callstackopt != Callstack.NONE ) {
+				stacktrace = Thread.currentThread().getStackTrace();
+			}
+			callstack = generateCallStack(callstackopt);
+			processEvent(Events.FILE_EXECUTE, new Object[] {cmd,callstack}, "cmd=%s, stack=%s", cmd, callstack);
+		}
 	}
 
 	@Override
 	public synchronized void checkLink(String lib) {
-		if( isEventEnabled(Events.LINK) )
-			fireSafeEvent(Events.LINK,"lib="+lib, lib);
+		if( isEventEnabled(Events.LINK) ) {
+			String callstack = "";
+			if( callstackopt != Callstack.NONE ) {
+				stacktrace = Thread.currentThread().getStackTrace();
+			}
+			callstack = generateCallStack(callstackopt);
+			processEvent(Events.LINK, new Object[] {lib,callstack}, "lib=%s, stack=%s", lib, callstack);
+		}
 	}
 
 	@Override
 	public synchronized void checkRead(FileDescriptor fd) {
-// NOTE: Don't believe we can get the file name so this is not useful.
-//		if( isEnabled() && isEventEnabled(Events.FILE_READ) )
-//			fireSafeEvent(Events.FILE_READ, "fd="+fd.toString(), fd);
+		// NOTE: Don't believe we can get the file name so this is not useful.
 	}
 
 	@Override
 	public synchronized void checkRead(String file) {
-		if( isEventEnabled(Events.FILE_READ) )
-			fireSafeEvent(Events.FILE_READ, "f="+file, file);
+		if( isEventEnabled(Events.FILE_READ) ) {
+			String callstack = "";
+			if( callstackopt != Callstack.NONE ) {
+				stacktrace = Thread.currentThread().getStackTrace();
+			}
+			callstack = generateCallStack(callstackopt);
+			processEvent(Events.LINK, new Object[] {file,callstack}, "f=%s, stack=%s", file, callstack);
+		}
 	}
 
 	@Override
 	public synchronized void checkRead(String file, Object context) {
-		if( isEventEnabled(Events.FILE_READ) )
-			fireSafeEvent(Events.FILE_READ, "f="+file+",c="+context.toString(), file, context);
+		if( isEventEnabled(Events.FILE_READ) ) {
+			String callstack = "";
+			if( callstackopt != Callstack.NONE ) {
+				stacktrace = Thread.currentThread().getStackTrace();
+			}
+			callstack = generateCallStack(callstackopt);
+			processEvent(Events.FILE_READ, new Object[] {file,context,callstack}, "f=%s, c=%s, stack=%s", file, context.toString(), callstack);
+		}
 	}
 
 	@Override
 	public synchronized void checkWrite(FileDescriptor fd) {
-// NOTE: Don't believe we can get the file name so this is not useful.
-//		if( isEnabled() && isEventEnabled(Events.FILE_WRITE) )
-//			fireSafeEvent(Events.FILE_WRITE, "fd="+fd.toString(), fd);
+		// NOTE: Don't believe we can get the file name so this is not useful.
 	}
 
 	@Override
 	public synchronized void checkWrite(String file) {
-		if( isEventEnabled(Events.FILE_WRITE) )
-			fireSafeEvent(Events.FILE_WRITE, "f="+file, file);
+		if( isEventEnabled(Events.FILE_WRITE) ) {
+			String callstack = "";
+			if( callstackopt != Callstack.NONE ) {
+				stacktrace = Thread.currentThread().getStackTrace();
+			}
+			callstack = generateCallStack(callstackopt);
+			processEvent(Events.FILE_WRITE, new Object[] {file,callstack}, "f=%s, stack=%s", file, callstack);
+		}
 	}
 
 	@Override
 	public synchronized void checkDelete(String file) {
-		if( isEventEnabled(Events.FILE_DELETE) )
-			fireSafeEvent(Events.FILE_DELETE, "f="+file, file);
+		if( isEventEnabled(Events.FILE_DELETE) ) {
+			String callstack = "";
+			if( callstackopt != Callstack.NONE ) {
+				stacktrace = Thread.currentThread().getStackTrace();
+			}
+			callstack = generateCallStack(callstackopt);
+			processEvent(Events.FILE_DELETE, new Object[] {file,callstack}, "f=%s, stack=%s", file, callstack);
+		}
 	}
 
 	@Override
 	public synchronized void checkConnect(String host, int port) {
-		if( isEventEnabled(Events.SOCKET_CONNECT) )
-			fireSafeEvent(Events.SOCKET_CONNECT, "h="+host+",p="+port, host, port);
+		if( isEventEnabled(Events.SOCKET_CONNECT) ) {
+			String callstack = "";
+			if( callstackopt != Callstack.NONE ) {
+				stacktrace = Thread.currentThread().getStackTrace();
+			}
+			callstack = generateCallStack(callstackopt);
+			processEvent(Events.SOCKET_CONNECT, new Object[] {host,port,callstack}, "h=%s, p=%s, stack=%s", host, port, callstack);
+		}
 	}
 
 	@Override
 	public synchronized void checkConnect(String host, int port, Object context) {
-		if( isEventEnabled(Events.SOCKET_CONNECT) )
-			fireSafeEvent(Events.SOCKET_CONNECT, "h="+host+",p="+port+",ctx="+context.toString(), host, port, context);
+		if( isEventEnabled(Events.SOCKET_CONNECT) ) {
+			String callstack = "";
+			if( callstackopt != Callstack.NONE ) {
+				stacktrace = Thread.currentThread().getStackTrace();
+			}
+			callstack = generateCallStack(callstackopt);
+			processEvent(Events.SOCKET_CONNECT, new Object[] {port,context,callstack}, "h=%s, p=%s, ctx=%s, stack=%s", host, port, context.toString(), callstack);
+		}
 	}
 
 	@Override
 	public synchronized void checkListen(int port) {
-		if( isEventEnabled(Events.SOCKET_LISTEN) )
-			fireSafeEvent(Events.SOCKET_LISTEN, "p="+port, port);
+		if( isEventEnabled(Events.SOCKET_LISTEN) ) {
+			String callstack = "";
+			if( callstackopt != Callstack.NONE ) {
+				stacktrace = Thread.currentThread().getStackTrace();
+			}
+			callstack = generateCallStack(callstackopt);
+			processEvent(Events.SOCKET_LISTEN, new Object[] {port,callstack}, "p=%i, stack=%s", port, callstack);
+		}
 	}
 
 	@Override
 	public synchronized void checkAccept(String host, int port) {
-		if( isEventEnabled(Events.SOCKET_ACCEPT) )
-			fireSafeEvent(Events.SOCKET_ACCEPT, "h="+host+",p="+port, host, port);
+		if( isEventEnabled(Events.SOCKET_ACCEPT) ) {
+			String callstack = "";
+			if( callstackopt != Callstack.NONE ) {
+				stacktrace = Thread.currentThread().getStackTrace();
+			}
+			callstack = generateCallStack(callstackopt);
+			processEvent(Events.SOCKET_ACCEPT, new Object[] {host,port,callstack}, "h=%s, p=%s, stack=%s", host, port, callstack);
+		}
 	}
 
 	@Override
 	public synchronized void checkMulticast(InetAddress maddr) {
-		if( isEventEnabled(Events.SOCKET_MULTICAST) )
-			fireSafeEvent(Events.SOCKET_MULTICAST, "addr="+maddr.toString(), maddr);
+		if( isEventEnabled(Events.SOCKET_MULTICAST) ) {
+			String callstack = "";
+			if( callstackopt != Callstack.NONE ) {
+				stacktrace = Thread.currentThread().getStackTrace();
+			}
+			callstack = generateCallStack(callstackopt);
+			processEvent(Events.SOCKET_MULTICAST, new Object[] {maddr,callstack}, "maddr=%s, stack=%s", maddr.toString(), callstack);
+		}
 	}
 
 	@Override
 	@Deprecated 
 	public synchronized void checkMulticast(InetAddress maddr, byte ttl) {
-		if( isEventEnabled(Events.SOCKET_MULTICAST) )
-			fireSafeEvent(Events.SOCKET_MULTICAST, "addr="+maddr.toString()+" ttl="+Integer.toHexString(ttl), maddr, ttl);
+		if( isEventEnabled(Events.SOCKET_MULTICAST) ) {
+			String callstack = "";
+			if( callstackopt != Callstack.NONE ) {
+				stacktrace = Thread.currentThread().getStackTrace();
+			}
+			callstack = generateCallStack(callstackopt);
+			processEvent(Events.SOCKET_MULTICAST, new Object[] {maddr,ttl,callstack}, "maddr=%s, ttl=%s, stack=%s", maddr, Byte.toString(ttl), callstack);
+		}
+	
 	}
 
 	@Override
 	public synchronized void checkPropertiesAccess() {
-		if( isEventEnabled(Events.PROPERTIES_ANY) )
-			fireSafeEvent(Events.PROPERTIES_ANY, "");
+		if( isEventEnabled(Events.PROPERTIES_ANY) ) {
+			String callstack = "";
+			if( callstackopt != Callstack.NONE ) {
+				stacktrace = Thread.currentThread().getStackTrace();
+			}
+			callstack = generateCallStack(callstackopt);
+			processEvent(Events.PROPERTIES_ANY, new Object[] {callstack}, "stack=%s", callstack);
+		}
 	}
 
 	@Override
 	public synchronized void checkPropertyAccess(String key) {
-		if( isEventEnabled(Events.PROPERTIES_NAMED) )
-			fireSafeEvent(Events.PROPERTIES_NAMED, "key="+key, key);
+		if( isEventEnabled(Events.PROPERTIES_NAMED) ) {
+			String callstack = "";
+			if( callstackopt != Callstack.NONE ) {
+				stacktrace = Thread.currentThread().getStackTrace();
+			}
+			callstack = generateCallStack(callstackopt);
+			processEvent(Events.PROPERTIES_NAMED, new Object[] {key,callstack}, "key=%s, stack=%s", key, callstack);
+		}
 	}
 
 	@Override
 	public synchronized void checkPrintJobAccess() {
-		if( isEventEnabled(Events.PRINT) )
-			fireSafeEvent(Events.PRINT, "");
+		if( isEventEnabled(Events.PRINT) ) {
+			String callstack = "";
+			if( callstackopt != Callstack.NONE ) {
+				stacktrace = Thread.currentThread().getStackTrace();
+			}
+			callstack = generateCallStack(callstackopt);
+			processEvent(Events.PRINT, new Object[] {callstack}, "stack=%s", callstack);
+		}
 	}
 
 	@Override
 	public synchronized void checkPackageAccess(String pkg) {
-		if( isEventEnabled(Events.PACKAGE_ACCESS) )
-			fireSafeEvent(Events.PACKAGE_ACCESS, "pkg="+pkg, pkg);
+		if( isEventEnabled(Events.PACKAGE_ACCESS) ) {
+			String callstack = "";
+			if( callstackopt != Callstack.NONE ) {
+				stacktrace = Thread.currentThread().getStackTrace();
+			}
+			callstack = generateCallStack(callstackopt);
+			processEvent(Events.PACKAGE_ACCESS, new Object[] {pkg,callstack}, "pkg=%s, stack=%s", pkg, callstack);
+		}
 	}
 
 	@Override
 	public synchronized void checkPackageDefinition(String pkg) {
-		if( isEventEnabled(Events.PACKAGE_DEFINE) )
-			fireSafeEvent(Events.PACKAGE_DEFINE, "pkg="+pkg, pkg);
+		if( isEventEnabled(Events.PACKAGE_DEFINE) ) {
+			String callstack = "";
+			if( callstackopt != Callstack.NONE ) {
+				stacktrace = Thread.currentThread().getStackTrace();
+			}
+			callstack = generateCallStack(callstackopt);
+			processEvent(Events.PACKAGE_DEFINE, new Object[] {pkg,callstack}, "pkg=%s, stack=%s", pkg, callstack);
+		}
 	}
 
 	@Override
 	public synchronized void checkSetFactory() {
-		if( isEventEnabled(Events.FACTORY) )
-			fireSafeEvent(Events.FACTORY, "");
+		if( isEventEnabled(Events.FACTORY) ) {
+			String callstack = "";
+			if( callstackopt != Callstack.NONE ) {
+				stacktrace = Thread.currentThread().getStackTrace();
+			}
+			callstack = generateCallStack(callstackopt);
+			processEvent(Events.FACTORY, new Object[] {callstack}, "stack=%s", callstack);
+		}
 	}
 
 	@Override
 	public synchronized void checkSecurityAccess(String target) {
-		if( isEventEnabled(Events.ACCESS) )
-			fireSafeEvent(Events.ACCESS, "pkg="+target, target);
+		if( isEventEnabled(Events.ACCESS) ) {
+			String callstack = "";
+			if( callstackopt != Callstack.NONE ) {
+				stacktrace = Thread.currentThread().getStackTrace();
+			}
+			callstack = generateCallStack(callstackopt);
+			processEvent(Events.ACCESS, new Object[] {target,callstack}, "t=%s, stack=%s", target, callstack);
+		}
 	}
 
 	@Override
@@ -328,27 +494,68 @@ public abstract class NullSecurityManager extends SecurityManager {
 	}
 
 	/**
-	 * Fire a thread safe event.  This is required since callers
+	 * Process an event.  Required since callers
 	 * may trigger additional nested security manager permission
-	 * calls resulting in a stack overflow.  We also implement
-	 * the callers filter handling.
+	 * calls resulting in a stack overflow. 
 	 * @param message Message associated with the event.
 	 */
-	private void fireSafeEvent(Events event, String message, Object ...obj ) {
+	private void processEvent(Events event, Object[] obj1, String format, Object ...obj2 ) {
 		
 		try {
 			if( bSupressRecursion ) {
 				return;
 			}
-			if( filterEvent(event, obj) == FilterActions.ALLOW ) {
+			if( filterEvent(event, obj1, format, obj2) == FilterActions.ALLOW ) {
 				bSupressRecursion = true;
-				fireEvent( event, message );
+				fireEvent( event, obj1, format, obj2 );
 				bSupressRecursion = false;
 			}
 		}catch(Throwable t) {
 			t.printStackTrace();
 			bSupressRecursion = false;
 		}
+	}
+	
+	/**
+	 * Fires an event.  Similar to NullSecurityManager.fireEvent(Event,String) with the
+	 * exception that subclasses can improve the default message format
+	 * provided by NullSecurityManager.  For example, PERMISSION events are formatted
+	 * by default like this, n=%s, a=%s, s=%s", where the variables are assigned
+	 * like this perm.getName(),perm.getActions()+",s="+perm.toString(), respectively.
+	 * Designers can override this and alter the format based on message type as they
+	 * choose.  Designers may wish to do this for any number of reasons like
+	 * creating CSV file output, etc.
+	 * @param event Type of event fired such as Events.PACKAGE_DEFINE
+	 * @param obj1 Method arguments as passed by java.lang.SecurityManager.
+	 * @param format Default format (e.g., String.format()) for specified message type.
+	 * @param obj2 Variable number of arguments (e.g., String.format()) dependent upon event type.
+	 */
+	protected void fireEvent(Events event, Object[] obj1, String format, Object ...obj2) {
+		
+		 //    if event is, Events.PERMISSION,          obj is,     Permission || Permission, Object
+		 //    if event is, Events.CLASSLOADER_CREATE,  obj is,     ""
+		 //    if event is, Events.EXIT,                obj is,     int
+		 //    if event is, Events.EXEC,                obj is,     String
+		 //    if event is, Events.LINK,                obj is,     String
+		 //    if event is, Events.FILE_READ,           obj is,     String || String, Object
+		 //    if event is, Events.FILE_WRITE,          obj is,     String
+		 //    if event is, Events.FILE_DELETE,         obj is,     String
+		 //    if event is, Events.SOCKET_CONNECT,      obj is,     String, int || String, int, Object
+		 //    if event is, Events.SOCKET_LISTEN,       obj is,     int
+		 //    if event is, Events.SOCKET_ACCEPT,       obj is,     String, int
+		 //    if event is, Events.SOCKET_MULTICAST,    obj is,     InetAddress, byte(optional)
+		 //    if event is, Events.PROPERTIES_ANY,      obj is,     ""
+		 //    if event is, Events.PRINT,               obj is,     ""
+		 //    if event is, Events.PACKAGE_ACCESS,      obj is,     String
+		 //    if event is, Events.PACKAGE_DEFINE,      obj is,     String
+		 //    if event is, Events.FACTORY,             obj is,     ""
+		 //    if event is, Events.ACCESS,              obj is,     String || Thread || ThreadGroup
+		
+		String message = String.format( format, obj2 );
+		
+		
+		fireEvent( event, message );
+		
 	}
 	
 	/**
@@ -361,9 +568,8 @@ public abstract class NullSecurityManager extends SecurityManager {
 	protected abstract void fireEvent(Events event, String message);
 	
 	/**
-	 * xxx
-	 * @param FilterActions FilterActions.ALLOW, framework calls fireEvent().
-	 * FilterActions.DENY, fireEvent() will not be called.
+	 * Process event filters
+	 * @return FilterActions.ALLOW or FilterActions.DENY.
 	 */
 	private FilterActions filterEvent(Events event, Object ...obj) {
 		
@@ -394,7 +600,8 @@ public abstract class NullSecurityManager extends SecurityManager {
      * property is not provided no security manager is used.  No SecurityManager is the
      * default.  To specific the default security assign, "java.lang.SecurityManager" as
      * the property value.  If a specified SecurityManager cannot be loaded an error message
-     * is printed, no default is assigned, and processing aborts.
+     * is printed, no default is assigned, and processing aborts.<br/>
+     * CURRENTLY NOT FUNCTIONAL
      */
     private void assignSecurityManagerDefault() {
 
@@ -430,7 +637,54 @@ public abstract class NullSecurityManager extends SecurityManager {
 
     }
     
-	
+    /**
+     * Generate a callstack based upon specification.
+     * @param callstack Type of callstack to generate.
+     */
+    protected String generateCallStack(Callstack callstack) {
+    	
+    	StringBuffer buff = new StringBuffer();
+    	
+    	switch ( callstack ) {
+ 
+    		case LIMITED:
+    			Class[] clz = getClassContext();
+    			for (Class c : clz ) {
+    				buff.append(c.getName());
+    				buff.append("->");
+    			}
+    			break;
+    	
+    		case FULL:
+    			if (stacktrace==null) break;
+    			for (StackTraceElement e : stacktrace ) {
+    				buff.append(e.getClassName());
+    				buff.append('(');
+    				buff.append(e.getMethodName());
+    				buff.append(':');
+    				buff.append(e.getLineNumber());
+    				buff.append(')');
+    				buff.append("->");
+    			}
+    			break;
+    			
+    		case NONE:
+    			buff.append("<disabled>");
+    			break;
+
+    	}
+
+    	// Chop off trailing ->
+		if (buff.length()>0 && buff.toString().endsWith("->"))
+			buff.setLength(buff.length()-2);
+    	
+    	return buff.toString();
+    }
+    
+    
+	/**
+	 * Initialize the NullSecurityManager subclass via property settings.
+	 */
     private void initializeFromProperties() {
     
     	try {
@@ -449,6 +703,10 @@ public abstract class NullSecurityManager extends SecurityManager {
 					e.printStackTrace();
 				}
 	    	}
+	    	
+	    	// Get the trace level
+	    	String lvl = p.getProperty(SECURITY_STACKTRACE);
+	    	callstackopt = Callstack.valueOf(lvl);
 	    	
 	    	// Iterate over all the properties
 	    	for( int i=1; i < 500; i++ ) {

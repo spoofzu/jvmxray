@@ -1,24 +1,29 @@
-package org.owasp.jvmxray.filters;
+package org.owasp.jvmxray.api;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import org.owasp.jvmxray.api.NullSecurityManager.FilterActions;
 import org.owasp.jvmxray.api.NullSecurityManager.Events;
+import org.owasp.jvmxray.api.NullSecurityManager.FilterActions;
 
-public class FilterDomainList {
+/**
+ * Used by the framework to iterate over a list of FilterDomainRules.
+ * @author Milton Smith
+ *
+ */
+class FilterDomainList {
 
 	ArrayList<FilterDomainRule> list = new ArrayList<FilterDomainRule>();
 	
-	public void add( FilterDomainRule r ) {
+	void add( FilterDomainRule r ) {
 		list.add( r );
 	}
 	
-	public Iterator<FilterDomainRule> iterator() {
+	Iterator<FilterDomainRule> iterator() {
 		return list.iterator();
 	}
 	
-	public FilterActions filterEvents( Events event, Object ...obj ) {
+	FilterActions filterEvents( Events event, Object ...obj ) {
 		
 		FilterActions result = FilterActions.DENY;
 		

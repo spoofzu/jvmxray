@@ -5,11 +5,12 @@ import org.owasp.jvmxray.api.NullSecurityManager.FilterActions;
 import java.util.EnumSet;
 import java.util.Properties;
 
+import org.owasp.jvmxray.api.FilterDomainRule;
 import org.owasp.jvmxray.api.NullSecurityManager.Events;
 
 /**
  * The NullFilter performs no function except to enable or disable a specified
- * class of events.  
+ * classes of events.  
  * @author Milton Smith
  *
  */
