@@ -1,15 +1,20 @@
 package org.owasp.jvmxray.api;
 
+import java.io.BufferedInputStream;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.net.InetAddress;
+import java.net.URL;
+import java.nio.file.Paths;
 import java.security.Permission;
 import java.security.Policy;
 import java.util.EnumSet;
 import java.util.Enumeration;
 import java.util.Properties;
+
+import javax.net.ssl.HttpsURLConnection;
 
 
 /**
@@ -47,19 +52,18 @@ public abstract class NullSecurityManager extends SecurityManager {
 	 * THIS PROPERTY IS NOT SUPPORTED AT THIS TIME
 	 * class name, <code>java.lang.SecurityManager</code>.
 	 */
-	public static final String SECURITY_MANAGER_OPTION = "jvmxray.securitymanager";
+	public static final String SYS_PROP_SECURITY_MANAGER = "jvmxray.securitymanager";
 	
 	/**
-	 * Property name of the events to capture.  Acceptable events are those specified by the enum Events.
-	 * The default is all events.
+	 * System property name that specifies the URL to load the jvmxray properties
 	 */
-	public static final String SECURITY_EVENTS = "jvmxray.events";
+	public static final String SYS_PROP_CONFIG_URL = "jvmxray.configuration";
 	
 	/**
 	 * Stacktrace detail property.  Settings are specified in NullSecurityManager.Callstack
 	 * and described in the jvmxray.properties file.
 	 */
-	public static final String SECURITY_STACKTRACE = "jvmxray.event.stacktrace";
+	public static final String CONF_PROP_STACKTRACE = "jvmxray.event.stacktrace";
 	
 	/**
 	 * Set of events to process.
@@ -76,7 +80,7 @@ public abstract class NullSecurityManager extends SecurityManager {
 	
 	private FilterDomainList rulelist = new FilterDomainList();
 	
-	private volatile boolean bSupressRecursion = false;
+	private volatile static boolean bLocked = false;
 	
 	private StackTraceElement[] stacktrace = null;
 
@@ -154,6 +158,7 @@ public abstract class NullSecurityManager extends SecurityManager {
 	public enum Callstack {
 		NONE,
 		LIMITED,
+		SOURCEPATH,
 		FULL
 	}
 	
@@ -178,97 +183,137 @@ public abstract class NullSecurityManager extends SecurityManager {
 
 	@Override
 	public synchronized void checkPermission(Permission perm) {
-		if( isEventEnabled(Events.PERMISSION) ) {
-			String callstack = "";
-			if( callstackopt != Callstack.NONE ) {
-				stacktrace = Thread.currentThread().getStackTrace();
+		if( !isLocked() && isEventEnabled(Events.PERMISSION) ) {
+			setLocked(true);
+			try {
+				String callstack = "";
+				if( callstackopt != Callstack.NONE ) {
+					stacktrace = Thread.currentThread().getStackTrace();
+				}
+				callstack = generateCallStack(callstackopt);
+				processEvent(Events.PERMISSION, new Object[] {perm,callstack}, "n=%s, a=%s, s=%s, stack=%s", perm.getName(),perm.getActions(),perm.toString(), callstack);
+			}finally{
+				setLocked(false);
 			}
-			callstack = generateCallStack(callstackopt);
-			processEvent(Events.PERMISSION, new Object[] {perm,callstack}, "n=%s, a=%s, s=%s, stack=%s", perm.getName(),perm.getActions(),perm.toString(), callstack);
 		}
 	}
 
 	@Override
 	public synchronized void checkPermission(Permission perm, Object context) {
-		if( isEventEnabled(Events.PERMISSION) ) {
-			String callstack = "";
-			if( callstackopt != Callstack.NONE ) {
-				stacktrace = Thread.currentThread().getStackTrace();
+		if( !isLocked() && isEventEnabled(Events.PERMISSION) ) {
+			setLocked(true);
+			try {
+				String callstack = "";
+				if( callstackopt != Callstack.NONE ) {
+					stacktrace = Thread.currentThread().getStackTrace();
+				}
+				callstack = generateCallStack(callstackopt);
+				processEvent(Events.PERMISSION, new Object[] {perm,context,callstack}, "n=%s, a=%s, s=%s, ctx=%s, stack=%s", perm.getName(),perm.getActions(),perm.toString(),context.toString(), callstack);
+			}finally {
+				setLocked(false);	
 			}
-			callstack = generateCallStack(callstackopt);
-			processEvent(Events.PERMISSION, new Object[] {perm,context,callstack}, "n=%s, a=%s, s=%s, ctx=%s, stack=%s", perm.getName(),perm.getActions(),perm.toString(),context.toString(), callstack);
 		}
 	}
 
 	@Override
 	public synchronized void checkCreateClassLoader() {
-		if( isEventEnabled(Events.CLASSLOADER_CREATE) ) {
-			String callstack = "";
-			if( callstackopt != Callstack.NONE ) {
-				stacktrace = Thread.currentThread().getStackTrace();
+		if( !isLocked() && isEventEnabled(Events.CLASSLOADER_CREATE) ) {
+			setLocked(true);
+			try {
+				String callstack = "";
+				if( callstackopt != Callstack.NONE ) {
+					stacktrace = Thread.currentThread().getStackTrace();
+				}
+				callstack = generateCallStack(callstackopt);
+				processEvent(Events.CLASSLOADER_CREATE, new Object[] {callstack}, "stack=%s", callstack);
+			}finally {
+				setLocked(false);
 			}
-			callstack = generateCallStack(callstackopt);
-			processEvent(Events.CLASSLOADER_CREATE, new Object[] {callstack}, "stack=%s", callstack);
 		}
 	}
 
 	@Override
 	public synchronized void checkAccess(Thread t) {
-		if( isEventEnabled(Events.ACCESS) ) {
-			String callstack = "";
-			if( callstackopt != Callstack.NONE ) {
-				stacktrace = Thread.currentThread().getStackTrace();
+		if( !isLocked() && isEventEnabled(Events.ACCESS) ) {
+			setLocked(true);
+			try {
+				String callstack = "";
+				if( callstackopt != Callstack.NONE ) {
+					stacktrace = Thread.currentThread().getStackTrace();
+				}
+				callstack = generateCallStack(callstackopt);
+				processEvent(Events.ACCESS, new Object[] {t,callstack}, "t=%s, stack=%s", t.toString(), callstack);
+			}finally {
+				setLocked(false);
 			}
-			callstack = generateCallStack(callstackopt);
-			processEvent(Events.ACCESS, new Object[] {t,callstack}, "t=%s, stack=%s", t.toString(), callstack);
 		}
 	}
 
 	@Override
 	public synchronized void checkAccess(ThreadGroup g) {
-		if( isEventEnabled(Events.ACCESS) ) {
-			String callstack = "";
-			if( callstackopt != Callstack.NONE ) {
-				stacktrace = Thread.currentThread().getStackTrace();
+		if( !isLocked() && isEventEnabled(Events.ACCESS) ) {
+			setLocked(true);
+			try {
+				String callstack = "";
+				if( callstackopt != Callstack.NONE ) {
+					stacktrace = Thread.currentThread().getStackTrace();
+				}
+				callstack = generateCallStack(callstackopt);
+				processEvent(Events.ACCESS, new Object[] {g,callstack}, "tg=%s, stack=%s", g.toString(), callstack);
+			}finally {
+				setLocked(false);
 			}
-			callstack = generateCallStack(callstackopt);
-			processEvent(Events.ACCESS, new Object[] {g,callstack}, "tg=%s, stack=%s", g.toString(), callstack);
 		}
 	}
 
 	@Override
 	public synchronized void checkExit(int status) {
-		if( isEventEnabled(Events.EXIT) ) {
-			String callstack = "";
-			if( callstackopt != Callstack.NONE ) {
-				stacktrace = Thread.currentThread().getStackTrace();
+		if( !isLocked() && isEventEnabled(Events.EXIT) ) {
+			setLocked(true);
+			try {
+				String callstack = "";
+				if( callstackopt != Callstack.NONE ) {
+					stacktrace = Thread.currentThread().getStackTrace();
+				}
+				callstack = generateCallStack(callstackopt);
+				processEvent(Events.EXIT, new Object[] {status,callstack}, "s=%s, stack=%s", status, callstack);
+			}finally {
+				setLocked(false);
 			}
-			callstack = generateCallStack(callstackopt);
-			processEvent(Events.EXIT, new Object[] {status,callstack}, "s=%s, stack=%s", status, callstack);
 		}
 	}
 
 	@Override
 	public synchronized void checkExec(String cmd) {
-		if( isEventEnabled(Events.FILE_EXECUTE) ) {
-			String callstack = "";
-			if( callstackopt != Callstack.NONE ) {
-				stacktrace = Thread.currentThread().getStackTrace();
+		if( !isLocked() && isEventEnabled(Events.FILE_EXECUTE) ) {
+			setLocked(true);
+			try {
+				String callstack = "";
+				if( callstackopt != Callstack.NONE ) {
+					stacktrace = Thread.currentThread().getStackTrace();
+				}
+				callstack = generateCallStack(callstackopt);
+				processEvent(Events.FILE_EXECUTE, new Object[] {cmd,callstack}, "cmd=%s, stack=%s", cmd, callstack);
+			}finally {
+				setLocked(false);
 			}
-			callstack = generateCallStack(callstackopt);
-			processEvent(Events.FILE_EXECUTE, new Object[] {cmd,callstack}, "cmd=%s, stack=%s", cmd, callstack);
 		}
 	}
 
 	@Override
 	public synchronized void checkLink(String lib) {
-		if( isEventEnabled(Events.LINK) ) {
-			String callstack = "";
-			if( callstackopt != Callstack.NONE ) {
-				stacktrace = Thread.currentThread().getStackTrace();
+		if( !isLocked() && isEventEnabled(Events.LINK) ) {
+			setLocked(true);
+			try {
+				String callstack = "";
+				if( callstackopt != Callstack.NONE ) {
+					stacktrace = Thread.currentThread().getStackTrace();
+				}
+				callstack = generateCallStack(callstackopt);
+				processEvent(Events.LINK, new Object[] {lib,callstack}, "lib=%s, stack=%s", lib, callstack);
+			}finally {
+				setLocked(false);
 			}
-			callstack = generateCallStack(callstackopt);
-			processEvent(Events.LINK, new Object[] {lib,callstack}, "lib=%s, stack=%s", lib, callstack);
 		}
 	}
 
@@ -279,25 +324,35 @@ public abstract class NullSecurityManager extends SecurityManager {
 
 	@Override
 	public synchronized void checkRead(String file) {
-		if( isEventEnabled(Events.FILE_READ) ) {
-			String callstack = "";
-			if( callstackopt != Callstack.NONE ) {
-				stacktrace = Thread.currentThread().getStackTrace();
+		if( !isLocked() && isEventEnabled(Events.FILE_READ) ) {
+			setLocked(true);
+			try {
+				String callstack = "";
+				if( callstackopt != Callstack.NONE ) {
+					stacktrace = Thread.currentThread().getStackTrace();
+				}
+				callstack = generateCallStack(callstackopt);
+				processEvent(Events.LINK, new Object[] {file,callstack}, "f=%s, stack=%s", file, callstack);
+			}finally {
+				setLocked(false);
 			}
-			callstack = generateCallStack(callstackopt);
-			processEvent(Events.LINK, new Object[] {file,callstack}, "f=%s, stack=%s", file, callstack);
 		}
 	}
 
 	@Override
 	public synchronized void checkRead(String file, Object context) {
-		if( isEventEnabled(Events.FILE_READ) ) {
-			String callstack = "";
-			if( callstackopt != Callstack.NONE ) {
-				stacktrace = Thread.currentThread().getStackTrace();
+		if( !isLocked() && isEventEnabled(Events.FILE_READ) ) {
+			try {
+				setLocked(true);
+				String callstack = "";
+				if( callstackopt != Callstack.NONE ) {
+					stacktrace = Thread.currentThread().getStackTrace();
+				}
+				callstack = generateCallStack(callstackopt);
+				processEvent(Events.FILE_READ, new Object[] {file,context,callstack}, "f=%s, c=%s, stack=%s", file, context.toString(), callstack);
+			}finally {
+				setLocked(false);
 			}
-			callstack = generateCallStack(callstackopt);
-			processEvent(Events.FILE_READ, new Object[] {file,context,callstack}, "f=%s, c=%s, stack=%s", file, context.toString(), callstack);
 		}
 	}
 
@@ -308,183 +363,258 @@ public abstract class NullSecurityManager extends SecurityManager {
 
 	@Override
 	public synchronized void checkWrite(String file) {
-		if( isEventEnabled(Events.FILE_WRITE) ) {
-			String callstack = "";
-			if( callstackopt != Callstack.NONE ) {
-				stacktrace = Thread.currentThread().getStackTrace();
+		if( !isLocked() && isEventEnabled(Events.FILE_WRITE) ) {
+			setLocked(true);
+			try {
+				String callstack = "";
+				if( callstackopt != Callstack.NONE ) {
+					stacktrace = Thread.currentThread().getStackTrace();
+				}
+				callstack = generateCallStack(callstackopt);
+				processEvent(Events.FILE_WRITE, new Object[] {file,callstack}, "f=%s, stack=%s", file, callstack);
+			}finally {
+				setLocked(false);
 			}
-			callstack = generateCallStack(callstackopt);
-			processEvent(Events.FILE_WRITE, new Object[] {file,callstack}, "f=%s, stack=%s", file, callstack);
 		}
 	}
 
 	@Override
 	public synchronized void checkDelete(String file) {
-		if( isEventEnabled(Events.FILE_DELETE) ) {
-			String callstack = "";
-			if( callstackopt != Callstack.NONE ) {
-				stacktrace = Thread.currentThread().getStackTrace();
+		if( !isLocked() &&  isEventEnabled(Events.FILE_DELETE) ) {
+			setLocked(true);
+			try {
+				String callstack = "";
+				if( callstackopt != Callstack.NONE ) {
+					stacktrace = Thread.currentThread().getStackTrace();
+				}
+				callstack = generateCallStack(callstackopt);
+				processEvent(Events.FILE_DELETE, new Object[] {file,callstack}, "f=%s, stack=%s", file, callstack);
+			}finally {
+				setLocked(false);
 			}
-			callstack = generateCallStack(callstackopt);
-			processEvent(Events.FILE_DELETE, new Object[] {file,callstack}, "f=%s, stack=%s", file, callstack);
 		}
 	}
 
 	@Override
 	public synchronized void checkConnect(String host, int port) {
-		if( isEventEnabled(Events.SOCKET_CONNECT) ) {
-			String callstack = "";
-			if( callstackopt != Callstack.NONE ) {
-				stacktrace = Thread.currentThread().getStackTrace();
+		if( !isLocked() && isEventEnabled(Events.SOCKET_CONNECT) ) {
+			setLocked(true);
+			try {
+				String callstack = "";
+				if( callstackopt != Callstack.NONE ) {
+					stacktrace = Thread.currentThread().getStackTrace();
+				}
+				callstack = generateCallStack(callstackopt);
+				processEvent(Events.SOCKET_CONNECT, new Object[] {host,port,callstack}, "h=%s, p=%s, stack=%s", host, port, callstack);
+			}finally {
+				setLocked(false);
 			}
-			callstack = generateCallStack(callstackopt);
-			processEvent(Events.SOCKET_CONNECT, new Object[] {host,port,callstack}, "h=%s, p=%s, stack=%s", host, port, callstack);
 		}
 	}
 
 	@Override
 	public synchronized void checkConnect(String host, int port, Object context) {
-		if( isEventEnabled(Events.SOCKET_CONNECT) ) {
-			String callstack = "";
-			if( callstackopt != Callstack.NONE ) {
-				stacktrace = Thread.currentThread().getStackTrace();
+		if( !isLocked() && isEventEnabled(Events.SOCKET_CONNECT) ) {
+			setLocked(true);
+			try {
+				String callstack = "";
+				if( callstackopt != Callstack.NONE ) {
+					stacktrace = Thread.currentThread().getStackTrace();
+				}
+				callstack = generateCallStack(callstackopt);
+				processEvent(Events.SOCKET_CONNECT, new Object[] {port,context,callstack}, "h=%s, p=%s, ctx=%s, stack=%s", host, port, context.toString(), callstack);
+			}finally {
+				setLocked(false);
 			}
-			callstack = generateCallStack(callstackopt);
-			processEvent(Events.SOCKET_CONNECT, new Object[] {port,context,callstack}, "h=%s, p=%s, ctx=%s, stack=%s", host, port, context.toString(), callstack);
 		}
 	}
 
 	@Override
 	public synchronized void checkListen(int port) {
-		if( isEventEnabled(Events.SOCKET_LISTEN) ) {
-			String callstack = "";
-			if( callstackopt != Callstack.NONE ) {
-				stacktrace = Thread.currentThread().getStackTrace();
+		if( !isLocked() && isEventEnabled(Events.SOCKET_LISTEN) ) {
+			setLocked(true);
+			try {
+				String callstack = "";
+				if( callstackopt != Callstack.NONE ) {
+					stacktrace = Thread.currentThread().getStackTrace();
+				}
+				callstack = generateCallStack(callstackopt);
+				processEvent(Events.SOCKET_LISTEN, new Object[] {port,callstack}, "p=%i, stack=%s", port, callstack);
+			}finally {
+				setLocked(false);
 			}
-			callstack = generateCallStack(callstackopt);
-			processEvent(Events.SOCKET_LISTEN, new Object[] {port,callstack}, "p=%i, stack=%s", port, callstack);
 		}
 	}
 
 	@Override
 	public synchronized void checkAccept(String host, int port) {
-		if( isEventEnabled(Events.SOCKET_ACCEPT) ) {
-			String callstack = "";
-			if( callstackopt != Callstack.NONE ) {
-				stacktrace = Thread.currentThread().getStackTrace();
+		if( !isLocked() && isEventEnabled(Events.SOCKET_ACCEPT) ) {
+			setLocked(true);
+			try {
+				String callstack = "";
+				if( callstackopt != Callstack.NONE ) {
+					stacktrace = Thread.currentThread().getStackTrace();
+				}
+				callstack = generateCallStack(callstackopt);
+				processEvent(Events.SOCKET_ACCEPT, new Object[] {host,port,callstack}, "h=%s, p=%s, stack=%s", host, port, callstack);
+			}finally {
+				setLocked(false);
 			}
-			callstack = generateCallStack(callstackopt);
-			processEvent(Events.SOCKET_ACCEPT, new Object[] {host,port,callstack}, "h=%s, p=%s, stack=%s", host, port, callstack);
 		}
 	}
 
 	@Override
 	public synchronized void checkMulticast(InetAddress maddr) {
-		if( isEventEnabled(Events.SOCKET_MULTICAST) ) {
-			String callstack = "";
-			if( callstackopt != Callstack.NONE ) {
-				stacktrace = Thread.currentThread().getStackTrace();
+		if( !isLocked() && isEventEnabled(Events.SOCKET_MULTICAST) ) {
+			setLocked(true);
+			try {
+				String callstack = "";
+				if( callstackopt != Callstack.NONE ) {
+					stacktrace = Thread.currentThread().getStackTrace();
+				}
+				callstack = generateCallStack(callstackopt);
+				processEvent(Events.SOCKET_MULTICAST, new Object[] {maddr,callstack}, "maddr=%s, stack=%s", maddr.toString(), callstack);
+			}finally {
+				setLocked(false);
 			}
-			callstack = generateCallStack(callstackopt);
-			processEvent(Events.SOCKET_MULTICAST, new Object[] {maddr,callstack}, "maddr=%s, stack=%s", maddr.toString(), callstack);
 		}
 	}
 
 	@Override
 	@Deprecated 
 	public synchronized void checkMulticast(InetAddress maddr, byte ttl) {
-		if( isEventEnabled(Events.SOCKET_MULTICAST) ) {
-			String callstack = "";
-			if( callstackopt != Callstack.NONE ) {
-				stacktrace = Thread.currentThread().getStackTrace();
+		if( !isLocked() && isEventEnabled(Events.SOCKET_MULTICAST) ) {
+			setLocked(true);
+			try {
+				String callstack = "";
+				if( callstackopt != Callstack.NONE ) {
+					stacktrace = Thread.currentThread().getStackTrace();
+				}
+				callstack = generateCallStack(callstackopt);
+				processEvent(Events.SOCKET_MULTICAST, new Object[] {maddr,ttl,callstack}, "maddr=%s, ttl=%s, stack=%s", maddr, Byte.toString(ttl), callstack);
+			}finally {
+				setLocked(false);
 			}
-			callstack = generateCallStack(callstackopt);
-			processEvent(Events.SOCKET_MULTICAST, new Object[] {maddr,ttl,callstack}, "maddr=%s, ttl=%s, stack=%s", maddr, Byte.toString(ttl), callstack);
 		}
 	
 	}
 
 	@Override
 	public synchronized void checkPropertiesAccess() {
-		if( isEventEnabled(Events.PROPERTIES_ANY) ) {
-			String callstack = "";
-			if( callstackopt != Callstack.NONE ) {
-				stacktrace = Thread.currentThread().getStackTrace();
+		if( !isLocked() && isEventEnabled(Events.PROPERTIES_ANY) ) {
+			setLocked(true);
+			try {
+				String callstack = "";
+				if( callstackopt != Callstack.NONE ) {
+					stacktrace = Thread.currentThread().getStackTrace();
+				}
+				callstack = generateCallStack(callstackopt);
+				processEvent(Events.PROPERTIES_ANY, new Object[] {callstack}, "stack=%s", callstack);
+			}finally {
+				setLocked(false);
 			}
-			callstack = generateCallStack(callstackopt);
-			processEvent(Events.PROPERTIES_ANY, new Object[] {callstack}, "stack=%s", callstack);
 		}
 	}
 
 	@Override
 	public synchronized void checkPropertyAccess(String key) {
-		if( isEventEnabled(Events.PROPERTIES_NAMED) ) {
-			String callstack = "";
-			if( callstackopt != Callstack.NONE ) {
-				stacktrace = Thread.currentThread().getStackTrace();
+		if( !isLocked() && isEventEnabled(Events.PROPERTIES_NAMED) ) {
+			setLocked(true);
+			try {
+				String callstack = "";
+				if( callstackopt != Callstack.NONE ) {
+					stacktrace = Thread.currentThread().getStackTrace();
+				}
+				callstack = generateCallStack(callstackopt);
+				processEvent(Events.PROPERTIES_NAMED, new Object[] {key,callstack}, "key=%s, stack=%s", key, callstack);
+			}finally {
+				setLocked(false);
 			}
-			callstack = generateCallStack(callstackopt);
-			processEvent(Events.PROPERTIES_NAMED, new Object[] {key,callstack}, "key=%s, stack=%s", key, callstack);
 		}
 	}
 
 	@Override
 	public synchronized void checkPrintJobAccess() {
-		if( isEventEnabled(Events.PRINT) ) {
-			String callstack = "";
-			if( callstackopt != Callstack.NONE ) {
-				stacktrace = Thread.currentThread().getStackTrace();
+		if( !isLocked() && isEventEnabled(Events.PRINT) ) {
+			setLocked(true);
+			try {
+				String callstack = "";
+				if( callstackopt != Callstack.NONE ) {
+					stacktrace = Thread.currentThread().getStackTrace();
+				}
+				callstack = generateCallStack(callstackopt);
+				processEvent(Events.PRINT, new Object[] {callstack}, "stack=%s", callstack);
+			}finally {
+				setLocked(false);
 			}
-			callstack = generateCallStack(callstackopt);
-			processEvent(Events.PRINT, new Object[] {callstack}, "stack=%s", callstack);
 		}
 	}
 
 	@Override
 	public synchronized void checkPackageAccess(String pkg) {
-		if( isEventEnabled(Events.PACKAGE_ACCESS) ) {
-			String callstack = "";
-			if( callstackopt != Callstack.NONE ) {
-				stacktrace = Thread.currentThread().getStackTrace();
+		if( !isLocked() && isEventEnabled(Events.PACKAGE_ACCESS) ) {
+			setLocked(true);
+			try {
+				String callstack = "";
+				if( callstackopt != Callstack.NONE ) {
+					stacktrace = Thread.currentThread().getStackTrace();
+				}
+				callstack = generateCallStack(callstackopt);
+				processEvent(Events.PACKAGE_ACCESS, new Object[] {pkg,callstack}, "pkg=%s, stack=%s", pkg, callstack);
+			}finally {
+				setLocked(false);
 			}
-			callstack = generateCallStack(callstackopt);
-			processEvent(Events.PACKAGE_ACCESS, new Object[] {pkg,callstack}, "pkg=%s, stack=%s", pkg, callstack);
 		}
 	}
 
 	@Override
 	public synchronized void checkPackageDefinition(String pkg) {
-		if( isEventEnabled(Events.PACKAGE_DEFINE) ) {
-			String callstack = "";
-			if( callstackopt != Callstack.NONE ) {
-				stacktrace = Thread.currentThread().getStackTrace();
+		if( !isLocked() && isEventEnabled(Events.PACKAGE_DEFINE) ) {
+			setLocked(true);
+			try {
+				String callstack = "";
+				if( callstackopt != Callstack.NONE ) {
+					stacktrace = Thread.currentThread().getStackTrace();
+				}
+				callstack = generateCallStack(callstackopt);
+				processEvent(Events.PACKAGE_DEFINE, new Object[] {pkg,callstack}, "pkg=%s, stack=%s", pkg, callstack);
+			}finally {
+				setLocked(false);
 			}
-			callstack = generateCallStack(callstackopt);
-			processEvent(Events.PACKAGE_DEFINE, new Object[] {pkg,callstack}, "pkg=%s, stack=%s", pkg, callstack);
 		}
 	}
 
 	@Override
 	public synchronized void checkSetFactory() {
-		if( isEventEnabled(Events.FACTORY) ) {
-			String callstack = "";
-			if( callstackopt != Callstack.NONE ) {
-				stacktrace = Thread.currentThread().getStackTrace();
+		if( !isLocked() && isEventEnabled(Events.FACTORY) ) {
+			setLocked(true);
+			try {
+				String callstack = "";
+				if( callstackopt != Callstack.NONE ) {
+					stacktrace = Thread.currentThread().getStackTrace();
+				}
+				callstack = generateCallStack(callstackopt);
+				processEvent(Events.FACTORY, new Object[] {callstack}, "stack=%s", callstack);
+			}finally {
+				setLocked(false);
 			}
-			callstack = generateCallStack(callstackopt);
-			processEvent(Events.FACTORY, new Object[] {callstack}, "stack=%s", callstack);
 		}
 	}
 
 	@Override
 	public synchronized void checkSecurityAccess(String target) {
-		if( isEventEnabled(Events.ACCESS) ) {
-			String callstack = "";
-			if( callstackopt != Callstack.NONE ) {
-				stacktrace = Thread.currentThread().getStackTrace();
+		if( !isLocked() && isEventEnabled(Events.ACCESS) ) {
+			setLocked(true);
+			try {
+				String callstack = "";
+				if( callstackopt != Callstack.NONE ) {
+					stacktrace = Thread.currentThread().getStackTrace();
+				}
+				callstack = generateCallStack(callstackopt);
+				processEvent(Events.ACCESS, new Object[] {target,callstack}, "t=%s, stack=%s", target, callstack);
+			}finally {
+				setLocked(false);
 			}
-			callstack = generateCallStack(callstackopt);
-			processEvent(Events.ACCESS, new Object[] {target,callstack}, "t=%s, stack=%s", target, callstack);
 		}
 	}
 
@@ -502,17 +632,11 @@ public abstract class NullSecurityManager extends SecurityManager {
 	private void processEvent(Events event, Object[] obj1, String format, Object ...obj2 ) {
 		
 		try {
-			if( bSupressRecursion ) {
-				return;
-			}
 			if( filterEvent(event, obj1, format, obj2) == FilterActions.ALLOW ) {
-				bSupressRecursion = true;
 				fireEvent( event, obj1, format, obj2 );
-				bSupressRecursion = false;
 			}
 		}catch(Throwable t) {
 			t.printStackTrace();
-			bSupressRecursion = false;
 		}
 	}
 	
@@ -552,7 +676,6 @@ public abstract class NullSecurityManager extends SecurityManager {
 		 //    if event is, Events.ACCESS,              obj is,     String || Thread || ThreadGroup
 		
 		String message = String.format( format, obj2 );
-		
 		
 		fireEvent( event, message );
 		
@@ -596,7 +719,7 @@ public abstract class NullSecurityManager extends SecurityManager {
     
     /**
      * Assigns a SecurityManager implementation to use with the NullSecurityManager.
-     * Value of the property, NullSecurityManager.SECURITY_MANAGER_OPTION, is used.  If the
+     * Value of the property, NullSecurityManager.SYS_PROP_SECURITY_MANAGER, is used.  If the
      * property is not provided no security manager is used.  No SecurityManager is the
      * default.  To specific the default security assign, "java.lang.SecurityManager" as
      * the property value.  If a specified SecurityManager cannot be loaded an error message
@@ -606,7 +729,7 @@ public abstract class NullSecurityManager extends SecurityManager {
     private void assignSecurityManagerDefault() {
 
 
-    	String pv = System.getProperty(SECURITY_MANAGER_OPTION, "zzzz");
+    	String pv = System.getProperty(SYS_PROP_SECURITY_MANAGER, "zzzz");
     	if ( pv != "zzzz" ) {
     		
         	// TODOMS: Idea is to call methods of smd within methods of NullSecurityManager to chain
@@ -644,17 +767,27 @@ public abstract class NullSecurityManager extends SecurityManager {
     protected String generateCallStack(Callstack callstack) {
     	
     	StringBuffer buff = new StringBuffer();
+		Class[] clz = null; 
+		URL location = null;
     	
     	switch ( callstack ) {
- 
+    	
     		case LIMITED:
-    			Class[] clz = getClassContext();
+    			clz = getClassContext();
     			for (Class c : clz ) {
     				buff.append(c.getName());
+    				buff.append(location.toString());
     				buff.append("->");
     			}
     			break;
-    	
+    		case SOURCEPATH:
+    			clz = getClassContext();
+    			for (Class c : clz ) {
+     				location = c.getResource('/' + c.getName().replace('.', '/') + ".class");
+    				buff.append(location.toString());
+    				buff.append("->");
+    			}
+    			break;
     		case FULL:
     			if (stacktrace==null) break;
     			for (StackTraceElement e : stacktrace ) {
@@ -692,20 +825,31 @@ public abstract class NullSecurityManager extends SecurityManager {
     		// Load jvmxray.properties
 	    	Properties p = new Properties();
 	    	InputStream in = null;
-	    	try {
-		    	 in = getClass().getResourceAsStream("/jvmxray.properties");
-		    	 p.load(in);
-	    	}finally {
+	    	try {    		
+	        	// Load configuration properties from HTTPS URL.  If unassigned, load from /jvmxray.properties.
+	        	String surl = System.getProperty(SYS_PROP_CONFIG_URL, "/jvmxray.properties");
+	        	URL url = null;
+	        	if( surl.equals("/jvmxray.properties")) {
+			    	in = getClass().getResourceAsStream("/jvmxray.properties");
+	        	} else {
+	        		url = new URL(surl);
+		   	     	HttpsURLConnection con = (HttpsURLConnection)url.openConnection();
+		   	     	in = new BufferedInputStream(con.getInputStream());
+	        	}
+	        	
+		    	p.load(in);
+	    		
+	    	} finally {
 	       	 if( in != null )
 				try {
 					in.close();
 				} catch (IOException e) {
-					e.printStackTrace();
+					throw e;
 				}
 	    	}
 	    	
 	    	// Get the trace level
-	    	String lvl = p.getProperty(SECURITY_STACKTRACE);
+	    	String lvl = p.getProperty(CONF_PROP_STACKTRACE);
 	    	callstackopt = Callstack.valueOf(lvl);
 	    	
 	    	// Iterate over all the properties
@@ -765,5 +909,13 @@ public abstract class NullSecurityManager extends SecurityManager {
     	
     }
     
+    
+    private boolean isLocked() {
+    	return bLocked;
+    }
+    
+    private void setLocked(boolean state) {
+    	bLocked = state;
+    }
     
 }
