@@ -5,7 +5,8 @@ import org.owasp.jvmxray.api.NullSecurityManager.FilterActions;
 import java.util.EnumSet;
 import java.util.Properties;
 
-import org.owasp.jvmxray.api.FilterDomainRule;
+import org.owasp.jvmxray.api.IJVMXRayEvent;
+import org.owasp.jvmxray.api.JVMXRayFilterRule;
 import org.owasp.jvmxray.api.NullSecurityManager.Events;
 
 /**
@@ -14,29 +15,29 @@ import org.owasp.jvmxray.api.NullSecurityManager.Events;
  * @author Milton Smith
  *
  */
-public class NullFilter extends FilterDomainRule {
+public class NullFilter extends JVMXRayFilterRule {
 
 	private FilterActions defaultfilter;
 	private EnumSet<Events> events;
 	private Properties p;
 	
-	public NullFilter(EnumSet<Events> events, FilterActions defaultfilter, Properties p) {
+	public NullFilter(EnumSet<Events> supported, FilterActions defaultfilter, Properties p) {
 		
 		// defaultfilter = FilterActions.ALLOW, prints all java packages.
 		// defaultfilter = FilterActions.DENY, suppresses all java packages.
 		
-		this.events = events;
+		this.events = supported;
 		this.defaultfilter = defaultfilter;
 		this.p = p;
 		
 	}
 
 	@Override
-	public FilterActions isMatch(Events event, Object ...obj) {
+	public FilterActions isMatch(Events type, IJVMXRayEvent event) {
 			
 		FilterActions results = FilterActions.NEUTRAL;
 		
-		if( events.contains( event )) {
+		if( events.contains( type )) {
 			
 			results = defaultfilter;
 			

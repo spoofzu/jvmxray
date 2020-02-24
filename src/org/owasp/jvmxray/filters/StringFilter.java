@@ -6,7 +6,8 @@ import java.util.EnumSet;
 import java.util.Enumeration;
 import java.util.Properties;
 
-import org.owasp.jvmxray.api.FilterDomainRule;
+import org.owasp.jvmxray.api.IJVMXRayEvent;
+import org.owasp.jvmxray.api.JVMXRayFilterRule;
 import org.owasp.jvmxray.api.NullSecurityManager.Events;
 
 /**
@@ -15,29 +16,28 @@ import org.owasp.jvmxray.api.NullSecurityManager.Events;
  * @author Milton Smith
  *
  */
-public class StringFilter extends FilterDomainRule {
+public class StringFilter extends JVMXRayFilterRule {
 
 	private FilterActions defaultfilter;
 	private EnumSet<Events> events;
 	private Properties p;
 	private Properties np;
 	private boolean bCritieriaPresent = false;
-	Enumeration<String> propertyNameEnum = null;
 	
-	public StringFilter(EnumSet<Events> events, FilterActions defaultfilter, Properties p) {
+	public StringFilter(EnumSet<Events> supported, FilterActions defaultfilter, Properties p) {
 		
 		// defaultfilter = FilterActions.ALLOW, prints all java packages.
 		// defaultfilter = FilterActions.DENY, suppresses all java packages.
 		
-		this.events = events;
+		this.events = supported;
 		this.defaultfilter = defaultfilter;
 		this.p = p;
 		
-		// Remove non-criteria properties
-		Properties np = new Properties();
-		propertyNameEnum = (Enumeration<String>) p.propertyNames();
-		while (propertyNameEnum.hasMoreElements() ) {
-			String key = propertyNameEnum.nextElement();
+		// Create new properties file with only the criteria specifications.
+		np = new Properties();
+		Enumeration<String> keys = (Enumeration<String>) p.propertyNames();
+		while (keys.hasMoreElements() ) {
+			String key = keys.nextElement();
 			String value = p.getProperty(key);
 			if (key.contains("startswith") ||
 			    key.contains("endswith") ||
@@ -50,50 +50,87 @@ public class StringFilter extends FilterDomainRule {
 	}
 
 	@Override
-	public FilterActions isMatch(Events event, Object ...obj) {
+	public FilterActions isMatch(Events type, IJVMXRayEvent event) {
 		
 		FilterActions results = FilterActions.NEUTRAL;
 		
+		// Get searchable fields for the record.
+		Object[] obj = event.getStringArgs();
+		
 		// Only handle specified events also ensure a parameter is
 		// present, if none, then no matching work to do.
-		if( events.contains( event ) && obj.length > 0 ) {
-	
-			if( obj[0] instanceof String) {
+		if( events.contains( type ) && obj.length > 0 ) {
 				
-				String v1 = (String)obj[0];
+			// Skip if no criteria specified.
+			if (bCritieriaPresent) {
+			
+				boolean bCriteriaMatch = false;
+				Enumeration<String> keys = (Enumeration<String>) np.propertyNames();
 		
 				// Collect all properties specific to the filter.
-				while (bCritieriaPresent && propertyNameEnum.hasMoreElements() ) {
-					String key = propertyNameEnum.nextElement();
+				while (bCritieriaPresent && keys.hasMoreElements() ) {
+					String key = keys.nextElement();
 					String value = np.getProperty(key);
 					// Break on first positive match.  Iterate over the
 					// numbered criteria, which may be out of order.
 					for( int idx=1; idx < 500 ; idx++ ) {
-						if( key.contains("startswith"+idx) ) {
-							if ( v1.toString().startsWith(value) ) {
-								results = defaultfilter; 
-								break;
-							}
-						} else if( key.contains("endswith"+idx) ) {
-							if ( v1.toString().endsWith(value) ) {
-								results = defaultfilter; 
-								break;
-							}
-						} else if( key.contains("matches"+idx) ) {
-							if ( v1.toString().matches(value) ) {
-								results = defaultfilter; 
-								break;
+						// Property name format if field search is specified, keyname.keyname.match_criteria.field_search_criteria
+						String sf = "0";
+						String[] lvls = key.split(".");
+						if( lvls.length == 3 ) {
+	 						int keyidx = key.lastIndexOf('.');
+							sf = key.substring(keyidx,key.length());
+						}
+						
+						int fidx = 0;
+						try {
+							fidx = Integer.valueOf(sf);
+						} catch (NumberFormatException e){
+							String msg = "Non-numeric search field specified. key="+key+" type="+type.toString()+" error="+e.getMessage();
+							RuntimeException e1 = new RuntimeException(msg);
+						}
+						// Test to ensure field index is appropriate for this record type.
+						if( fidx > obj.length || fidx < 0 ) {
+							String msg = "Invalid search index for record type. Valid range is, 0-"+obj.length+". key="+key+" type="+type.toString();
+							RuntimeException e = new RuntimeException(msg);
+						}
+						
+						// Check to make sure index specified by user is searchable (String type).
+						if( obj[fidx] instanceof String) {
+							String search_field = (String)obj[fidx];
+							if( key.contains("startswith"+idx) ) {
+								if ( search_field.toString().startsWith(value) ) {
+									bCriteriaMatch = true;
+									results = defaultfilter; 
+									break;
+								}
+							} else if( key.contains("endswith"+idx) ) {
+								if ( search_field.toString().endsWith(value) ) {
+									bCriteriaMatch = true;
+									results = defaultfilter; 
+									break;
+								}
+							} else if( key.contains("matches"+idx) ) {
+								if ( search_field.toString().matches(value) ) {
+									bCriteriaMatch = true;
+									results = defaultfilter; 
+									break;
+								}
 							}
 						}
 					}
 				}
-				
-				// Handles the case where no criteria is present so we process ALLOW or DENY
-				// at the event level.
-				if ( !bCritieriaPresent ) {
-					results = defaultfilter;
-				} 
-			}
+				// If user selects ALLOW as default we DENY.  If they select DENY then we allow.  This allows
+				// criteria to either include or exclude non-matches.
+				if (!bCriteriaMatch ) {
+					results = ( defaultfilter == FilterActions.ALLOW ) ? FilterActions.DENY : FilterActions.ALLOW;
+				}
+			
+			// Handles the case where no criteria is present so we process ALLOW or DENY
+			// at the event level.
+			} else  {
+				results = defaultfilter;
+			} 
 	
 		}
 			

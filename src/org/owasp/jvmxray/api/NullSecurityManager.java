@@ -7,14 +7,14 @@ import java.io.InputStream;
 import java.lang.reflect.Constructor;
 import java.net.InetAddress;
 import java.net.URL;
-import java.nio.file.Paths;
 import java.security.Permission;
-import java.security.Policy;
 import java.util.EnumSet;
 import java.util.Enumeration;
 import java.util.Properties;
 
 import javax.net.ssl.HttpsURLConnection;
+
+import org.owasp.jvmxray.api.NullSecurityManager.Callstack;
 
 
 /**
@@ -34,6 +34,70 @@ import javax.net.ssl.HttpsURLConnection;
  * of this software can negatively impact your applications performance.  It's
  * recommended you profile your application in a test environment to understand 
  * any potential performance impacts prior to deployment.
+ *
+ * Following is a list of event types, description of the type, as well as type meta data
+ * <pre>
+ * EVENT TYPE                       DESCRIPTION(see java.lang.SecurityManager for more information)
+ * -------------------------------  ---------------------------------------------------------------------------------------------------------------------------------------
+ * ACCESS_SECURITY   				Event fired when permission with the specified permission target name should be granted or denied.
+ * ACCESS_THREAD     				Event fired when calling thread attempts to modify thread argument.
+ * ACCESS_THREADGROUP 				Event fired when calling thread attempts to modify the thread group argument.
+ * CLASSLOADER_CREATE 				Event fired upon creation of a new class loader.
+ * EXIT               				Event fired upon request to halt Java Virtual Machine with specified status code.
+ * FACTORY                      	Event fired upon requests to set the socket factory used by ServerSocket or Socket, or the stream handler factory used by URL.
+ * FILE_DELETE      		    	Event fired upon request to delete specified file.
+ * FILE_EXECUTE      				Event fired upon request to execute specified subprocesses. 
+ * FILE_READ  	     				Event fired upon request to read a specified file.
+ * FILE_READ_WITH_CONTEXT           Event fired upon request to read a specified file within a security context.
+ * FILE_READ_WITH_FILEDESCRIPTOR	Event fired upon request to read from a file descriptor.
+ * FILE_WRITE  	      				Event fired upon request to write a specified file.
+ * FILE_WRITE_WITH_FILEDESCRIPTOR	Event fired upon request to write to a file descriptor
+ * LINK               				Event fired upon request to dynamically link a specified library.
+ * PACKAGE_ACCESS     				Event fired upon request to access a package.  
+ * PACKAGE_DEFINE     				Event fired upon request to define classes in the specified package.
+ * PERMISSION         				Event fired upon request to privileged resource request.
+ * PERMISSION_WITH_CONTEXT			Event fired upon request to privileged resource request within a security context.
+ * PRINT              				Event fired upon request to initiate a print job.
+ * PROPERTIES_ANY     				Event fired upon request to access System Properties.
+ * PROPERTIES_NAMED   				Event fired upon request to access named System Property.
+ * SOCKET_ACCEPT      				Event fired upon socket accepted state.
+ * SOCKET_CONNECT     				Event fired upon socket connected state.
+ * SOCKET_CONNECT_WITH_CONTEXT		Event fired upon socket connected state within a security context.
+ * SOCKET_LISTEN      				Event fired upon socket listen state
+ * SOCKET_MULTICAST   				Event fired for multi-cast socket (join/leave/send/or receive) events.
+ * SOCKET_MULTICAST_WITH_TTL		Event fired for multi-cast socket (join/leave/send/or receive) events will TTL.
+ * 
+ * EVENT TYPE                       META DATA DESCRIPTION
+ * -------------------------------  ---------------------------------------------------------------------------------------------------------------------------------------
+ * ACCESS_SECURITY   				Target Permission Name, Call Stack (if present)
+ * ACCESS_THREAD     				Thread Info, Call Stack (if present)
+ * ACCESS_THREADGROUP 				ThreadGroup Info, Call Stack (if present)
+ * CLASSLOADER_CREATE 				Call Stack (if present)
+ * EXIT               				Exit Code, Call Stack (if present)
+ * FACTORY                      	Call Stack (if present)
+ * FILE_DELETE      		    	Fully Qualified File Name, Call Stack (if present)
+ * FILE_EXECUTE      				Command, Call Stack (if present)
+ * FILE_READ  	     				Fully Qualified File Name, Call Stack (if present)
+ * FILE_READ_WITH_CONTEXT           Fully Qualified File Name, Context Info, Call Stack (if present)
+ * FILE_READ_WITH_FILEDESCRIPTOR	File Descriptor Info, Call Stack (if present)
+ * FILE_WRITE  	      				Fully Qualified File Name, Call Stack (if present)
+ * FILE_WRITE_WITH_FILEDESCRIPTOR	File Descriptor Info, Call Stack (if present)
+ * LINK               				Library Name, Call Stack (if present)
+ * PACKAGE_ACCESS     				Package Name, Call Stack (if present)  
+ * PACKAGE_DEFINE     				Package Name, Call Stack (if present) 
+ * PERMISSION         				Permission Name, Permission Actions, Permission Class Name, Call Stack (if present)
+ * PERMISSION_WITH_CONTEXT			Permission Name, Permission Actions, Permission Class Name, Context, Call Stack (if present)
+ * PRINT              				Call Stack (if present)
+ * PROPERTIES_ANY     				Call Stack (if present)
+ * PROPERTIES_NAMED   				Property Name, Call Stack (if present)
+ * SOCKET_ACCEPT      				Host Name or IP, Port Number, Call Stack (if present)
+ * SOCKET_CONNECT     				Host Name or IP, Port Number, Call Stack (if present)
+ * SOCKET_CONNECT_WITH_CONTEXT		Host Name or IP, Port Number, Context, Call Stack (if present)
+ * SOCKET_LISTEN      				Port Number, Call Stack (if present)
+ * SOCKET_MULTICAST   				IP, Call Stack (if present)    
+ * SOCKET_MULTICAST_WITH_TTL		IP, TTL, Call Stack (if present)  
+ * 
+ * </pre>
  * 
  * @author Milton Smith
  *
@@ -65,76 +129,53 @@ public abstract class NullSecurityManager extends SecurityManager {
 	 */
 	public static final String CONF_PROP_STACKTRACE = "jvmxray.event.stacktrace";
 	
-	/**
-	 * Set of events to process.
-	 */
+	// Events to process.
 	private EnumSet<Events> usrevents = EnumSet.noneOf(Events.class);
 	
-	/**
-	 * Callstack options. 
-	 */
+	// Level of detail for callstack.  Disabled by default.
 	private Callstack callstackopt = Callstack.NONE;
 	
+	// Hold list of filters to process.
+	private JVMXRayFilterList rulelist = new JVMXRayFilterList();
 	
-	//private SecurityManager smd = null;
-	
-	private FilterDomainList rulelist = new FilterDomainList();
-	
+	// Locking flag for calls from JVM.
 	private volatile static boolean bLocked = false;
 	
+	// Holds full stack traces, if enabled.
 	private StackTraceElement[] stacktrace = null;
 
 			
 	/**
-	 * Event types supported the <code>NullSecurityManager</code>.  The list of protected resources
-	 * may be far larger than those use directly by your application since resources used by
-	 * infrastructure (e.g., web frameworks) are included as well.
-	 * <code>
-	 * ACCESS             The ACCESS event captures privilege requests to modify Thread or ThreadGroup arguments. 
-	 * CLASSLOADER_CREATE The CLASSLOADER_CREATE event captures privilege requests to create a new ClassLoader.
-	 * EXEC  	  	      The EXEC event captures privilege requests when creating new subprocesses. 
-	 * EXIT               The EXIT event captures privilege requests to halt the Java Virtual Machine with specified status code.
-	 * FACTORY            The FACTORY event captures privilege requests to set the socket factory used by ServerSocket or Socket, or the stream handler factory used by URL.
-	 * FILE_DELETE        The FILE_DELETE event captures privilege requests to delete the specified file.
-	 * FILE_EXECUTE       The FILE_EXECUTE event captures privilege requests to execute specified subprocesses. 
-	 * FILE_READ  	      The FILE_READ event captures privilege requests to read a specified file or file descriptor.
-	 * FILE_WRITE  	      The FILE_WRITE event captures privilege requests to write to the specified file or file descriptor.
-	 * LINK               The LINK event captures privilege requests to dynamically link the specified library.
-	 * PACKAGE_ACCESS     The PACKAGE event captures privilege requests to access specified package.  
-	 * PACKAGE_DEFINE     The PACKAGE event captures privilege requests to define classes in the specified package.
-	 * PERMISSION         The PERMISSION event captures privilege requests to privileged resources.  Optional resource context information may be included.
-	 * PRINT              The PRINT event captures privilege requests by application to print.
-	 * PROPERTIES_ANY     The PROPERTIES_ANY event captures privilege requests to access System Properties.
-	 * PROPERTIES_NAMED   The PROPERTIES_NAMED event captures privilege requests to access named System Properties.
-	 * SOCKET_ACCEPT      The SOCKET_ACCEPT event captures privilege requests to accept socket connections at the specified host and port.
-	 * SOCKET_CONNECT     The SOCKET_CONNECT event captures privilege requests to open socket connections to the specified host and port.
-	 * SOCKET_LISTEN      The SOCKET_LISTEN event captures privilege requests to halt the Java Virtual Machine with specified status code.
-	 * SOCKET_MULTICAST   The SOCKET_MULTICAST event captures privilege requests to listen to socket connections on a specified port.    
-	 * </code>
-	 * Return the events of interest in the implementation when you override,
-	 * <code>NullSecurityManager.getEnabledEvents()</code>
+	 * Event types supported the <code>NullSecurityManager</code>.  
 	 */
 	public enum Events {
-		ACCESS,
+		ACCESS_SECURITY,
+		ACCESS_THREAD,
+		ACCESS_THREADGROUP,
 		CLASSLOADER_CREATE,
-		EXEC,
 		EXIT,
 		FACTORY,
 		FILE_DELETE,
 		FILE_EXECUTE,
 		FILE_READ,
+		FILE_READ_WITH_CONTEXT,
+		FILE_READ_WITH_FILEDESCRIPTOR,
 		FILE_WRITE,
+		FILE_WRITE_WITH_FILEDESCRIPTOR,
 		LINK,
 		PACKAGE_ACCESS,
 		PACKAGE_DEFINE,
 		PERMISSION,
+		PERMISSION_WITH_CONTEXT,
 		PRINT,
 		PROPERTIES_ANY,
 		PROPERTIES_NAMED,
 		SOCKET_ACCEPT,
 		SOCKET_CONNECT,
+		SOCKET_CONNECT_WITH_CONTEXT,
 		SOCKET_LISTEN,
-		SOCKET_MULTICAST
+		SOCKET_MULTICAST,
+		SOCKET_MULTICAST_WITH_TTL
 	}
 	
 	/**
@@ -186,12 +227,11 @@ public abstract class NullSecurityManager extends SecurityManager {
 		if( !isLocked() && isEventEnabled(Events.PERMISSION) ) {
 			setLocked(true);
 			try {
-				String callstack = "";
+				//String callstack = "";
 				if( callstackopt != Callstack.NONE ) {
 					stacktrace = Thread.currentThread().getStackTrace();
 				}
-				callstack = generateCallStack(callstackopt);
-				processEvent(Events.PERMISSION, new Object[] {perm,callstack}, "n=%s, a=%s, s=%s, stack=%s", perm.getName(),perm.getActions(),perm.toString(), callstack);
+				processEvent(Events.PERMISSION, new JVMXRayPermissionEvent( stacktrace, callstackopt, new Object[] {perm} ));
 			}finally{
 				setLocked(false);
 			}
@@ -200,15 +240,14 @@ public abstract class NullSecurityManager extends SecurityManager {
 
 	@Override
 	public synchronized void checkPermission(Permission perm, Object context) {
-		if( !isLocked() && isEventEnabled(Events.PERMISSION) ) {
+		if( !isLocked() && isEventEnabled(Events.PERMISSION_WITH_CONTEXT) ) {
 			setLocked(true);
 			try {
-				String callstack = "";
+				//String callstack = "";
 				if( callstackopt != Callstack.NONE ) {
 					stacktrace = Thread.currentThread().getStackTrace();
 				}
-				callstack = generateCallStack(callstackopt);
-				processEvent(Events.PERMISSION, new Object[] {perm,context,callstack}, "n=%s, a=%s, s=%s, ctx=%s, stack=%s", perm.getName(),perm.getActions(),perm.toString(),context.toString(), callstack);
+				processEvent(Events.PERMISSION_WITH_CONTEXT, new JVMXRayPermissionWithContextEvent( stacktrace, callstackopt, new Object[] {perm} ));
 			}finally {
 				setLocked(false);	
 			}
@@ -220,12 +259,11 @@ public abstract class NullSecurityManager extends SecurityManager {
 		if( !isLocked() && isEventEnabled(Events.CLASSLOADER_CREATE) ) {
 			setLocked(true);
 			try {
-				String callstack = "";
+				//String callstack = "";
 				if( callstackopt != Callstack.NONE ) {
 					stacktrace = Thread.currentThread().getStackTrace();
 				}
-				callstack = generateCallStack(callstackopt);
-				processEvent(Events.CLASSLOADER_CREATE, new Object[] {callstack}, "stack=%s", callstack);
+				processEvent(Events.CLASSLOADER_CREATE,new JVMXRayClassLoaderCreateEvent( stacktrace, callstackopt, new Object[0] ));
 			}finally {
 				setLocked(false);
 			}
@@ -234,15 +272,14 @@ public abstract class NullSecurityManager extends SecurityManager {
 
 	@Override
 	public synchronized void checkAccess(Thread t) {
-		if( !isLocked() && isEventEnabled(Events.ACCESS) ) {
+		if( !isLocked() && isEventEnabled(Events.ACCESS_THREAD) ) {
 			setLocked(true);
 			try {
-				String callstack = "";
+				//String callstack = "";
 				if( callstackopt != Callstack.NONE ) {
 					stacktrace = Thread.currentThread().getStackTrace();
 				}
-				callstack = generateCallStack(callstackopt);
-				processEvent(Events.ACCESS, new Object[] {t,callstack}, "t=%s, stack=%s", t.toString(), callstack);
+				processEvent(Events.ACCESS_THREAD, new JVMXRayAccessThreadEvent( stacktrace, callstackopt, new Object[] {t} ));
 			}finally {
 				setLocked(false);
 			}
@@ -251,15 +288,14 @@ public abstract class NullSecurityManager extends SecurityManager {
 
 	@Override
 	public synchronized void checkAccess(ThreadGroup g) {
-		if( !isLocked() && isEventEnabled(Events.ACCESS) ) {
+		if( !isLocked() && isEventEnabled(Events.ACCESS_THREADGROUP) ) {
 			setLocked(true);
 			try {
-				String callstack = "";
+				//String callstack = "";
 				if( callstackopt != Callstack.NONE ) {
 					stacktrace = Thread.currentThread().getStackTrace();
 				}
-				callstack = generateCallStack(callstackopt);
-				processEvent(Events.ACCESS, new Object[] {g,callstack}, "tg=%s, stack=%s", g.toString(), callstack);
+				processEvent(Events.ACCESS_THREADGROUP, new JVMXRayAccessThreadEvent( stacktrace, callstackopt, new Object[] {g} ));
 			}finally {
 				setLocked(false);
 			}
@@ -271,12 +307,11 @@ public abstract class NullSecurityManager extends SecurityManager {
 		if( !isLocked() && isEventEnabled(Events.EXIT) ) {
 			setLocked(true);
 			try {
-				String callstack = "";
+				//String callstack = "";
 				if( callstackopt != Callstack.NONE ) {
 					stacktrace = Thread.currentThread().getStackTrace();
 				}
-				callstack = generateCallStack(callstackopt);
-				processEvent(Events.EXIT, new Object[] {status,callstack}, "s=%s, stack=%s", status, callstack);
+				processEvent(Events.EXIT, new JVMXRayExitEvent( stacktrace, callstackopt, new Object[] {status} ));
 			}finally {
 				setLocked(false);
 			}
@@ -288,12 +323,11 @@ public abstract class NullSecurityManager extends SecurityManager {
 		if( !isLocked() && isEventEnabled(Events.FILE_EXECUTE) ) {
 			setLocked(true);
 			try {
-				String callstack = "";
+				//String callstack = "";
 				if( callstackopt != Callstack.NONE ) {
 					stacktrace = Thread.currentThread().getStackTrace();
 				}
-				callstack = generateCallStack(callstackopt);
-				processEvent(Events.FILE_EXECUTE, new Object[] {cmd,callstack}, "cmd=%s, stack=%s", cmd, callstack);
+				processEvent(Events.FILE_EXECUTE, new JVMXRayFileExecuteEvent( stacktrace, callstackopt, new Object[] {cmd} ));
 			}finally {
 				setLocked(false);
 			}
@@ -305,12 +339,11 @@ public abstract class NullSecurityManager extends SecurityManager {
 		if( !isLocked() && isEventEnabled(Events.LINK) ) {
 			setLocked(true);
 			try {
-				String callstack = "";
+				//String callstack = "";
 				if( callstackopt != Callstack.NONE ) {
 					stacktrace = Thread.currentThread().getStackTrace();
 				}
-				callstack = generateCallStack(callstackopt);
-				processEvent(Events.LINK, new Object[] {lib,callstack}, "lib=%s, stack=%s", lib, callstack);
+				processEvent(Events.LINK, new JVMXRayLinkEvent( stacktrace, callstackopt, new Object[] {lib} ));
 			}finally {
 				setLocked(false);
 			}
@@ -319,7 +352,18 @@ public abstract class NullSecurityManager extends SecurityManager {
 
 	@Override
 	public synchronized void checkRead(FileDescriptor fd) {
-		// NOTE: Don't believe we can get the file name so this is not useful.
+		if( !isLocked() && isEventEnabled(Events.FILE_READ_WITH_FILEDESCRIPTOR) ) {
+			setLocked(true);
+			try {
+				//String callstack = "";
+				if( callstackopt != Callstack.NONE ) {
+					stacktrace = Thread.currentThread().getStackTrace();
+				}
+				processEvent(Events.FILE_READ_WITH_FILEDESCRIPTOR, new JVMXRayFileReadWithFileDescriptorEvent( stacktrace, callstackopt, new Object[] {fd} ));
+			}finally {
+				setLocked(false);
+			}
+		}
 	}
 
 	@Override
@@ -327,12 +371,11 @@ public abstract class NullSecurityManager extends SecurityManager {
 		if( !isLocked() && isEventEnabled(Events.FILE_READ) ) {
 			setLocked(true);
 			try {
-				String callstack = "";
+				//String callstack = "";
 				if( callstackopt != Callstack.NONE ) {
 					stacktrace = Thread.currentThread().getStackTrace();
 				}
-				callstack = generateCallStack(callstackopt);
-				processEvent(Events.LINK, new Object[] {file,callstack}, "f=%s, stack=%s", file, callstack);
+				processEvent(Events.FILE_READ, new JVMXRayFileReadEvent( stacktrace, callstackopt, new Object[] {file} ));
 			}finally {
 				setLocked(false);
 			}
@@ -341,15 +384,14 @@ public abstract class NullSecurityManager extends SecurityManager {
 
 	@Override
 	public synchronized void checkRead(String file, Object context) {
-		if( !isLocked() && isEventEnabled(Events.FILE_READ) ) {
+		if( !isLocked() && isEventEnabled(Events.FILE_READ_WITH_CONTEXT) ) {
 			try {
 				setLocked(true);
-				String callstack = "";
+				//String callstack = "";
 				if( callstackopt != Callstack.NONE ) {
 					stacktrace = Thread.currentThread().getStackTrace();
 				}
-				callstack = generateCallStack(callstackopt);
-				processEvent(Events.FILE_READ, new Object[] {file,context,callstack}, "f=%s, c=%s, stack=%s", file, context.toString(), callstack);
+				processEvent(Events.FILE_READ_WITH_CONTEXT,new JVMXRayFileReadWithContextEvent( stacktrace, callstackopt, new Object[] {file} ));
 			}finally {
 				setLocked(false);
 			}
@@ -358,7 +400,18 @@ public abstract class NullSecurityManager extends SecurityManager {
 
 	@Override
 	public synchronized void checkWrite(FileDescriptor fd) {
-		// NOTE: Don't believe we can get the file name so this is not useful.
+		if( !isLocked() && isEventEnabled(Events.FILE_WRITE_WITH_FILEDESCRIPTOR) ) {
+			setLocked(true);
+			try {
+				//String callstack = "";
+				if( callstackopt != Callstack.NONE ) {
+					stacktrace = Thread.currentThread().getStackTrace();
+				}
+				processEvent(Events.FILE_WRITE_WITH_FILEDESCRIPTOR, new JVMXRayFileWriteWithFileDescriptorEvent( stacktrace, callstackopt, new Object[] {fd} ));
+			}finally {
+				setLocked(false);
+			}
+		}
 	}
 
 	@Override
@@ -366,12 +419,11 @@ public abstract class NullSecurityManager extends SecurityManager {
 		if( !isLocked() && isEventEnabled(Events.FILE_WRITE) ) {
 			setLocked(true);
 			try {
-				String callstack = "";
+				//String callstack = "";
 				if( callstackopt != Callstack.NONE ) {
 					stacktrace = Thread.currentThread().getStackTrace();
 				}
-				callstack = generateCallStack(callstackopt);
-				processEvent(Events.FILE_WRITE, new Object[] {file,callstack}, "f=%s, stack=%s", file, callstack);
+				processEvent(Events.FILE_WRITE, new JVMXRayFileWriteEvent( stacktrace, callstackopt, new Object[] {file} ));
 			}finally {
 				setLocked(false);
 			}
@@ -383,12 +435,11 @@ public abstract class NullSecurityManager extends SecurityManager {
 		if( !isLocked() &&  isEventEnabled(Events.FILE_DELETE) ) {
 			setLocked(true);
 			try {
-				String callstack = "";
+				//String callstack = "";
 				if( callstackopt != Callstack.NONE ) {
 					stacktrace = Thread.currentThread().getStackTrace();
 				}
-				callstack = generateCallStack(callstackopt);
-				processEvent(Events.FILE_DELETE, new Object[] {file,callstack}, "f=%s, stack=%s", file, callstack);
+				processEvent(Events.FILE_DELETE, new JVMXRayFileDeleteEvent( stacktrace, callstackopt, new Object[] {file} ));
 			}finally {
 				setLocked(false);
 			}
@@ -400,12 +451,11 @@ public abstract class NullSecurityManager extends SecurityManager {
 		if( !isLocked() && isEventEnabled(Events.SOCKET_CONNECT) ) {
 			setLocked(true);
 			try {
-				String callstack = "";
+				//String callstack = "";
 				if( callstackopt != Callstack.NONE ) {
 					stacktrace = Thread.currentThread().getStackTrace();
 				}
-				callstack = generateCallStack(callstackopt);
-				processEvent(Events.SOCKET_CONNECT, new Object[] {host,port,callstack}, "h=%s, p=%s, stack=%s", host, port, callstack);
+				processEvent(Events.SOCKET_CONNECT, new JVMXRaySocketConnectEvent( stacktrace, callstackopt, new Object[] {host,port} ));
 			}finally {
 				setLocked(false);
 			}
@@ -414,15 +464,14 @@ public abstract class NullSecurityManager extends SecurityManager {
 
 	@Override
 	public synchronized void checkConnect(String host, int port, Object context) {
-		if( !isLocked() && isEventEnabled(Events.SOCKET_CONNECT) ) {
+		if( !isLocked() && isEventEnabled(Events.SOCKET_CONNECT_WITH_CONTEXT) ) {
 			setLocked(true);
 			try {
-				String callstack = "";
+				//String callstack = "";
 				if( callstackopt != Callstack.NONE ) {
 					stacktrace = Thread.currentThread().getStackTrace();
 				}
-				callstack = generateCallStack(callstackopt);
-				processEvent(Events.SOCKET_CONNECT, new Object[] {port,context,callstack}, "h=%s, p=%s, ctx=%s, stack=%s", host, port, context.toString(), callstack);
+				processEvent(Events.SOCKET_CONNECT_WITH_CONTEXT, new JVMXRaySocketConnectWithContextEvent( stacktrace, callstackopt, new Object[] {host,port,context} ));
 			}finally {
 				setLocked(false);
 			}
@@ -434,12 +483,11 @@ public abstract class NullSecurityManager extends SecurityManager {
 		if( !isLocked() && isEventEnabled(Events.SOCKET_LISTEN) ) {
 			setLocked(true);
 			try {
-				String callstack = "";
+				//String callstack = "";
 				if( callstackopt != Callstack.NONE ) {
 					stacktrace = Thread.currentThread().getStackTrace();
 				}
-				callstack = generateCallStack(callstackopt);
-				processEvent(Events.SOCKET_LISTEN, new Object[] {port,callstack}, "p=%i, stack=%s", port, callstack);
+				processEvent(Events.SOCKET_LISTEN, new JVMXRaySocketListenEvent( stacktrace, callstackopt, new Object[] {port} ));
 			}finally {
 				setLocked(false);
 			}
@@ -451,12 +499,11 @@ public abstract class NullSecurityManager extends SecurityManager {
 		if( !isLocked() && isEventEnabled(Events.SOCKET_ACCEPT) ) {
 			setLocked(true);
 			try {
-				String callstack = "";
+				//String callstack = "";
 				if( callstackopt != Callstack.NONE ) {
 					stacktrace = Thread.currentThread().getStackTrace();
 				}
-				callstack = generateCallStack(callstackopt);
-				processEvent(Events.SOCKET_ACCEPT, new Object[] {host,port,callstack}, "h=%s, p=%s, stack=%s", host, port, callstack);
+				processEvent(Events.SOCKET_ACCEPT, new JVMXRaySocketAcceptEvent( stacktrace, callstackopt, new Object[] {host,port} ));
 			}finally {
 				setLocked(false);
 			}
@@ -468,12 +515,11 @@ public abstract class NullSecurityManager extends SecurityManager {
 		if( !isLocked() && isEventEnabled(Events.SOCKET_MULTICAST) ) {
 			setLocked(true);
 			try {
-				String callstack = "";
+				//String callstack = "";
 				if( callstackopt != Callstack.NONE ) {
 					stacktrace = Thread.currentThread().getStackTrace();
 				}
-				callstack = generateCallStack(callstackopt);
-				processEvent(Events.SOCKET_MULTICAST, new Object[] {maddr,callstack}, "maddr=%s, stack=%s", maddr.toString(), callstack);
+				processEvent(Events.SOCKET_MULTICAST, new JVMXRaySocketMulticastEvent( stacktrace, callstackopt, new Object[] {maddr} ));
 			}finally {
 				setLocked(false);
 			}
@@ -483,15 +529,14 @@ public abstract class NullSecurityManager extends SecurityManager {
 	@Override
 	@Deprecated 
 	public synchronized void checkMulticast(InetAddress maddr, byte ttl) {
-		if( !isLocked() && isEventEnabled(Events.SOCKET_MULTICAST) ) {
+		if( !isLocked() && isEventEnabled(Events.SOCKET_MULTICAST_WITH_TTL) ) {
 			setLocked(true);
 			try {
-				String callstack = "";
+				//String callstack = "";
 				if( callstackopt != Callstack.NONE ) {
 					stacktrace = Thread.currentThread().getStackTrace();
 				}
-				callstack = generateCallStack(callstackopt);
-				processEvent(Events.SOCKET_MULTICAST, new Object[] {maddr,ttl,callstack}, "maddr=%s, ttl=%s, stack=%s", maddr, Byte.toString(ttl), callstack);
+				processEvent(Events.SOCKET_MULTICAST_WITH_TTL, new JVMXRaySocketMulticastWithTTLEvent( stacktrace, callstackopt, new Object[] {maddr, ttl} ));
 			}finally {
 				setLocked(false);
 			}
@@ -504,12 +549,11 @@ public abstract class NullSecurityManager extends SecurityManager {
 		if( !isLocked() && isEventEnabled(Events.PROPERTIES_ANY) ) {
 			setLocked(true);
 			try {
-				String callstack = "";
+				//String callstack = "";
 				if( callstackopt != Callstack.NONE ) {
 					stacktrace = Thread.currentThread().getStackTrace();
 				}
-				callstack = generateCallStack(callstackopt);
-				processEvent(Events.PROPERTIES_ANY, new Object[] {callstack}, "stack=%s", callstack);
+				processEvent(Events.PROPERTIES_ANY, new JVMXRayPropertiesAnyEvent( stacktrace, callstackopt, new Object[0] ));
 			}finally {
 				setLocked(false);
 			}
@@ -521,12 +565,11 @@ public abstract class NullSecurityManager extends SecurityManager {
 		if( !isLocked() && isEventEnabled(Events.PROPERTIES_NAMED) ) {
 			setLocked(true);
 			try {
-				String callstack = "";
+				//String callstack = "";
 				if( callstackopt != Callstack.NONE ) {
 					stacktrace = Thread.currentThread().getStackTrace();
 				}
-				callstack = generateCallStack(callstackopt);
-				processEvent(Events.PROPERTIES_NAMED, new Object[] {key,callstack}, "key=%s, stack=%s", key, callstack);
+				processEvent(Events.PROPERTIES_NAMED, new JVMXRayPropertiesNamedEvent( stacktrace, callstackopt, new Object[] { key } ));
 			}finally {
 				setLocked(false);
 			}
@@ -538,12 +581,11 @@ public abstract class NullSecurityManager extends SecurityManager {
 		if( !isLocked() && isEventEnabled(Events.PRINT) ) {
 			setLocked(true);
 			try {
-				String callstack = "";
+				//String callstack = "";
 				if( callstackopt != Callstack.NONE ) {
 					stacktrace = Thread.currentThread().getStackTrace();
 				}
-				callstack = generateCallStack(callstackopt);
-				processEvent(Events.PRINT, new Object[] {callstack}, "stack=%s", callstack);
+				processEvent(Events.PRINT, new JVMXRayPrintEvent( stacktrace, callstackopt, new Object[0] ));			
 			}finally {
 				setLocked(false);
 			}
@@ -555,12 +597,11 @@ public abstract class NullSecurityManager extends SecurityManager {
 		if( !isLocked() && isEventEnabled(Events.PACKAGE_ACCESS) ) {
 			setLocked(true);
 			try {
-				String callstack = "";
+				//String callstack = "";
 				if( callstackopt != Callstack.NONE ) {
 					stacktrace = Thread.currentThread().getStackTrace();
 				}
-				callstack = generateCallStack(callstackopt);
-				processEvent(Events.PACKAGE_ACCESS, new Object[] {pkg,callstack}, "pkg=%s, stack=%s", pkg, callstack);
+				processEvent(Events.PACKAGE_ACCESS, new JVMXRayPackageAccessEvent( stacktrace, callstackopt, new Object[] {pkg} ));
 			}finally {
 				setLocked(false);
 			}
@@ -572,12 +613,11 @@ public abstract class NullSecurityManager extends SecurityManager {
 		if( !isLocked() && isEventEnabled(Events.PACKAGE_DEFINE) ) {
 			setLocked(true);
 			try {
-				String callstack = "";
+				//String callstack = "";
 				if( callstackopt != Callstack.NONE ) {
 					stacktrace = Thread.currentThread().getStackTrace();
 				}
-				callstack = generateCallStack(callstackopt);
-				processEvent(Events.PACKAGE_DEFINE, new Object[] {pkg,callstack}, "pkg=%s, stack=%s", pkg, callstack);
+				processEvent(Events.PACKAGE_DEFINE, new JVMXRayPackageDefineEvent( stacktrace, callstackopt, new Object[] {pkg} ));
 			}finally {
 				setLocked(false);
 			}
@@ -589,12 +629,11 @@ public abstract class NullSecurityManager extends SecurityManager {
 		if( !isLocked() && isEventEnabled(Events.FACTORY) ) {
 			setLocked(true);
 			try {
-				String callstack = "";
+				//String callstack = "";
 				if( callstackopt != Callstack.NONE ) {
 					stacktrace = Thread.currentThread().getStackTrace();
 				}
-				callstack = generateCallStack(callstackopt);
-				processEvent(Events.FACTORY, new Object[] {callstack}, "stack=%s", callstack);
+				processEvent(Events.FACTORY, new JVMXRayFactoryEvent( stacktrace, callstackopt, new Object[0] ));
 			}finally {
 				setLocked(false);
 			}
@@ -603,15 +642,14 @@ public abstract class NullSecurityManager extends SecurityManager {
 
 	@Override
 	public synchronized void checkSecurityAccess(String target) {
-		if( !isLocked() && isEventEnabled(Events.ACCESS) ) {
+		if( !isLocked() && isEventEnabled(Events.ACCESS_SECURITY) ) {
 			setLocked(true);
 			try {
-				String callstack = "";
+				//String callstack = "";
 				if( callstackopt != Callstack.NONE ) {
 					stacktrace = Thread.currentThread().getStackTrace();
 				}
-				callstack = generateCallStack(callstackopt);
-				processEvent(Events.ACCESS, new Object[] {target,callstack}, "t=%s, stack=%s", target, callstack);
+				processEvent(Events.ACCESS_SECURITY, new JVMXRayAccessSecurityEvent( stacktrace, callstackopt, new Object[] {target} ));
 			}finally {
 				setLocked(false);
 			}
@@ -629,56 +667,15 @@ public abstract class NullSecurityManager extends SecurityManager {
 	 * calls resulting in a stack overflow. 
 	 * @param message Message associated with the event.
 	 */
-	private void processEvent(Events event, Object[] obj1, String format, Object ...obj2 ) {
-		
+	private void processEvent( Events type, IJVMXRayEvent event ) {
+		// Events event, Object[] obj1, String format, Object ...obj2
 		try {
-			if( filterEvent(event, obj1, format, obj2) == FilterActions.ALLOW ) {
-				fireEvent( event, obj1, format, obj2 );
+			if( filterEvent(type, event) == FilterActions.ALLOW ) {
+				fireEvent( event );
 			}
 		}catch(Throwable t) {
 			t.printStackTrace();
 		}
-	}
-	
-	/**
-	 * Fires an event.  Similar to NullSecurityManager.fireEvent(Event,String) with the
-	 * exception that subclasses can improve the default message format
-	 * provided by NullSecurityManager.  For example, PERMISSION events are formatted
-	 * by default like this, n=%s, a=%s, s=%s", where the variables are assigned
-	 * like this perm.getName(),perm.getActions()+",s="+perm.toString(), respectively.
-	 * Designers can override this and alter the format based on message type as they
-	 * choose.  Designers may wish to do this for any number of reasons like
-	 * creating CSV file output, etc.
-	 * @param event Type of event fired such as Events.PACKAGE_DEFINE
-	 * @param obj1 Method arguments as passed by java.lang.SecurityManager.
-	 * @param format Default format (e.g., String.format()) for specified message type.
-	 * @param obj2 Variable number of arguments (e.g., String.format()) dependent upon event type.
-	 */
-	protected void fireEvent(Events event, Object[] obj1, String format, Object ...obj2) {
-		
-		 //    if event is, Events.PERMISSION,          obj is,     Permission || Permission, Object
-		 //    if event is, Events.CLASSLOADER_CREATE,  obj is,     ""
-		 //    if event is, Events.EXIT,                obj is,     int
-		 //    if event is, Events.EXEC,                obj is,     String
-		 //    if event is, Events.LINK,                obj is,     String
-		 //    if event is, Events.FILE_READ,           obj is,     String || String, Object
-		 //    if event is, Events.FILE_WRITE,          obj is,     String
-		 //    if event is, Events.FILE_DELETE,         obj is,     String
-		 //    if event is, Events.SOCKET_CONNECT,      obj is,     String, int || String, int, Object
-		 //    if event is, Events.SOCKET_LISTEN,       obj is,     int
-		 //    if event is, Events.SOCKET_ACCEPT,       obj is,     String, int
-		 //    if event is, Events.SOCKET_MULTICAST,    obj is,     InetAddress, byte(optional)
-		 //    if event is, Events.PROPERTIES_ANY,      obj is,     ""
-		 //    if event is, Events.PRINT,               obj is,     ""
-		 //    if event is, Events.PACKAGE_ACCESS,      obj is,     String
-		 //    if event is, Events.PACKAGE_DEFINE,      obj is,     String
-		 //    if event is, Events.FACTORY,             obj is,     ""
-		 //    if event is, Events.ACCESS,              obj is,     String || Thread || ThreadGroup
-		
-		String message = String.format( format, obj2 );
-		
-		fireEvent( event, message );
-		
 	}
 	
 	/**
@@ -688,15 +685,17 @@ public abstract class NullSecurityManager extends SecurityManager {
 	 * and Java logging.
 	 * @param message Message associated with the event.
 	 */
-	protected abstract void fireEvent(Events event, String message);
+	protected void fireEvent(IJVMXRayEvent handler) {
+		// Defaut is to do nothing.
+	}
 	
 	/**
 	 * Process event filters
 	 * @return FilterActions.ALLOW or FilterActions.DENY.
 	 */
-	private FilterActions filterEvent(Events event, Object ...obj) {
+	private FilterActions filterEvent(Events type, IJVMXRayEvent event) {
 		
-		return rulelist.filterEvents( event, obj);
+		return rulelist.filterEvents( type, event );
 		
 	}
 	
@@ -759,60 +758,7 @@ public abstract class NullSecurityManager extends SecurityManager {
     	}
 
     }
-    
-    /**
-     * Generate a callstack based upon specification.
-     * @param callstack Type of callstack to generate.
-     */
-    protected String generateCallStack(Callstack callstack) {
-    	
-    	StringBuffer buff = new StringBuffer();
-		Class[] clz = null; 
-		URL location = null;
-    	
-    	switch ( callstack ) {
-    	
-    		case LIMITED:
-    			clz = getClassContext();
-    			for (Class c : clz ) {
-    				buff.append(c.getName());
-    				buff.append(location.toString());
-    				buff.append("->");
-    			}
-    			break;
-    		case SOURCEPATH:
-    			clz = getClassContext();
-    			for (Class c : clz ) {
-     				location = c.getResource('/' + c.getName().replace('.', '/') + ".class");
-    				buff.append(location.toString());
-    				buff.append("->");
-    			}
-    			break;
-    		case FULL:
-    			if (stacktrace==null) break;
-    			for (StackTraceElement e : stacktrace ) {
-    				buff.append(e.getClassName());
-    				buff.append('(');
-    				buff.append(e.getMethodName());
-    				buff.append(':');
-    				buff.append(e.getLineNumber());
-    				buff.append(')');
-    				buff.append("->");
-    			}
-    			break;
-    			
-    		case NONE:
-    			buff.append("<disabled>");
-    			break;
-
-    	}
-
-    	// Chop off trailing ->
-		if (buff.length()>0 && buff.toString().endsWith("->"))
-			buff.setLength(buff.length()-2);
-    	
-    	return buff.toString();
-    }
+   
     
     
 	/**
@@ -894,7 +840,7 @@ public abstract class NullSecurityManager extends SecurityManager {
 	    		 Class c = getClass().getClassLoader().loadClass(fclass);
 	             Constructor cd = c.getConstructor(EnumSet.class, FilterActions.class, Properties.class);
 	             FilterActions filteraction = FilterActions.valueOf(defaults);
-	             FilterDomainRule fdr = (FilterDomainRule)cd.newInstance(gvents,filteraction, np);
+	             JVMXRayFilterRule fdr = (JVMXRayFilterRule)cd.newInstance(gvents,filteraction, np);
 	             
 	            		 
 	             // Add the rule to the list
@@ -919,3 +865,4 @@ public abstract class NullSecurityManager extends SecurityManager {
     }
     
 }
+

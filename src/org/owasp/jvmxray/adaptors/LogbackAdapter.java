@@ -1,6 +1,7 @@
 package org.owasp.jvmxray.adaptors;
 
 
+import org.owasp.jvmxray.api.IJVMXRayEvent;
 import org.owasp.jvmxray.api.NullSecurityManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,12 +16,12 @@ public class LogbackAdapter extends NullSecurityManager {
 	private static final Logger logger = LoggerFactory.getLogger("org.owasp.jvmxray.adaptors.LogbackAdapter");
 	
 	@Override
-	public void fireEvent(Events event, String message) {
+	public void fireEvent(IJVMXRayEvent event) {
 		
 		StringBuffer buff = new StringBuffer();
 		buff.append( event.toString() );
 		buff.append( ' ' );
-		buff.append( message );
+		buff.append( event.toString() );
 		
 		logger.info(buff.toString());
 		

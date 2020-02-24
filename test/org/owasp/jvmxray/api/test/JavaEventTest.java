@@ -8,6 +8,7 @@ import java.net.URLConnection;
 
 import org.junit.Test;
 import org.owasp.jvmxray.adaptors.ConsoleAdaptor;
+import org.owasp.jvmxray.sample.JMXAdaptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,11 +46,32 @@ public class JavaEventTest {
 		// Choose the event sink.
 		//LogbackHanlder h = new LogbackHanlder();
 		ConsoleAdaptor h = new ConsoleAdaptor();
+		
+		// Choose jmx event sink.
+//		System.setProperty("com.sun.management.jmxremote","");
+//		System.setProperty("com.sun.management.jmxremote.port","1617");
+//		System.setProperty("com.sun.management.jmxremote.authentication","false");
+//		System.setProperty("com.sun.management.jmxremote.ssl","false");
+//		JMXAdaptor h = new JMXAdaptor();
 		System.setSecurityManager(h);
 		
 	}
 	
-	@Test
+//	public JavaEventTest() {
+//		try {
+//			testFileManagement();
+//            System.out.println("Press any key to continue...");
+//            System.in.read();
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
+//	}
+	
+	public static void main(String[] args) {
+		new JavaEventTest();
+	}
+	
+	//@Test
 	public void testFileManagement() {
 		
 		try{
@@ -107,7 +129,7 @@ public class JavaEventTest {
 		
 		try {
 			// We only need to retrieve a connection.  Not necessary to send/read data.
-			URLConnection connection = new URL("https://www.oracle.com/").openConnection();
+			URLConnection connection = new URL("https://www.github.com/").openConnection();
 			connection.getContent();
 		} catch (IOException e) {}
 		
