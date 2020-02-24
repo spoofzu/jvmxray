@@ -27,7 +27,7 @@ The Java Virtual Machine provides security framework for controlling access to p
 
 ## Sample Command Line...
 ```code
-java -Djava.security.manager=com.owasp.jvmxray.adaptors.LogbackAdaptor -Djvmxray.configuraiton=”https://www.myserver.com/jvmxray/site.properties” com.main.class
+java -Djava.security.manager=com.owasp.jvmxray.adaptors.LogbackAdaptor -Djvmxray.configuration="https://www.myserver.com/jvmxray/site.properties” com.your.main.class
 ```
 
 The previous command would start Java with the LogbackAdaptor using the configuration file specified by site.properties when executing your class, com.main.class.  This is a simplified command for illustration.  Specific configuration depends upon which application server your using.  Keep in mind, if you use the LogbackAdaptor or JavaLoggingAdaptor additional configuration may be required.
