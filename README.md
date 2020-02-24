@@ -25,7 +25,9 @@ The Java Virtual Machine provides security framework for controlling access to p
 2)	Add the system property, -Djava.security.manager=<security_manager>.  Where <security_manager> is one of three classes, org.owasp.jvmxray.adaptors.ConsoleAdaptor, org.owasp.jvmxray.adaptors.JavaLoggingAdaptor, or org.owasp.jvmxray.adaptors.LogbackAdaptor
 3)	Edit your jvmxray.properties to capture your events of interest.  Properties are served from the classpath root by default or from a web server.  To load from your web server assign the following property, -Djvmxray.configuration=<url>.  Where url is the full url to the property file.
 
-## A sample command line...,
+## A sample command line...
+```code
 java -Djava.security.manager=com.owasp.jvmxray.adaptors.LogbackAdaptor -Djvmxray.configuraiton=”https://www.myserver.com/jvmxray/site.properties” com.main.class
+```
 
 The previous command would start Java with the LogbackAdaptor using the configuration file specified by site.properties when executing your class, com.main.class.  This is a simplified command for illustration.  Specific configuration depends upon which application server your using.  Keep in mind, if you use the LogbackAdaptor or JavaLoggingAdaptor additional configuration may be required.
