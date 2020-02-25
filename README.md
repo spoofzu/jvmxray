@@ -2,6 +2,10 @@
 
 JVMXRay is a technology for monitoring access to system resources within the Java Virtual Machine.  It’s designed with application security emphasis but some will also find it beneficial for software quality processes and diagnostics.
 
+```
+NOTE: This is early stage code and there be dragons.  You were warned!
+```
+
 ## Benefits
 Following is a quick list of some of the more important benefits.
 
