@@ -1,0 +1,21 @@
+language: java
+
+jdk: oraclejdk11
+
+sudo: true
+
+cache:
+  directories:
+    - "$HOME/.m2"
+ 
+before_install:
+  - sudo apt-get update -q
+
+script: mvn clean install -q
+  
+#notifications:
+#  email:
+#    recipients:
+#      - xxx@gmail.com
+#    on_success: never # default: change
+#    on_failure: always # default: always
