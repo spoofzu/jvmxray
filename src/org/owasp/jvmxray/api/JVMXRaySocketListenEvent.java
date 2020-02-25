@@ -5,7 +5,7 @@ import org.owasp.jvmxray.api.NullSecurityManager.Events;
 
 public class JVMXRaySocketListenEvent extends JVMXRayBaseEvent {
 
-private static final String format =  "p=%i";
+private static final String format =  "p=%s";
 	
 	public JVMXRaySocketListenEvent(StackTraceElement[] stacktrace, Callstack callstackopt, Object[] parameters) {
 		super(Events.SOCKET_LISTEN, stacktrace, callstackopt, parameters);

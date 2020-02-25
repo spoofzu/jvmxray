@@ -1,7 +1,5 @@
 package org.owasp.jvmxray.api;
 
-import java.security.Permission;
-
 import org.owasp.jvmxray.api.NullSecurityManager.Callstack;
 import org.owasp.jvmxray.api.NullSecurityManager.Events;
 
@@ -21,7 +19,7 @@ public class JVMXRaySocketAcceptEvent extends JVMXRayBaseEvent {
 	
 	public int getPort() {
 		Object[] obj = getParameters();
-		int p = (int)obj[0];
+		int p = (int)obj[1];
 		return p;
 	}
 	

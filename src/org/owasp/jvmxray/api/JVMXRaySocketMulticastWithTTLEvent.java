@@ -21,7 +21,7 @@ public class JVMXRaySocketMulticastWithTTLEvent extends JVMXRayBaseEvent {
 	
 	public byte getTTL() {
 		Object[] obj = getParameters();
-		byte ttl = (byte)obj[0];
+		byte ttl = (byte)obj[1];
 		return ttl;
 	}
 	

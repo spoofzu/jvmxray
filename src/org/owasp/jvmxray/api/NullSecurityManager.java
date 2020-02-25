@@ -11,10 +11,7 @@ import java.security.Permission;
 import java.util.EnumSet;
 import java.util.Enumeration;
 import java.util.Properties;
-
 import javax.net.ssl.HttpsURLConnection;
-
-import org.owasp.jvmxray.api.NullSecurityManager.Callstack;
 
 
 /**
@@ -664,8 +661,9 @@ public abstract class NullSecurityManager extends SecurityManager {
 	/**
 	 * Process an event.  Required since callers
 	 * may trigger additional nested security manager permission
-	 * calls resulting in a stack overflow. 
-	 * @param message Message associated with the event.
+	 * calls resulting in a stack overflow.
+	 * @param type type of event being processed
+	 * @param event actual event being processed
 	 */
 	private void processEvent( Events type, IJVMXRayEvent event ) {
 		// Events event, Object[] obj1, String format, Object ...obj2
@@ -683,14 +681,16 @@ public abstract class NullSecurityManager extends SecurityManager {
 	 * can be handled by log systems, SIEMS, etc.  This framework 
 	 * provides implementation for some popular systems like logback
 	 * and Java logging.
-	 * @param message Message associated with the event.
+	 * @param event actual event being processed
 	 */
-	protected void fireEvent(IJVMXRayEvent handler) {
+	protected void fireEvent(IJVMXRayEvent event) {
 		// Defaut is to do nothing.
 	}
 	
 	/**
 	 * Process event filters
+	 * @param type type of event being processed
+	 * @param event actual event being processed
 	 * @return FilterActions.ALLOW or FilterActions.DENY.
 	 */
 	private FilterActions filterEvent(Events type, IJVMXRayEvent event) {
