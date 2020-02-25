@@ -19,13 +19,13 @@ private static final String format = "h=%s, p=%s, ctx=%s";
 	
 	public int getPort() {
 		Object[] obj = getParameters();
-		int p = (int)obj[0];
+		int p = (int)obj[1];
 		return p;
 	}
 	
 	public Object getContext() {
 		Object[] obj = getParameters();
-		Object ctx = (Object)obj[0];
+		Object ctx = (Object)obj[2];
 		return ctx;
 	}
 	
