@@ -8,8 +8,8 @@ JVMXRay is a technology for monitoring access to system resources within the Jav
 
 ```
 CONSIDERATIONS:
-This project is being activty under review for acceptance as an OWASP project. Furthermore,
-please consider this early stage code, with bugs, not suitable for production use. 
+This project is being activty under review for acceptance as an OWASP project. Please
+consider this early stage code, with bugs, not suitable for production use. 
 There be dragons.  You were warned!
 ```
 
