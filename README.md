@@ -11,10 +11,6 @@ consider this early stage code, with bugs, not suitable for production use.
 There be dragons.  You were warned!
 ```
 
-## Project Leaders
-Milton Smith<br/>
-John Melton
-
 ## Benefits
 Following is a quick list of some of the more important benefits.
 
@@ -62,3 +58,7 @@ CONSOLEADAPTOR 2020-02-24 14:13:28 PST SOCKET_CONNECT,h=github.com, p=-1,stack=<
 CONSOLEADAPTOR 2020-02-24 14:13:28 PST SOCKET_CONNECT,h=192.30.255.112, p=443,stack=<disabled>
 CONSOLEADAPTOR 2020-02-24 14:13:28 PST SOCKET_CONNECT,h=192.30.255.112, p=443,stack=<disabled>
 ```
+
+## Project Leaders
+Milton Smith<br/>
+John Melton
