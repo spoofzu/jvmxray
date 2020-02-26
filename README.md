@@ -1,17 +1,12 @@
 [![Build Status](https://travis-ci.org/spoofzu/jvmxray.svg?branch=master)](https://travis-ci.org/spoofzu/jvmxray)
 
----------
-
 # Welcome to JVMXRay
 
 JVMXRay is a technology for monitoring access to system resources within the Java Virtual Machine.  It’s designed with application security emphasis but some will also find it beneficial for software quality processes and diagnostics.
 
----------
-
 ## Project Leaders
 Milton Smith<br/>
 John Melton
-
 
 ```
 CONSIDERATIONS:
