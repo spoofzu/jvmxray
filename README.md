@@ -1,6 +1,10 @@
 [![Build Status](https://travis-ci.org/spoofzu/jvmxray.svg?branch=master)](https://travis-ci.org/spoofzu/jvmxray)
 
-------
+```
+Project Leaders
+Milton Smith
+John Melton
+```
 
 # Welcome to JVMXRay
 
