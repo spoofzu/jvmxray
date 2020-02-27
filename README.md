@@ -29,32 +29,20 @@ The anticipated audience for JVMXRay is two-fold,<br/>
 **Security Developers & Architects** interested in more security intelligence about their applications.
 
 # Sample Output...
-Ok, so what does the sample output look like?  Well it really depends upon the type of adaptor you use to handle the events and settings but the following is small idea of what you could capture if you printed it to a log file.
+
+Alternatively, exposing the information using JMX.
+
+![jconsole1](https://user-images.githubusercontent.com/8450615/75402724-777c0800-58ba-11ea-8873-22e14a89a468.png)
+
+What does the sample log output look like?  Tt really depends upon the type of adaptor you use to handle the events and settings but the following is small idea of what you could capture if you printed it to a log file.
 
 ```
 CONSOLEADAPTOR 2020-02-24 14:13:28 PST PACKAGE_ACCESS,pkg=javax.crypto,stack=<disabled>
-CONSOLEADAPTOR 2020-02-24 14:13:28 PST PACKAGE_ACCESS,pkg=javax.crypto,stack=<disabled>
-CONSOLEADAPTOR 2020-02-24 14:13:28 PST PACKAGE_ACCESS,pkg=java.security.interfaces,stack=<disabled>
-CONSOLEADAPTOR 2020-02-24 14:13:28 PST PACKAGE_ACCESS,pkg=javax.crypto.spec,stack=<disabled>
-CONSOLEADAPTOR 2020-02-24 14:13:28 PST PERMISSION,n=suppressAccessChecks, a=, cn=java.lang.reflect.ReflectPermission,stack=<disabled>
-CONSOLEADAPTOR 2020-02-24 14:13:28 PST PERMISSION,n=suppressAccessChecks, a=, cn=java.lang.reflect.ReflectPermission,stack=<disabled>
-CONSOLEADAPTOR 2020-02-24 14:13:28 PST PERMISSION,n=suppressAccessChecks, a=, cn=java.lang.reflect.ReflectPermission,stack=<disabled>
-CONSOLEADAPTOR 2020-02-24 14:13:28 PST PERMISSION,n=getProperty.jdk.certpath.disabledAlgorithms, a=, cn=java.security.SecurityPermission,stack=<disabled>
-CONSOLEADAPTOR 2020-02-24 14:13:28 PST FILE_READ,f=/Library/Java/JavaVirtualMachines/jdk-11.0.1.jdk/Contents/Home/lib/security/blacklisted.certs,stack=<disabled>
 CONSOLEADAPTOR 2020-02-24 14:13:28 PST PERMISSION,n=getProperty.keystore.type.compat, a=, cn=java.security.SecurityPermission,stack=<disabled>
 CONSOLEADAPTOR 2020-02-24 14:13:28 PST FILE_READ,f=/Library/Java/JavaVirtualMachines/jdk-11.0.1.jdk/Contents/Home/lib/security/cacerts,stack=<disabled>
 CONSOLEADAPTOR 2020-02-24 14:13:28 PST PERMISSION,n=suppressAccessChecks, a=, cn=java.lang.reflect.ReflectPermission,stack=<disabled>
 CONSOLEADAPTOR 2020-02-24 14:13:28 PST PERMISSION,n=getProtectionDomain, a=, cn=java.lang.RuntimePermission,stack=<disabled>
 CONSOLEADAPTOR 2020-02-24 14:13:28 PST PERMISSION,n=getProtectionDomain, a=, cn=java.lang.RuntimePermission,stack=<disabled>
-CONSOLEADAPTOR 2020-02-24 14:13:28 PST PERMISSION,n=getProtectionDomain, a=, cn=java.lang.RuntimePermission,stack=<disabled>
-CONSOLEADAPTOR 2020-02-24 14:13:28 PST SOCKET_CONNECT,h=github.com, p=-1,stack=<disabled>
-CONSOLEADAPTOR 2020-02-24 14:13:28 PST PERMISSION,n=https://github.com/, a=GET:, cn=java.net.URLPermission,stack=<disabled>
-CONSOLEADAPTOR 2020-02-24 14:13:28 PST PERMISSION,n=getProtectionDomain, a=, cn=java.lang.RuntimePermission,stack=<disabled>
-CONSOLEADAPTOR 2020-02-24 14:13:28 PST PERMISSION,n=getProtectionDomain, a=, cn=java.lang.RuntimePermission,stack=<disabled>
-CONSOLEADAPTOR 2020-02-24 14:13:28 PST PERMISSION,n=getProxySelector, a=, cn=java.net.NetPermission,stack=<disabled>
-CONSOLEADAPTOR 2020-02-24 14:13:28 PST SOCKET_CONNECT,h=github.com, p=443,stack=<disabled>
-CONSOLEADAPTOR 2020-02-24 14:13:28 PST SOCKET_CONNECT,h=github.com, p=-1,stack=<disabled>
-CONSOLEADAPTOR 2020-02-24 14:13:28 PST SOCKET_CONNECT,h=192.30.255.112, p=443,stack=<disabled>
 CONSOLEADAPTOR 2020-02-24 14:13:28 PST SOCKET_CONNECT,h=192.30.255.112, p=443,stack=<disabled>
 ```
 Some of the events appear duplicated since the console adaptor is a simplified output.
