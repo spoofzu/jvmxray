@@ -30,7 +30,7 @@ The anticipated audience for JVMXRay is two-fold,<br/>
 
 # Sample Output...
 
-You can fire events to your favorite JMX viewer or use the built-in jconsole.
+You can fire events to your favorite JMX viewer or use the view built into Java, jconsole.
 
 ![jconsole1](https://user-images.githubusercontent.com/8450615/75402724-777c0800-58ba-11ea-8873-22e14a89a468.png)
 
