@@ -126,6 +126,20 @@ public abstract class NullSecurityManager extends SecurityManager {
 	 */
 	public static final String CONF_PROP_STACKTRACE = "jvmxray.event.stacktrace";
 	
+	/**
+	 * Filename property. Optional property for the JVMXRayEventAggregator and
+	 * described in the jvmxray.properties file.  Name of the output file from the
+	 * aggregated events.
+	 */
+	public static final String CONF_PROP_EVENT_AGG_FILE = "jvmxray.adaptor.jvmxrayeventaggregator.filename";
+	
+	/**
+	 * Interval in seconds. Optional property for the JVMXRayEventAggregator and
+	 * described in the jvmxray.properties file.  Interval in seconds to update
+	 * the aggregated events file.
+	 */
+	public static final String CONF_PROP_EVENT_AGG_FILE_INTERVAL = "jvmxray.adaptor.jvmxrayeventaggregator.fileupdateinterval";
+	
 	// Events to process.
 	private EnumSet<Events> usrevents = EnumSet.noneOf(Events.class);
 	
@@ -140,6 +154,9 @@ public abstract class NullSecurityManager extends SecurityManager {
 	
 	// Holds full stack traces, if enabled.
 	private StackTraceElement[] stacktrace = null;
+	
+	// jvmxray.properties
+	protected Properties jvmxrayProperties = new Properties();
 
 			
 	/**
@@ -769,7 +786,6 @@ public abstract class NullSecurityManager extends SecurityManager {
     	try {
     	
     		// Load jvmxray.properties
-	    	Properties p = new Properties();
 	    	InputStream in = null;
 	    	try {    		
 	        	// Load configuration properties from HTTPS URL.  If unassigned, load from /jvmxray.properties.
@@ -783,7 +799,7 @@ public abstract class NullSecurityManager extends SecurityManager {
 		   	     	in = new BufferedInputStream(con.getInputStream());
 	        	}
 	        	
-		    	p.load(in);
+		    	jvmxrayProperties.load(in);
 	    		
 	    	} finally {
 	       	 if( in != null )
@@ -795,16 +811,16 @@ public abstract class NullSecurityManager extends SecurityManager {
 	    	}
 	    	
 	    	// Get the trace level
-	    	String lvl = p.getProperty(CONF_PROP_STACKTRACE);
+	    	String lvl = jvmxrayProperties.getProperty(CONF_PROP_STACKTRACE);
 	    	callstackopt = Callstack.valueOf(lvl);
 	    	
 	    	// Iterate over all the properties
 	    	for( int i=1; i < 500; i++ ) {
 	    		
 	    		// Common settings for all filters.
-	    		String fclass = p.getProperty("jvmxray.filter"+i+".class");
-	    		String events = p.getProperty("jvmxray.filter"+i+".events");
-	    		String defaults = p.getProperty("jvmxray.filter"+i+".default");
+	    		String fclass = jvmxrayProperties.getProperty("jvmxray.filter"+i+".class");
+	    		String events = jvmxrayProperties.getProperty("jvmxray.filter"+i+".events");
+	    		String defaults = jvmxrayProperties.getProperty("jvmxray.filter"+i+".default");
 	    		
 	    		// No more filters or missing filter.  Continue to look for
 	    		// next numbered fitler.
@@ -813,10 +829,10 @@ public abstract class NullSecurityManager extends SecurityManager {
 	    		
 	    		// Collect all properties specific to the filter.
 	    		Properties np = new Properties();
-	    		Enumeration<String> e = (Enumeration<String>) p.propertyNames();
+	    		Enumeration<String> e = (Enumeration<String>) jvmxrayProperties.propertyNames();
 	    		while (e.hasMoreElements() ) {
 	    			String key = e.nextElement();
-	    			String value = p.getProperty(key);
+	    			String value = jvmxrayProperties.getProperty(key);
 	    			String prefix = "jvmxray.filter"+i;
 	    			if( key.startsWith(prefix) ) {
 	    				np.put(key,value);

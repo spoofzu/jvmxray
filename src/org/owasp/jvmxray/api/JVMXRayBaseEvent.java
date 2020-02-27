@@ -100,6 +100,8 @@ abstract class JVMXRayBaseEvent implements IJVMXRayEvent {
 		
 		buff.append(this.getType());
 		buff.append(',');
+		buff.append(Thread.currentThread().toString());
+		buff.append(',');
 		buff.append(String.format(getStringFormat(),getStringArgs()));
 		
 		// Add the trace option, if present

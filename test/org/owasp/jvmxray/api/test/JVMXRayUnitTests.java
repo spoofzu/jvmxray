@@ -16,7 +16,7 @@ import java.net.URLConnection;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.owasp.jvmxray.adaptors.ConsoleAdaptor;
+import org.owasp.jvmxray.adaptors.JVMXRayConsoleAdaptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -59,7 +59,7 @@ public class JVMXRayUnitTests {
 		}
 		
 		// Console adaptor for easy testing.
-		ConsoleAdaptor h = new ConsoleAdaptor();
+		JVMXRayConsoleAdaptor h = new JVMXRayConsoleAdaptor();
 		System.setSecurityManager(h);
 		
 	}

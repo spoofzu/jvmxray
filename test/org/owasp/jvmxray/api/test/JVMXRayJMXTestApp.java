@@ -6,7 +6,8 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.Scanner;
 
-import org.owasp.jvmxray.adaptors.JMXAdaptor;
+import org.owasp.jvmxray.adaptors.JVMXRayEventAggregatorAdaptor;
+import org.owasp.jvmxray.adaptors.JVMXRayJMXAdaptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +36,8 @@ public class JVMXRayJMXTestApp {
 //		System.setProperty("com.sun.management.jmxremote.authentication","false");
 //		System.setProperty("com.sun.management.jmxremote.ssl","false");
 		
-		JMXAdaptor h = new JMXAdaptor();
+		//JVMXRayJMXAdaptor h = new JVMXRayJMXAdaptor();
+		JVMXRayEventAggregatorAdaptor h = new JVMXRayEventAggregatorAdaptor();
 		System.setSecurityManager(h);
 		
 	}
