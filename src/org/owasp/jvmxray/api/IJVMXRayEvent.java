@@ -6,6 +6,8 @@ public interface IJVMXRayEvent {
 	
 	public Events getType();
 	
+	public Object[] getParameters();
+	
 	public String getStringFormat();
 	
 	public Object[] getStringArgs();

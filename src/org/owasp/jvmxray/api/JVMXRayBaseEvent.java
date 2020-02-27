@@ -101,11 +101,16 @@ abstract class JVMXRayBaseEvent implements IJVMXRayEvent {
 		buff.append(this.getType());
 		buff.append(',');
 		buff.append(String.format(getStringFormat(),getStringArgs()));
-		buff.append(',');
-		buff.append("stack="+generateCallStack());
+		
+		// Add the trace option, if present
+		if (stacktrace!= null) {
+			buff.append(',');
+			buff.append("stack="+generateCallStack());
+		}
 		
 
 		return  buff.toString();
+	
 	}
 
 }
