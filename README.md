@@ -50,9 +50,6 @@ Some of the events appear duplicated since the console adaptor is a simplified o
 ## How it Works
 The Java Virtual Machine provides a robust security framework for controlling access to protected resources.  JVMXRay provides an implementation of the java.lang.SecurityManager component, called NullSecurityManager.  Ironically, the NullSecurityManager provides no policy enforcement but instead monitors activities to protected resources.  It's expected other cloud log processing tools, big data tools, or cloud secuirty tools will process these events into meaningful contextual information.
 
-## Limitations
-At this time there is no policy enforcement in JVMXRay.  We will see what makes sense moving forward.  For now, baby steps and get event extraction and filtering correct.
-
 ## Project Leaders
 Milton Smith<br/>
 John Melton
