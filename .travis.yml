@@ -6,12 +6,27 @@ sudo: true
 
 cache:
   directories:
-    - "$HOME/.m2"
+    - ~/.m2/repository
  
 before_install:
   - sudo apt-get update -q
 
-script: mvn clean install -q
+script: 
+  - mvn clean install -q
+
+#after_success:
+  	
+#before_deploy:
+	
+deploy:
+  - provider: script
+    script: build/deploy.sh
+    skip_cleanup: true
+    on:
+      repo: spoofzu/jvmxray
+      tags: true
+      jdk: oraclejdk11
+	
   
 #notifications:
 #  email:
