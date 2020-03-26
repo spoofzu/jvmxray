@@ -1,18 +1,18 @@
-package org.owasp.jvmxray.adaptors.uti;
+package org.owasp.jvmxray.adaptors.util;
 
-import org.owasp.jvmxray.api.IJVMXRayEvent;
+import org.owasp.jvmxray.util.IEvent;
 
 public class JVMXRaySortableListItem implements Comparable<JVMXRaySortableListItem>  {
 
-	private IJVMXRayEvent event;
+	private IEvent event;
 	private int count;
 	
-	public JVMXRaySortableListItem(IJVMXRayEvent event, int count) {
+	public JVMXRaySortableListItem(IEvent event, int count) {
 		this.event = event;
 		this.count = count;
 	}
 	
-	public IJVMXRayEvent getEvent() {
+	public IEvent getEvent() {
 		return event;
 	}
 	
@@ -32,11 +32,8 @@ public class JVMXRaySortableListItem implements Comparable<JVMXRaySortableListIt
 	public String getIdentity() {
 		// Provides the event without the count as an identity for list item
 		// comparison, PERMISSION,n=setContextClassLoader, a=, cn=java.lang.RuntimePermission
-		String eventname = event.getType().toString();
-		Object[] obj = event.getParameters();
-		String meta = "";		
-		if( obj!=null)
-			meta = event.getParameters()[0].toString();
+		String eventname = event.getEventType();
+		String meta = event.getMemo();
 		return eventname + meta;
 	}
 	
@@ -52,18 +49,13 @@ public class JVMXRaySortableListItem implements Comparable<JVMXRaySortableListIt
 	}
 	
 	public String toString() {
-		Object[] obj = event.getParameters();
-		String meta = "";
-		
-		if( obj!=null)
-			meta = event.getParameters()[0].toString();
-		
+
 		StringBuffer buff = new StringBuffer();
-		buff.append(event.getType());
+		buff.append(event.getEventType());
 		buff.append(' ');
 		buff.append(getCount());
 		buff.append(' ');
-		buff.append(meta);
+		buff.append(event.getMemo());
 
 		return buff.toString();
 	}

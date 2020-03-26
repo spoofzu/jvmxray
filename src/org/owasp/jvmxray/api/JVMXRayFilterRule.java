@@ -12,6 +12,6 @@ public abstract class JVMXRayFilterRule {
 
 	public JVMXRayFilterRule() {}
 	
-	public abstract FilterActions isMatch(Events type, IJVMXRayEvent event);
+	public abstract FilterActions isMatch(Events type, Object ...params);
 
 }

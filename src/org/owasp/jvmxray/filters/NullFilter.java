@@ -5,7 +5,6 @@ import org.owasp.jvmxray.api.NullSecurityManager.FilterActions;
 import java.util.EnumSet;
 import java.util.Properties;
 
-import org.owasp.jvmxray.api.IJVMXRayEvent;
 import org.owasp.jvmxray.api.JVMXRayFilterRule;
 import org.owasp.jvmxray.api.NullSecurityManager.Events;
 
@@ -33,7 +32,7 @@ public class NullFilter extends JVMXRayFilterRule {
 	}
 
 	@Override
-	public FilterActions isMatch(Events type, IJVMXRayEvent event) {
+	public FilterActions isMatch(Events type, Object ...params) {
 			
 		FilterActions results = FilterActions.NEUTRAL;
 		

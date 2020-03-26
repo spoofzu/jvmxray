@@ -23,14 +23,14 @@ class JVMXRayFilterList {
 		return list.iterator();
 	}
 	
-	FilterActions filterEvents( Events type, IJVMXRayEvent event ) {
+	FilterActions filterEvents( Events type, Object ...params ) {
 		
 		FilterActions result = FilterActions.DENY;
 		
 		Iterator<JVMXRayFilterRule> i = iterator();
 		while( i.hasNext() ) {
 			JVMXRayFilterRule r = i.next();
-			FilterActions filterresult = r.isMatch( type, event  );
+			FilterActions filterresult = r.isMatch( type, params  );
 			if( filterresult == FilterActions.ALLOW || filterresult == FilterActions.DENY ) {
 				result = filterresult;
 				break;

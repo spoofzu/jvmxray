@@ -6,7 +6,6 @@ import java.util.EnumSet;
 import java.util.Enumeration;
 import java.util.Properties;
 
-import org.owasp.jvmxray.api.IJVMXRayEvent;
 import org.owasp.jvmxray.api.JVMXRayFilterRule;
 import org.owasp.jvmxray.api.NullSecurityManager.Events;
 
@@ -50,12 +49,12 @@ public class StringFilter extends JVMXRayFilterRule {
 	}
 
 	@Override
-	public FilterActions isMatch(Events type, IJVMXRayEvent event) {
+	public FilterActions isMatch(Events type, Object ...params) {
 		
 		FilterActions results = FilterActions.NEUTRAL;
 		
 		// Get searchable fields for the record.
-		Object[] obj = event.getStringArgs();
+		Object[] obj = params;
 		
 		// Only handle specified events also ensure a parameter is
 		// present, if none, then no matching work to do.

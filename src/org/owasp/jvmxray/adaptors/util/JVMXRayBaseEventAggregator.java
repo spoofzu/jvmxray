@@ -1,10 +1,9 @@
-package org.owasp.jvmxray.adaptors.uti;
+package org.owasp.jvmxray.adaptors.util;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 
-import org.owasp.jvmxray.api.IJVMXRayEvent;
+import org.owasp.jvmxray.util.IEvent;
 
 public class JVMXRayBaseEventAggregator {
 
@@ -17,7 +16,7 @@ public class JVMXRayBaseEventAggregator {
 		
 	}
 	
-	public void fireEvent(IJVMXRayEvent event) {
+	public void fireEvent(IEvent event) {
 		
 		JVMXRaySortableListItem newitem = new JVMXRaySortableListItem(event,0);
 		
