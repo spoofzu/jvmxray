@@ -1,13 +1,12 @@
 package org.owasp.jvmxray.filters;
 
-import org.owasp.jvmxray.api.NullSecurityManager.FilterActions;
-
 import java.util.EnumSet;
 import java.util.Enumeration;
 import java.util.Properties;
 
-import org.owasp.jvmxray.api.JVMXRayFilterRule;
-import org.owasp.jvmxray.api.NullSecurityManager.Events;
+import org.owasp.jvmxray.driver.JVMXRayFilterRule;
+import org.owasp.jvmxray.driver.NullSecurityManager.Events;
+import org.owasp.jvmxray.driver.NullSecurityManager.FilterActions;
 
 /**
  * Filter to handle the first argument of each event type as a String.

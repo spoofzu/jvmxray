@@ -1,10 +1,10 @@
-package org.owasp.jvmxray.api;
+package org.owasp.jvmxray.driver;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import org.owasp.jvmxray.api.NullSecurityManager.Events;
-import org.owasp.jvmxray.api.NullSecurityManager.FilterActions;
+import org.owasp.jvmxray.driver.NullSecurityManager.Events;
+import org.owasp.jvmxray.driver.NullSecurityManager.FilterActions;
 
 /**
  * Used by the framework to iterate over a list of FilterDomainRules.

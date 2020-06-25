@@ -28,9 +28,16 @@ public class PropertyUtil {
 	public static final String SYS_PROP_SECURITY_MANAGER = "jvmxray.securitymanager";
 	
 	/**
-	 * Server identity
+	 * Server identity.  System property providing the globally unique identity for the application.  Useful for
+	 * identifying the specific instance of a cloud application that generated a particular message.
 	 */
-	public static final String CONF_PROP_EVENT_SERV_IDENTITY = "jvmxray.event.nullsecuritymanager.server.identity";
+	public static final String SYS_PROP_EVENT_SERV_IDENTITY = "jvmxray.event.nullsecuritymanager.server.identity";
+	
+	/**
+	 * Server identity default value.  It's likely users will assign the default identity but if not a string value
+	 * of 1 is assigned.
+	 */
+	public static final String SYS_PROP_EVENT_SERV_IDENTITY_DEFAULT = "1";
 	
 	/**
 	 * Filename property. JVMXRay event spool.

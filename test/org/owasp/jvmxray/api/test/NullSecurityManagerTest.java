@@ -11,7 +11,7 @@ import java.security.Permission;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.owasp.jvmxray.api.NullSecurityManager;
+import org.owasp.jvmxray.driver.NullSecurityManager;
 
 public class NullSecurityManagerTest {
 	

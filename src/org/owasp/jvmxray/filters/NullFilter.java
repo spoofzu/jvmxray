@@ -1,12 +1,11 @@
 package org.owasp.jvmxray.filters;
 
-import org.owasp.jvmxray.api.NullSecurityManager.FilterActions;
-
 import java.util.EnumSet;
 import java.util.Properties;
 
-import org.owasp.jvmxray.api.JVMXRayFilterRule;
-import org.owasp.jvmxray.api.NullSecurityManager.Events;
+import org.owasp.jvmxray.driver.JVMXRayFilterRule;
+import org.owasp.jvmxray.driver.NullSecurityManager.Events;
+import org.owasp.jvmxray.driver.NullSecurityManager.FilterActions;
 
 /**
  * The NullFilter performs no function except to enable or disable a specified

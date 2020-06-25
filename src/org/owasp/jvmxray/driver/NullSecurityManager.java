@@ -1,4 +1,4 @@
-package org.owasp.jvmxray.api;
+package org.owasp.jvmxray.driver;
 
 
 import java.io.FileDescriptor;
@@ -558,7 +558,8 @@ public class NullSecurityManager  extends SecurityManager {
     	String lvl = p.getProperty(CONF_PROP_STACKTRACE);
     	callstackopt = Callstack.valueOf(lvl);
     	
-		id = p.getProperty(PropertyUtil.CONF_PROP_EVENT_SERV_IDENTITY);
+    	// Get the assigned server identity or the default.
+    	id = System.getProperty(PropertyUtil.SYS_PROP_EVENT_SERV_IDENTITY, PropertyUtil.SYS_PROP_EVENT_SERV_IDENTITY_DEFAULT);
     	
     	// Iterate over all the properties
     	for( int i=1; i < 500; i++ ) {

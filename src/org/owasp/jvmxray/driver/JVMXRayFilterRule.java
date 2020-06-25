@@ -1,7 +1,7 @@
-package org.owasp.jvmxray.api;
+package org.owasp.jvmxray.driver;
 
-import org.owasp.jvmxray.api.NullSecurityManager.Events;
-import org.owasp.jvmxray.api.NullSecurityManager.FilterActions;
+import org.owasp.jvmxray.driver.NullSecurityManager.Events;
+import org.owasp.jvmxray.driver.NullSecurityManager.FilterActions;
 
 /**
  * Base class to enable or disable various event types of interest.

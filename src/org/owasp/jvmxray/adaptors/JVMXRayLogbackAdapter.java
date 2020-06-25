@@ -1,6 +1,6 @@
 package org.owasp.jvmxray.adaptors;
 
-import org.owasp.jvmxray.api.NullSecurityManager;
+import org.owasp.jvmxray.driver.NullSecurityManager;
 
 /**
  * Send events to logback logger.
