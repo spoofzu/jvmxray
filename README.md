@@ -35,6 +35,10 @@ Individuals charged with system security and interested in new methods to gather
 **Security Developers & Architects**
 Indiviudals interested in improved security intelligence about their applications.
 
+# Deploying JVMXRay with Examples
+The following provides some basic information to download and compile JVMXRay source on your computer.  Remainder of the video shows how to get JVMXRay working with Tomcat and work with Tomcat's examples.
+[![](http://img.youtube.com/vi/QxgTiTCorow/0.jpg)](http://www.youtube.com/watch?v=QxgTiTCorow "JVMXRay Deploy")
+
 # Sample Output...
 
 The output from this technology can be presented in different ways.  The following is a small example of events captures using the JMX adaptor and uses the jconsole viewer that comes with Java.
