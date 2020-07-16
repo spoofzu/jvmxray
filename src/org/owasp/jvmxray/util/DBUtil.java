@@ -9,11 +9,15 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
 
+import org.owasp.jvmxray.event.EventFactory;
+import org.owasp.jvmxray.event.IEvent;
+import org.owasp.jvmxray.event.IEvent.Events;
+
 public class DBUtil {
 
 	private static DBUtil u = null;
 	private static Properties p = null;
-	
+		
 	private DBUtil() {}
 	
 	public static final synchronized DBUtil getInstance(Properties p) {
@@ -72,25 +76,24 @@ public class DBUtil {
         boolean dbexists = f.exists();
         
         try {
-        	conn = DriverManager.getConnection(url);
-        	    	
-	            if (conn != null && !dbexists ) {
-	                
-	                sql.append( "CREATE TABLE IF NOT EXISTS spool (");
-	                sql.append( "id integer PRIMARY KEY, ");
-	                sql.append( "state integer NOT NULL, ");
-	                sql.append( "timestamp long NOT NULL, ");
-	                sql.append( "eventtype text NOT NULL, ");
-	                sql.append( "identity text NOT NULL, ");
-	                sql.append( "stacktrace text, ");
-	                sql.append( "memo text");
-	                sql.append( ");" );
-	                
-	                stmt = conn.createStatement();
-	                stmt.execute(sql.toString());          
-	            }
-            
-            
+        	conn = DriverManager.getConnection(url);	
+            if (conn != null && !dbexists ) {
+                sql.append( "CREATE TABLE IF NOT EXISTS spool (");
+                sql.append( "id integer PRIMARY KEY, ");   // Primary key
+                sql.append( "state integer NOT NULL, ");   // State (currently not used)
+                sql.append( "timestamp long NOT NULL, ");  // Event creation timestamp
+                sql.append( "threadid text NOT NULL, ");   // Thread ID
+                sql.append( "eventtype text NOT NULL, ");  // Event type.  IEvent.Events
+                sql.append( "identity text NOT NULL, ");   // App server identifier
+                sql.append( "stacktrace text NOT NULL, "); // Stacktrace, if available
+                sql.append( "param1 text NOT NULL, ");     // First parameter, event type dependent
+                sql.append( "param2 text NOT NULL, ");     // Second parameter, event type dependent
+                sql.append( "param3 text NOT NULL ");      // Third paramameter, event type dependent
+                sql.append( ");" );
+                
+                stmt = conn.createStatement();
+                stmt.execute(sql.toString());          
+            }
         } finally {
         	if( stmt != null ) {
         		try {
@@ -104,32 +107,51 @@ public class DBUtil {
     }
 	
 	
-	public void insertEvent(Connection conn, int state, long timestamp, String eventtype, String identity, String stacktrace, String memo ) throws SQLException {
+	public void insertEvent(Connection conn, IEvent event ) throws SQLException {
 		
 		StringBuffer sql = new StringBuffer();
         PreparedStatement pstmt = null;
                  
         try {
+        	String p1 = "";
+        	String p2 = "";
+        	String p3 = "";
                 
+        	String[] params = event.getParams();
+        	if (params != null && params.length > 0 ) {
+        		p1 = ( params[0] == null ) ? "" : params[0];
+        	} 
+        	if( params.length > 1 ) {
+        		p2 = ( params[1] == null ) ? "" : params[1];
+        	}
+        	if( params.length > 2 ) {
+        		p3 = ( params[2] == null ) ? "" : params[2];
+        	} 
+        	
             sql.append( "INSERT INTO spool (");
             sql.append( "state, ");
             sql.append( "timestamp, ");
+            sql.append( "threadid, ");
             sql.append( "eventtype, ");
             sql.append( "identity, ");
             sql.append( "stacktrace, ");
-            sql.append( "memo");
+            sql.append( "param1, ");
+            sql.append( "param2, ");
+            sql.append( "param3");
             sql.append( ") " );
-            sql.append( "VALUES(?,?,?,?,?,?);" );
+            sql.append( "VALUES(?,?,?,?,?,?,?,?,?);" );
             
             pstmt = conn.prepareStatement(sql.toString());
-            pstmt.setInt(1, state);
-            pstmt.setLong(2, timestamp);
-            pstmt.setString(3, eventtype);
-            pstmt.setString(4, identity);
-            pstmt.setString(5, stacktrace);
-            pstmt.setString(6, memo);
+            pstmt.setInt(1, event.getState());
+            pstmt.setLong(2, event.getTimeStamp());
+            pstmt.setString(3, event.getThreadId());
+            pstmt.setString(4, event.getEventType().toString());
+            pstmt.setString(5, event.getIdentity());
+            pstmt.setString(6, event.getStackTrace());
+            pstmt.setString(7, p1 );
+            pstmt.setString(8, p2 );
+            pstmt.setString(9, p3 );
             pstmt.executeUpdate();         
-            
         } finally {
         	if( pstmt != null ) {
         		try {
@@ -148,26 +170,27 @@ public class DBUtil {
 	 * @return
 	 * @throws SQLException
 	 */
-	public EventDAO getNextEvent(Connection conn, EventDAO event) throws SQLException {
+	public IEvent getNextEvent(Connection conn, IEvent event) throws SQLException {
 	
 		StringBuffer sql = new StringBuffer();
 		Statement stmt = null;
 		ResultSet rs = null;
-		EventDAO result = null;
+		IEvent result = null;
         try {
            
-        	int idx = (event == null ) ? 0 : event.id+1;
-        	
+        	int idx = (event == null ) ? 0 : event.getPK()+1;
         	if ( idx < Integer.MAX_VALUE ) {
-        	
 	        	sql.append("SELECT ");
 	        	sql.append("id, ");
 	        	sql.append("state, ");
 	        	sql.append("timestamp, ");
+	        	sql.append("threadid, ");
 	        	sql.append("eventtype, ");
 	        	sql.append("identity, ");
 	        	sql.append("stacktrace, ");
-	        	sql.append("memo ");
+	        	sql.append("param1, ");
+	        	sql.append("param2, ");
+	        	sql.append("param3 ");
 	        	sql.append("FROM spool ");
 	        	sql.append("WHERE ");
 	        	sql.append("id BETWEEN "+idx);
@@ -183,12 +206,17 @@ public class DBUtil {
 		            int id = rs.getInt("id");
 		            int st = rs.getInt("state");
 		            long ts = rs.getLong("timestamp");
+		            String tid = rs.getString("threadid");
 		            String et = rs.getString("eventtype");
 		            String it = rs.getString("identity");
 		            String tr = rs.getString("stacktrace");
-		            String me = rs.getString("memo");
+		            String p1 = rs.getString("param1");
+		            String p2 = rs.getString("param2");
+		            String p3 = rs.getString("param3");
 	                    
-		            result = new EventDAO(id, st, ts, et, it, tr, me);
+		            EventFactory factory = EventFactory.getInstance();
+		            Events ett = Events.valueOf(et);
+		            result = factory.createEventByEventType(ett, id, st, ts, tid, it, tr, p1, p2, p3);
 	            }
 	            
         	}
@@ -211,7 +239,7 @@ public class DBUtil {
 	}
 	
 	
-	public void deleteEvent(Connection conn, EventDAO event) throws SQLException {
+	public void deleteEvent(Connection conn, IEvent event) throws SQLException {
 		
 		StringBuffer sql = new StringBuffer();
 		Statement stmt = null;
@@ -223,7 +251,7 @@ public class DBUtil {
 	        	sql.append("FROM ");
 	        	sql.append("spool ");
 	        	sql.append("WHERE id=");
-	        	sql.append(String.format("%s",event.id));
+	        	sql.append(String.format("%s",event.getPK()));
 	        	sql.append(";");
 	        	
 	        	stmt  = conn.createStatement();

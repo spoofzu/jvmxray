@@ -1,6 +1,6 @@
 package org.owasp.jvmxray.adaptors.util;
 
-import org.owasp.jvmxray.util.IEvent;
+import org.owasp.jvmxray.event.IEvent;
 
 public class JVMXRaySortableListItem implements Comparable<JVMXRaySortableListItem>  {
 
@@ -32,9 +32,21 @@ public class JVMXRaySortableListItem implements Comparable<JVMXRaySortableListIt
 	public String getIdentity() {
 		// Provides the event without the count as an identity for list item
 		// comparison, PERMISSION,n=setContextClassLoader, a=, cn=java.lang.RuntimePermission
-		String eventname = event.getEventType();
-		String meta = event.getMemo();
-		return eventname + meta;
+		String eventname = event.getEventType().toString();
+		String p0 = event.getParams()[0];
+		String p1 = event.getParams()[1];
+		String p2 = event.getParams()[2];
+		StringBuffer meta = new StringBuffer();
+		if ( p0 != null && p0.length()>0 ) {
+			meta.append(p0);
+		}
+		if ( p1 != null && p1.length()>0 ) {
+			meta.append(p1);
+		}
+		if ( p2 != null && p2.length()>0 ) {
+			meta.append(p2);
+		}
+		return eventname + meta.toString();
 	}
 	
 	public boolean equals(Object obj) {
@@ -55,7 +67,22 @@ public class JVMXRaySortableListItem implements Comparable<JVMXRaySortableListIt
 		buff.append(' ');
 		buff.append(getCount());
 		buff.append(' ');
-		buff.append(event.getMemo());
+		
+		String p0 = event.getParams()[0];
+		String p1 = event.getParams()[1];
+		String p2 = event.getParams()[2];
+		StringBuffer meta = new StringBuffer();
+		if ( p0 != null && p0.length()>0 ) {
+			meta.append(p0);
+		}
+		if ( p1 != null && p1.length()>0 ) {
+			meta.append(p1);
+		}
+		if ( p2 != null && p2.length()>0 ) {
+			meta.append(p2);
+		}
+		
+		buff.append(meta.toString());
 
 		return buff.toString();
 	}

@@ -5,7 +5,7 @@ import java.util.Date;
 import java.util.Properties;
 import java.util.TimeZone;
 
-import org.owasp.jvmxray.util.IEvent;
+import org.owasp.jvmxray.event.IEvent;
 import org.owasp.jvmxray.util.PropertyUtil;
 
 public class JVMXRayConsoleAdaptor extends JVMXRayBaseAdaptor {
@@ -20,12 +20,8 @@ public class JVMXRayConsoleAdaptor extends JVMXRayBaseAdaptor {
 		df.setTimeZone(stz); 
 		String dt = df.format(new Date(ts));
 		String name = "CONSOLEADAPTOR";
-		String et = event.getEventType();
-		String it = event.getIdentity();
-		String me = event.getMemo();
-		String st = event.getStackTrace();
 		
-		String line = String.format( "%s %s %s %s %s %s", name, dt, it, et, me, st );
+		String line = String.format( "%s %s, %s", name, dt, event.toString() );
 		System.out.println(line);
 	
 	}

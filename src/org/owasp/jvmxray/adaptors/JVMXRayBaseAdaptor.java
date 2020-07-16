@@ -4,11 +4,9 @@ package org.owasp.jvmxray.adaptors;
 import java.sql.Connection;
 import java.util.Properties;
 
+import org.owasp.jvmxray.event.ImmutableEvent;
+import org.owasp.jvmxray.event.IEvent;
 import org.owasp.jvmxray.util.DBUtil;
-import org.owasp.jvmxray.util.EventDAO;
-import org.owasp.jvmxray.util.IEvent;
-import org.owasp.jvmxray.util.IEventImpl;
-import org.owasp.jvmxray.util.PropertyUtil;
 
 abstract public class JVMXRayBaseAdaptor {
 	
@@ -21,18 +19,17 @@ abstract public class JVMXRayBaseAdaptor {
 		Connection dbconn = dbutil.createConnection();
 		
 		do {
-			EventDAO originaledao = dbutil.getNextEvent(dbconn, null);
-			while( originaledao != null ) {
-				fireEvent(new IEventImpl(originaledao));
-				EventDAO newedao = dbutil.getNextEvent(dbconn, originaledao);
-				dbutil.deleteEvent(dbconn,originaledao);
-				originaledao = newedao;
+			IEvent event = dbutil.getNextEvent(dbconn, null);
+			while( event != null ) {
+				fireEvent(event);
+				IEvent newevent = dbutil.getNextEvent(dbconn, event);
+				dbutil.deleteEvent(dbconn,event);
+				event = newevent;
 			}
 			// Once we processed all events wait N milliseconds and try again.
 			Thread.sleep(150);
 			Thread.yield();
 		} while( isTailingEvents() );
-		
 	}
 	
 	/**
@@ -50,6 +47,7 @@ abstract public class JVMXRayBaseAdaptor {
 	 * concludes and the adaptor terminates successfully.
 	 */
 	protected boolean isTailingEvents() {
+		//TODOMS: No option to turn off continuous event processing
 		return true;
 	}
 	

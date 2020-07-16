@@ -2,7 +2,7 @@ package org.owasp.jvmxray.adaptors;
 
 import java.util.logging.Logger;
 
-import org.owasp.jvmxray.util.IEvent;
+import org.owasp.jvmxray.event.IEvent;
 
 /**
  * Send events to Java logger.

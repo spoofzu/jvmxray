@@ -15,7 +15,7 @@ import java.util.TimerTask;
 
 import org.owasp.jvmxray.adaptors.util.JVMXRayBaseEventAggregator;
 import org.owasp.jvmxray.adaptors.util.JVMXRaySortableListItem;
-import org.owasp.jvmxray.util.IEvent;
+import org.owasp.jvmxray.event.IEvent;
 import org.owasp.jvmxray.util.PropertyUtil;
 
 public class JVMXRayEventAggregatorAdaptor extends JVMXRayBaseAdaptor {
@@ -98,12 +98,26 @@ public class JVMXRayEventAggregatorAdaptor extends JVMXRayBaseAdaptor {
 					
 					System.out.println("writing event, "+event.toString());
 					
-					String et = event.getEventType();
+					String et = event.getEventType().toString();
 					String ct = Integer.toString(sortable.getCount());
 					String it = event.getIdentity();
-					String me = event.getMemo();
 					String st = event.getStackTrace();
-					String line = String.format( "%s %s %s %s %s %s", dt, ct, it, et, me, st );
+					
+					String p0 = event.getParams()[0];
+					String p1 = event.getParams()[1];
+					String p2 = event.getParams()[2];
+					StringBuffer meta = new StringBuffer();
+					if ( p0 != null && p0.length()>0 ) {
+						meta.append(p0);
+					}
+					if ( p1 != null && p1.length()>0 ) {
+						meta.append(p1);
+					}
+					if ( p2 != null && p2.length()>0 ) {
+						meta.append(p2);
+					}
+					
+					String line = String.format( "%s %s %s %s %s %s", dt, ct, it, et, meta.toString(), st );
 					writer.println( line );
 				}
 			}

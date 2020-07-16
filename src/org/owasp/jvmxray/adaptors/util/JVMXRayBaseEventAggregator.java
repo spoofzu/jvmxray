@@ -3,7 +3,7 @@ package org.owasp.jvmxray.adaptors.util;
 import java.util.ArrayList;
 import java.util.Collections;
 
-import org.owasp.jvmxray.util.IEvent;
+import org.owasp.jvmxray.event.IEvent;
 
 public class JVMXRayBaseEventAggregator {
 

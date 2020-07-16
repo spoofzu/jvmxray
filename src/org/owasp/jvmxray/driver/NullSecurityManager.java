@@ -15,6 +15,10 @@ import java.util.Enumeration;
 import java.util.Properties;
 import java.util.ServiceConfigurationError;
 
+import org.owasp.jvmxray.event.EventFactory;
+import org.owasp.jvmxray.event.IEvent;
+import org.owasp.jvmxray.event.IEvent.Events;
+import org.owasp.jvmxray.exception.JVMXRayDBError;
 import org.owasp.jvmxray.util.DBUtil;
 import org.owasp.jvmxray.util.FileUtil;
 import org.owasp.jvmxray.util.PropertyUtil;
@@ -27,6 +31,8 @@ public class NullSecurityManager  extends SecurityManager {
 	 */
 	public static final String CONF_PROP_STACKTRACE = "jvmxray.event.stacktrace";
 	
+	// Lock access to securitymanager methods while executing.  Must be locked as default until
+	// dbconn has time to initialize.
 	private volatile boolean bLocked = true;
 	
 	// jvmxray.properties
@@ -48,39 +54,6 @@ public class NullSecurityManager  extends SecurityManager {
 	
 	private DBUtil dbutil;
 	private FileUtil fiutil;
-	
-	/**
-	 * Event types supported the <code>NullSecurityManager</code>.  
-	 */
-	public enum Events {
-		ACCESS_SECURITY,
-		ACCESS_THREAD,
-		ACCESS_THREADGROUP,
-		CLASSLOADER_CREATE,
-		EXIT,
-		FACTORY,
-		FILE_DELETE,
-		FILE_EXECUTE,
-		FILE_READ,
-		FILE_READ_WITH_CONTEXT,
-		FILE_READ_WITH_FILEDESCRIPTOR,
-		FILE_WRITE,
-		FILE_WRITE_WITH_FILEDESCRIPTOR,
-		LINK,
-		PACKAGE_ACCESS,
-		PACKAGE_DEFINE,
-		PERMISSION,
-		PERMISSION_WITH_CONTEXT,
-		PRINT,
-		PROPERTIES_ANY,
-		PROPERTIES_NAMED,
-		SOCKET_ACCEPT,
-		SOCKET_CONNECT,
-		SOCKET_CONNECT_WITH_CONTEXT,
-		SOCKET_LISTEN,
-		SOCKET_MULTICAST,
-		SOCKET_MULTICAST_WITH_TTL
-	}
 	
 	/**
 	 * Implemented by filters but generally, <br/>
@@ -138,10 +111,16 @@ public class NullSecurityManager  extends SecurityManager {
 			// Specific exception thrown is, 
 			// java.util.ServiceConfigurationError: java.sql.Driver: not accessible to 
 			// module java.sql during VM init
-			fiutil = FileUtil.getInstance(p);
+			fiutil = FileUtil.getInstance();
 			dbutil = DBUtil.getInstance(p);
 			try {
 				dbconn = dbutil.createConnection();
+				if( dbconn != null ) {
+					setLocked(false);
+				} else {
+					JVMXRayDBError e = new JVMXRayDBError("JDBC connection failed to initialize.  dbconn=null");
+					throw e;
+				}
 			}catch(ServiceConfigurationError e) {
 				Thread t = new Thread() {
 					public void run() {			
@@ -166,8 +145,7 @@ public class NullSecurityManager  extends SecurityManager {
 					}
 				};
 				t.start();
-			}
-			
+			}			
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.exit(30);
@@ -176,37 +154,412 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 	
 	@Override
-	public synchronized void checkAccept(String host, int port) {
-		if( !isLocked() && isEventEnabled(Events.SOCKET_ACCEPT) ) {
+	public synchronized void checkSecurityAccess(String target) {
+		if( !isLocked() && isEventEnabled(Events.ACCESS_SECURITY) ) {
 			setLocked(true);
-			processEvent(Events.SOCKET_ACCEPT, "checkAccept(String,int)", host, Integer.valueOf(port));
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createAccessSecurityEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								getStackTrace(), // Stacktrace, if enabled
+								target // Event parameter
+								);
+			processEvent(ev);
 			setLocked(false);
 		}
 	}
-
+	
 	@Override
 	public synchronized void checkAccess(Thread t) {
 		if( !isLocked() && isEventEnabled(Events.ACCESS_THREAD) ) {
 			setLocked(true);
-			processEvent(Events.ACCESS_THREAD, "checkAccess(Thread)", t);
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createAccessThreadEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								getStackTrace(), // Stacktrace, if enabled
+								t.toString() // Event parameter
+								);
+			processEvent(ev);
 			setLocked(false);
 		}
 	}
-
+	
 	@Override
-	public synchronized void checkAccess(ThreadGroup g) {
+	public synchronized void checkAccess(ThreadGroup tg) {
 		if( !isLocked() && isEventEnabled(Events.ACCESS_THREADGROUP) ) {
 			setLocked(true);
-			processEvent(Events.ACCESS_THREADGROUP, "checkAccess(ThreadGroup)", g);
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createAccessThreadGroupEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								getStackTrace(), // Stacktrace, if enabled
+								tg.toString() // Event parameter
+								);
+			processEvent(ev);
+			setLocked(false);
+		}
+	}
+	
+	@Override
+	public synchronized void checkCreateClassLoader() {
+		if( !isLocked() && isEventEnabled(Events.CLASSLOADER_CREATE) ) {
+			setLocked(true);
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createCreateClassLoaderEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								getStackTrace() // Stacktrace, if enabled
+								);
+			processEvent(ev);
+			setLocked(false);
+		}
+	}	
+	
+	@Override
+	public synchronized void checkExit(int status) {
+		if( !isLocked() && isEventEnabled(Events.EXIT) ) {
+			setLocked(true);
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createExitEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								getStackTrace(), // Stacktrace, if enabled
+								status // exit code
+								);
+			processEvent(ev);
+			setLocked(false);
+		}		
+	}
+	
+	@Override
+	public synchronized void checkSetFactory() {
+		if( !isLocked() && isEventEnabled(Events.FACTORY) ) {
+			setLocked(true);
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createFactoryEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								getStackTrace() // Stacktrace, if enabled
+								);
+			processEvent(ev);
+			setLocked(false);
+		}
+	}
+	
+	@Override
+	public synchronized void checkDelete(String file) {
+		if( !isLocked() &&  isEventEnabled(Events.FILE_DELETE) ) {
+			setLocked(true);
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createFileDeleteEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								getStackTrace(), // Stacktrace, if enabled
+								file ); //  File to delete
+			processEvent(ev);
+			setLocked(false);
+		}
+	}
+	
+	@Override
+	public synchronized void checkExec(String cmd) {
+		if( !isLocked() && isEventEnabled(Events.FILE_EXECUTE) ) {
+			setLocked(true);
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createFileDeleteEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								getStackTrace(), // Stacktrace, if enabled
+								cmd ); //  Command to execute
+			processEvent(ev);
+			setLocked(false);
+		}
+	}
+	
+	@Override
+	public synchronized void checkRead(String file) {
+		if( !isLocked() && isEventEnabled(Events.FILE_READ) ) {
+			setLocked(true);
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createFileDeleteEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								getStackTrace(), // Stacktrace, if enabled
+								file ); //  File to read
+			processEvent(ev);
+			setLocked(false);
+		}
+	}
+	
+	@Override
+	public synchronized void checkRead(String file, Object context) {
+		if( !isLocked() && isEventEnabled(Events.FILE_READ_WITH_CONTEXT) ) {
+			setLocked(true);
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createFileReadWithContextEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								getStackTrace(), // Stacktrace, if enabled
+								file, // file to read
+								context.toString() ); //  file context
+			
+			processEvent(ev);
+			setLocked(false);
+		}
+	}
+	
+	@Override
+	public synchronized void checkRead(FileDescriptor fd) {
+		if( !isLocked() && isEventEnabled(Events.FILE_READ_WITH_FILEDESCRIPTOR) ) {
+			setLocked(true);
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createFileReadWithFileDescriptorEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								getStackTrace()); // Stacktrace, if enabled
+			
+			processEvent(ev);
+			setLocked(false);
+		}
+	}
+	
+	@Override
+	public synchronized void checkWrite(String file) {
+		if( !isLocked() && isEventEnabled(Events.FILE_WRITE) ) {
+			setLocked(true);
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createFileWriteEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								getStackTrace(), // Stacktrace, if enabled
+								file); // File to write
+			
+			processEvent(ev);
+			setLocked(false);
+		}
+	}
+	
+	@Override
+	public synchronized void checkWrite(FileDescriptor fd) {
+		if( !isLocked() && isEventEnabled(Events.FILE_WRITE_WITH_FILEDESCRIPTOR) ) {
+			setLocked(true);
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createFileWriteWithFileDescriptorEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								getStackTrace() // Stacktrace, if enabled
+								);
+			
+			processEvent(ev);
+			setLocked(false);
+		}
+	}
+	
+	@Override
+	public synchronized void checkLink(String lib) {
+		if( !isLocked() && isEventEnabled(Events.LINK) ) {
+			setLocked(true);
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createLinkEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								getStackTrace(), // Stacktrace, if enabled
+								lib); // library name
+			
+			processEvent(ev);
+			setLocked(false);
+		}		
+	}
+	
+	@Override
+	public synchronized void checkPackageAccess(String pkg) {
+		if( !isLocked() && isEventEnabled(Events.PACKAGE_ACCESS) ) {
+			setLocked(true);
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createPackageAccessEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								getStackTrace(), // Stacktrace, if enabled
+								pkg); // package name
+			
+			processEvent(ev);
+			setLocked(false);
+		}
+	}
+	
+	@Override
+	public synchronized void checkPackageDefinition(String pkg) {
+		if( !isLocked() && isEventEnabled(Events.PACKAGE_DEFINE) ) {
+			setLocked(true);
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createPackageDefineEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								getStackTrace(), // Stacktrace, if enabled
+								pkg); // package name
+			
+			processEvent(ev);
+			setLocked(false);
+		}
+	}
+	
+	@Override
+	public synchronized void checkPermission(Permission perm) {
+		if( !isLocked() && isEventEnabled(Events.PERMISSION) ) {
+			setLocked(true);
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createPermissionEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								getStackTrace(), // Stacktrace, if enabled
+								perm.getName(),  // Permission name
+								perm.getActions()); // Permission actions
+			
+			processEvent(ev);
+			setLocked(false);
+		}
+	}
+	
+	@Override
+	public synchronized void checkPermission(Permission perm, Object context) {
+		if( !isLocked() && isEventEnabled(Events.PERMISSION_WITH_CONTEXT) ) {
+			setLocked(true);
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createPermissionWithContextEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								getStackTrace(), // Stacktrace, if enabled
+								perm.getName(),  // Permission name
+								perm.getActions(), // Permission actions
+								context.toString()); // Context info
+			
+			processEvent(ev);
+			setLocked(false);
+		}
+	}
+	
+	@Override
+	public synchronized void checkPrintJobAccess() {
+		if( !isLocked() && isEventEnabled(Events.PRINT) ) {
+			setLocked(true);
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createPrintEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								getStackTrace()); // Stacktrace, if enabled		
+			processEvent(ev);
+			setLocked(false);
+		}
+	}
+	
+	@Override
+	public synchronized void checkPropertiesAccess() {
+		if( !isLocked() && isEventEnabled(Events.PROPERTIES_ANY) ) {
+			setLocked(true);
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createPropertiesAnyEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								getStackTrace()); // Stacktrace, if enabled		
+			processEvent(ev);
 			setLocked(false);
 		}
 	}
 
 	@Override
-	public synchronized void checkConnect(String host, int port, Object context) {
-		if( !isLocked() && isEventEnabled(Events.SOCKET_CONNECT_WITH_CONTEXT) ) {
+	public synchronized void checkPropertyAccess(String key) {
+		if( !isLocked() && isEventEnabled(Events.PROPERTIES_NAMED) ) {
 			setLocked(true);
-			processEvent(Events.SOCKET_CONNECT_WITH_CONTEXT, "checkConnect(String,int,Object)", host, Integer.valueOf(port), context);
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createPropertiesNamedEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								getStackTrace(), // Stacktrace, if enabled		
+								key); // Property key
+			processEvent(ev);
+			setLocked(false);
+		}
+	}
+	
+	@Override
+	public synchronized void checkAccept(String host, int port) {
+		if( !isLocked() && isEventEnabled(Events.SOCKET_ACCEPT) ) {
+			setLocked(true);
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createSocketAcceptEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								getStackTrace(), // Stacktrace, if enabled		
+								host,  // Host name
+								port ); // Port number
+			processEvent(ev);
 			setLocked(false);
 		}
 	}
@@ -215,70 +568,55 @@ public class NullSecurityManager  extends SecurityManager {
 	public synchronized void checkConnect(String host, int port) {
 		if( !isLocked() && isEventEnabled(Events.SOCKET_CONNECT) ) {
 			setLocked(true);
-			processEvent(Events.SOCKET_CONNECT,"checkConnect(String,int)", host, Integer.valueOf(port));
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createSocketConnectEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								getStackTrace(), // Stacktrace, if enabled		
+								host,  // Host name
+								port ); // Port number
+			processEvent(ev);
 			setLocked(false);
 		}
 	}
-
+	
 	@Override
-	public synchronized void checkCreateClassLoader() {
-		if( !isLocked() && isEventEnabled(Events.CLASSLOADER_CREATE) ) {
+	public synchronized void checkConnect(String host, int port, Object context) {
+		if( !isLocked() && isEventEnabled(Events.SOCKET_CONNECT_WITH_CONTEXT) ) {
 			setLocked(true);
-			processEvent(Events.CLASSLOADER_CREATE,"checkCreateClassLoader()");
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createSocketConnectWithContextEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								getStackTrace(), // Stacktrace, if enabled		
+								host,  // Host name
+								port, // Port number
+								context.toString()); // Context info.
+			processEvent(ev);
 			setLocked(false);
 		}
-	}	
-
-	@Override
-	public synchronized void checkDelete(String file) {
-		if( !isLocked() &&  isEventEnabled(Events.FILE_DELETE) ) {
-			setLocked(true);
-			processEvent(Events.FILE_DELETE,"checkDelete(String)", file);
-			setLocked(false);
-		}
-	}
-
-	@Override
-	public synchronized void checkExec(String cmd) {
-		if( !isLocked() && isEventEnabled(Events.FILE_EXECUTE) ) {
-			setLocked(true);
-			processEvent(Events.FILE_EXECUTE,"checkExec(String)", cmd);
-			setLocked(false);
-		}
-	}
-
-	@Override
-	public synchronized void checkExit(int status) {
-		if( !isLocked() && isEventEnabled(Events.EXIT) ) {
-			setLocked(true);
-			processEvent(Events.EXIT,"checkExit(int)", Integer.valueOf(status));
-			setLocked(false);
-		}		
-	}
-
-	@Override
-	public synchronized void checkLink(String lib) {
-		if( !isLocked() && isEventEnabled(Events.LINK) ) {
-			setLocked(true);
-			processEvent(Events.LINK,"checkLink(String)", lib);
-			setLocked(false);
-		}		
 	}
 
 	@Override
 	public synchronized void checkListen(int port) {
 		if( !isLocked() && isEventEnabled(Events.SOCKET_LISTEN) ) {
 			setLocked(true);
-			processEvent(Events.SOCKET_LISTEN,"checkListen(int)", Integer.valueOf(port));
-			setLocked(false);
-		}	
-	}
-
-	@Override
-	public synchronized void checkMulticast(InetAddress maddr, byte ttl) {
-		if( !isLocked() && isEventEnabled(Events.SOCKET_MULTICAST_WITH_TTL) ) {
-			setLocked(true);
-			processEvent(Events.SOCKET_MULTICAST_WITH_TTL,"checkMulticast(InetAddress,byte)", maddr, Byte.valueOf(ttl));
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createSocketListenEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								getStackTrace(), // Stacktrace, if enabled		
+								port); // Port number
+			processEvent(ev);
 			setLocked(false);
 		}	
 	}
@@ -287,135 +625,37 @@ public class NullSecurityManager  extends SecurityManager {
 	public synchronized void checkMulticast(InetAddress maddr) {
 		if( !isLocked() && isEventEnabled(Events.SOCKET_MULTICAST) ) {
 			setLocked(true);
-			processEvent(Events.SOCKET_MULTICAST,"checkMulticast(InetAddress)", maddr);
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createSocketMulticastEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								getStackTrace(), // Stacktrace, if enabled		
+								maddr.toString()); // Multicast address
+			processEvent(ev);
 			setLocked(false);
-			}	
-		}
-
-	@Override
-	public synchronized void checkPackageAccess(String pkg) {
-		if( !isLocked() && isEventEnabled(Events.PACKAGE_ACCESS) ) {
-			setLocked(true);
-			processEvent(Events.PACKAGE_ACCESS,"checkPackageAccess(String)", pkg);
-		setLocked(false);
-		}
+		}	
 	}
-
+	
 	@Override
-	public synchronized void checkPackageDefinition(String pkg) {
-		if( !isLocked() && isEventEnabled(Events.PACKAGE_DEFINE) ) {
+	public synchronized void checkMulticast(InetAddress maddr, byte ttl) {
+		if( !isLocked() && isEventEnabled(Events.SOCKET_MULTICAST_WITH_TTL) ) {
 			setLocked(true);
-			processEvent(Events.PACKAGE_DEFINE,"checkPackageDefinition(String)", pkg);
-		setLocked(false);
-		}
-	}
-
-	@Override
-	public synchronized void checkPermission(Permission perm, Object context) {
-		if( !isLocked() && isEventEnabled(Events.PERMISSION_WITH_CONTEXT) ) {
-			setLocked(true);
-			processEvent(Events.PERMISSION_WITH_CONTEXT,"checkPermission(Permission,Object)", perm, context);
-		setLocked(false);
-		}
-	}
-
-	@Override
-	public synchronized void checkPermission(Permission perm) {
-		if( !isLocked() && isEventEnabled(Events.PERMISSION) ) {
-			setLocked(true);
-			processEvent(Events.PERMISSION,"checkPermission(Permission)", perm);
-		setLocked(false);
-		}
-	}
-
-	@Override
-	public synchronized void checkPrintJobAccess() {
-		if( !isLocked() && isEventEnabled(Events.PRINT) ) {
-			setLocked(true);
-			processEvent(Events.PRINT,"checkPrintJobAccess()");
-		setLocked(false);
-		}
-	}
-
-	@Override
-	public synchronized void checkPropertiesAccess() {
-		if( !isLocked() && isEventEnabled(Events.PROPERTIES_ANY) ) {
-			setLocked(true);
-			processEvent(Events.PROPERTIES_ANY,"checkPropertiesAccess()");
-		setLocked(false);
-		}
-	}
-
-	@Override
-	public synchronized void checkPropertyAccess(String key) {
-		if( !isLocked() && isEventEnabled(Events.PROPERTIES_NAMED) ) {
-			setLocked(true);
-			processEvent(Events.PROPERTIES_NAMED,"checkPropertyAccess(String)",key);
-		setLocked(false);
-		}
-	}
-
-	@Override
-	public synchronized void checkRead(FileDescriptor fd) {
-		if( !isLocked() && isEventEnabled(Events.FILE_READ_WITH_FILEDESCRIPTOR) ) {
-			setLocked(true);
-			processEvent(Events.FILE_READ_WITH_FILEDESCRIPTOR,"checkRead(FileDescriptor)",fd);
-		setLocked(false);
-		}
-	}
-
-	@Override
-	public synchronized void checkRead(String file, Object context) {
-		if( !isLocked() && isEventEnabled(Events.FILE_READ_WITH_CONTEXT) ) {
-			setLocked(true);
-			processEvent(Events.FILE_READ_WITH_CONTEXT,"checkRead(String,Object)", file, context);
-		setLocked(false);
-		}
-	}
-
-	@Override
-	public synchronized void checkRead(String file) {
-		if( !isLocked() && isEventEnabled(Events.FILE_READ) ) {
-			setLocked(true);
-			processEvent(Events.FILE_READ,"checkRead(String)", file);
-		setLocked(false);
-		}
-	}
-
-	@Override
-	public synchronized void checkSecurityAccess(String target) {
-		if( !isLocked() && isEventEnabled(Events.ACCESS_SECURITY) ) {
-			setLocked(true);
-			processEvent(Events.ACCESS_SECURITY,"checkSecurityAccess(String)", target);
-		setLocked(false);
-		}
-	}
-
-	@Override
-	public synchronized void checkSetFactory() {
-		if( !isLocked() && isEventEnabled(Events.FACTORY) ) {
-			setLocked(true);
-			processEvent(Events.FACTORY,"checkSetFactory()");
-		setLocked(false);
-		}
-	}
-
-	@Override
-	public synchronized void checkWrite(FileDescriptor fd) {
-		if( !isLocked() && isEventEnabled(Events.FILE_WRITE_WITH_FILEDESCRIPTOR) ) {
-			setLocked(true);
-			processEvent(Events.FILE_WRITE_WITH_FILEDESCRIPTOR,"checkWrite(FileDescriptor)",fd);
-		setLocked(false);
-		}
-	}
-
-	@Override
-	public synchronized void checkWrite(String file) {
-		if( !isLocked() && isEventEnabled(Events.FILE_WRITE) ) {
-			setLocked(true);
-			processEvent(Events.FILE_WRITE,"checkWrite(String)",file);
-		setLocked(false);
-		}
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createSocketMulticastWithTTLEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								getStackTrace(), // Stacktrace, if enabled		
+								maddr.toString(), // Multicast address
+								String.format("%02X ", ttl)); // Time to live
+			processEvent(ev);
+			setLocked(false);
+		}	
 	}
 
 	@Override
@@ -433,6 +673,17 @@ public class NullSecurityManager  extends SecurityManager {
 		return super.getThreadGroup();
 	}
 
+	private String getStackTrace() {
+		// Produce stacktrace if enabled.
+		String stacktrace = "";
+		StackTraceElement[] ste = null;
+		if( callstackopt != Callstack.NONE ) {
+			ste = Thread.currentThread().getStackTrace();
+			stacktrace = generateCallStack(ste);
+		}
+		return stacktrace;
+	}
+	
 	/**
 	 * Process an event.  Required since callers
 	 * may trigger additional nested security manager permission
@@ -440,11 +691,11 @@ public class NullSecurityManager  extends SecurityManager {
 	 * @param type type of event being processed
 	 * @param event actual event being processed
 	 */
-	private void processEvent( Events type, Object ...params ) {
+	private void processEvent( IEvent event ) {
 		// Events event, Object[] obj1, String format, Object ...obj2
 		try {
-			if( filterEvent(type, params) == FilterActions.ALLOW ) {
-				spoolEvent( type, params );
+			if( rulelist.filterEvents( event ) == FilterActions.ALLOW ) {
+				spoolEvent( event );
 			}
 		}catch(Throwable t) {
 			t.printStackTrace();
@@ -453,76 +704,10 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 	
 	
-	/**
-	 * Process event filters
-	 * @param type type of event being processed
-	 * @param event actual event being processed
-	 * @return FilterActions.ALLOW or FilterActions.DENY.
-	 */
-	private FilterActions filterEvent(Events type, Object ...params) {
-		return rulelist.filterEvents( type, params );
-	}
-	
-	private void spoolEvent(Events event, Object ...params ) throws IOException, SQLException {
-		
-		int sz = params.length;
-		int idx=0;
-		StringBuffer buff = new StringBuffer();
-		
-		// Produce stacktrace if enabled.
-		String stacktrace = "";
-		StackTraceElement[] ste = null;
-		if( callstackopt != Callstack.NONE ) {
-			ste = Thread.currentThread().getStackTrace();
-			stacktrace = generateCallStack(ste);
-		}
-	
-		while ( idx < sz  ) {
-			if( params[idx] instanceof Byte ) {
-				buff.append(String.format("%02X",((Byte)params[idx]).byteValue()));
-			} else if( params[idx] instanceof InetAddress ) {
-				buff.append(fiutil.getFilteredString(((InetAddress)params[idx]).getHostAddress()));
-			} else if( params[idx] instanceof FileDescriptor ) {
-				// Skip descriptors, nothing interesting.
-			} else if( params[idx] instanceof Thread ) {
-				// Skip descriptors, nothing interesting.
-			} else if( params[idx] instanceof ThreadGroup ) {
-				// Skip descriptors, nothing interesting.
-			} else if( params[idx] instanceof Permission ) {
-				Permission p = (Permission)params[idx];
-				buff.append("n=");
-				buff.append(fiutil.getFilteredString(p.getName()));
-				buff.append(",");
-				buff.append("a=");
-				buff.append(fiutil.getFilteredString(p.getActions()));
-				buff.append(",");
-				buff.append("cn=");
-				buff.append(fiutil.getFilteredString(p.getClass().getName()));
-			} else if( params[idx] instanceof String ) {
-				buff.append(fiutil.getFilteredString((String)params[idx]));
-			} else {
-			  // Skip context types and other types of Objects.
-			}	
-			buff.append(',');
-			idx++;
-		};
-		// trim trailing field separators (if any)
-		boolean moresparators = true;
-		while( moresparators ) {
-			if( buff.toString().endsWith(",") ) {
-				buff.setLength(buff.length()-1);
-			} else {
-				moresparators = false;
-			}
-		}
+	private void spoolEvent(IEvent event) throws IOException, SQLException {
 		
 		dbutil.insertEvent(dbconn,
-				           0,
-				           System.currentTimeMillis(),
-				           event.toString(),
-				           id,
-				           stacktrace,
-				           buff.toString() ); 
+				           event );
 
 		
 	}
@@ -627,6 +812,15 @@ public class NullSecurityManager  extends SecurityManager {
     		}
     	}
     	return iseventenabled;
+    }
+   
+    /**
+     * Return a string to identify calling thread suitable for logging.
+     * @return Identity of the current thread.
+     */
+    private String getThreadStamp() {
+    	Thread t = Thread.currentThread();
+    	return t.getName()+"-"+t.getId();
     }
     
 	/**

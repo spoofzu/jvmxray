@@ -4,8 +4,9 @@ import java.util.EnumSet;
 import java.util.Properties;
 
 import org.owasp.jvmxray.driver.JVMXRayFilterRule;
-import org.owasp.jvmxray.driver.NullSecurityManager.Events;
 import org.owasp.jvmxray.driver.NullSecurityManager.FilterActions;
+import org.owasp.jvmxray.event.IEvent;
+import org.owasp.jvmxray.event.IEvent.Events;
 
 /**
  * The NullFilter performs no function except to enable or disable a specified
@@ -16,10 +17,10 @@ import org.owasp.jvmxray.driver.NullSecurityManager.FilterActions;
 public class NullFilter extends JVMXRayFilterRule {
 
 	private FilterActions defaultfilter;
-	private EnumSet<Events> events;
+	private EnumSet<IEvent.Events> events;
 	private Properties p;
 	
-	public NullFilter(EnumSet<Events> supported, FilterActions defaultfilter, Properties p) {
+	public NullFilter(EnumSet<IEvent.Events> supported, FilterActions defaultfilter, Properties p) {
 		
 		// defaultfilter = FilterActions.ALLOW, prints all java packages.
 		// defaultfilter = FilterActions.DENY, suppresses all java packages.
@@ -31,11 +32,11 @@ public class NullFilter extends JVMXRayFilterRule {
 	}
 
 	@Override
-	public FilterActions isMatch(Events type, Object ...params) {
+	public FilterActions isMatch(IEvent event) {
 			
 		FilterActions results = FilterActions.NEUTRAL;
 		
-		if( events.contains( type )) {
+		if( events.contains( event.getEventType() )) {
 			
 			results = defaultfilter;
 			

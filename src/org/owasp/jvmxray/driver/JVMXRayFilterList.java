@@ -3,8 +3,9 @@ package org.owasp.jvmxray.driver;
 import java.util.ArrayList;
 import java.util.Iterator;
 
-import org.owasp.jvmxray.driver.NullSecurityManager.Events;
 import org.owasp.jvmxray.driver.NullSecurityManager.FilterActions;
+import org.owasp.jvmxray.event.IEvent;
+import org.owasp.jvmxray.event.IEvent.Events;
 
 /**
  * Used by the framework to iterate over a list of FilterDomainRules.
@@ -23,14 +24,14 @@ class JVMXRayFilterList {
 		return list.iterator();
 	}
 	
-	FilterActions filterEvents( Events type, Object ...params ) {
+	FilterActions filterEvents( IEvent event ) {
 		
 		FilterActions result = FilterActions.DENY;
 		
 		Iterator<JVMXRayFilterRule> i = iterator();
 		while( i.hasNext() ) {
 			JVMXRayFilterRule r = i.next();
-			FilterActions filterresult = r.isMatch( type, params  );
+			FilterActions filterresult = r.isMatch( event );
 			if( filterresult == FilterActions.ALLOW || filterresult == FilterActions.DENY ) {
 				result = filterresult;
 				break;

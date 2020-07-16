@@ -15,58 +15,63 @@ import org.owasp.jvmxray.driver.NullSecurityManager;
 
 public class NullSecurityManagerTest {
 	
-	private static NullSecurityManager mgr = null;
+	private static NullSecurityManager nullsecuritymgr = null;
 	private Permission perm = new TestPermission();
 	
 	public class TestPermission extends BasicPermission {
+		private static final long serialVersionUID = 5932223970203786295L;
 		TestPermission() {
-			super("testpermission","testaction");
+			super("testpermissionname1");
+		}
+		public String getActions() {
+			// setting the action fm the two arg constructor does not work, return specific value.
+			return "testaction1";
 		}
 	}
 	
 	@BeforeClass
 	public static void init() {	
-		mgr = new NullSecurityManager();
+		nullsecuritymgr = new NullSecurityManager();
 	}
 	
 	@Test
 	public void checkPermission0() {
-		mgr.checkPermission(perm);
+		nullsecuritymgr.checkPermission(perm);
 	}
 
 	@Test
 	public void checkPermission1() {
-		mgr.checkPermission(perm, this);
+		nullsecuritymgr.checkPermission(perm, this);
 	}
 
 	@Test
 	public void checkCreateClassLoader0() {
-		mgr.checkCreateClassLoader();
+		nullsecuritymgr.checkCreateClassLoader();
 	}
 
 	@Test
 	public void checkAccess0() {
-		mgr.checkAccess(Thread.currentThread());
+		nullsecuritymgr.checkAccess(Thread.currentThread());
 	}
 
 	@Test
 	public void checkAccess1() {
-		mgr.checkAccess(Thread.currentThread().getThreadGroup());
+		nullsecuritymgr.checkAccess(Thread.currentThread().getThreadGroup());
 	}
 
 	@Test
 	public void checkExit0() {
-		mgr.checkExit(100);
+		nullsecuritymgr.checkExit(100);
 	}
 
 	@Test
 	public void checkExec0() {
-		mgr.checkExec("cd .");
+		nullsecuritymgr.checkExec("cd .");
 	}
 
 	@Test
 	public void checkLink0() {
-		mgr.checkLink("mylib.dll");
+		nullsecuritymgr.checkLink("mylib.dll");
 	}
 
 	@Test
@@ -75,21 +80,21 @@ public class NullSecurityManagerTest {
 		file.deleteOnExit();
 		FileOutputStream ostr = new FileOutputStream(file);
 		FileDescriptor fd = ostr.getFD();
-		mgr.checkRead(fd);
+		nullsecuritymgr.checkRead(fd);
 	}
 
 	@Test
 	public void checkRead1() throws IOException {
 		File file = File.createTempFile("nullsecuritymanagertest2-", ".tmp");
 		file.deleteOnExit();
-		mgr.checkRead(file.getName());
+		nullsecuritymgr.checkRead(file.getName());
 	}
 
 	@Test
 	public void checkRead3() throws IOException {
 		File file = File.createTempFile("nullsecuritymanagertest3-", ".tmp");
 		file.deleteOnExit();
-		mgr.checkRead(file.getName(), new Object());
+		nullsecuritymgr.checkRead(file.getName(), nullsecuritymgr.getSecurityContext());
 	}
 
 	@Test
@@ -98,88 +103,88 @@ public class NullSecurityManagerTest {
 		file.deleteOnExit();
 		FileOutputStream ostr = new FileOutputStream(file);
 		FileDescriptor fd = ostr.getFD();
-		mgr.checkWrite(fd);
+		nullsecuritymgr.checkWrite(fd);
 	}
 
 	@Test
 	public void checkWrite1() throws IOException {
 		File file = File.createTempFile("nullsecuritymanagertest5-", ".tmp");
 		file.deleteOnExit();
-		mgr.checkWrite(file.getName());
+		nullsecuritymgr.checkWrite(file.getName());
 	}
 
 	@Test
 	public void checkDelete() throws IOException {
 		File file = File.createTempFile("nullsecuritymanagertest6-", ".tmp");
 		file.deleteOnExit();
-		mgr.checkDelete(file.getName());
+		nullsecuritymgr.checkDelete(file.getName());
 	}
 
 	@Test
 	public void checkConnect0() {
-		mgr.checkConnect("localhost", 8081);
+		nullsecuritymgr.checkConnect("localhost", 8081);
 	}
 
 	@Test
 	public void checkConnect1() {
-		mgr.checkConnect("localhost", 8081, new Object());
+		nullsecuritymgr.checkConnect("localhost", 8081, nullsecuritymgr.getSecurityContext());
 	}
 
 	@Test
 	public void checkListen() {
-		mgr.checkListen(123);
+		nullsecuritymgr.checkListen(123);
 	}
 
 	@Test
 	public void checkAccept() {
-		mgr.checkAccept("localhost", 1234);
+		nullsecuritymgr.checkAccept("localhost", 1234);
 	}
 
 	@Test
 	public void checkMulticast0() throws UnknownHostException {
-		mgr.checkMulticast(InetAddress.getLocalHost());
+		nullsecuritymgr.checkMulticast(InetAddress.getLocalHost());
 	}
 
 	@Test
 	public void checkMulticast1() throws UnknownHostException {
 		InetAddress localhost = InetAddress.getLocalHost();
 		byte ttl = 05;
-		mgr.checkMulticast(localhost, ttl);
+		nullsecuritymgr.checkMulticast(localhost, ttl);
 	}
 
 	@Test
 	public void checkPropertiesAccess() {
-		mgr.checkPropertiesAccess();
+		nullsecuritymgr.checkPropertiesAccess();
 	}
 
 	@Test
 	public void checkPropertyAccess() {
-		mgr.checkPropertyAccess("nullsecuritymanagertest.test.propertykeyname");
+		nullsecuritymgr.checkPropertyAccess("nullsecuritymanagertest.test.propertykeyname");
 	}
 
 	@Test
 	public void checkPrintJobAccess() {
-		mgr.checkPrintJobAccess();
+		nullsecuritymgr.checkPrintJobAccess();
 	}
 
 	@Test
 	public void checkPackageAccess() {
-		mgr.checkPackageAccess("dummypackageaccess.jar");
+		nullsecuritymgr.checkPackageAccess("dummypackageaccess.jar");
 	}
 
 	@Test
 	public void checkPackageDefinition() {
-		mgr.checkPackageDefinition("dummypackagedefinition.jar");
+		nullsecuritymgr.checkPackageDefinition("dummypackagedefinition.jar");
 	}
 
 	@Test
 	public void checkSetFactory() {
-		mgr.checkSetFactory();
+		nullsecuritymgr.checkSetFactory();
 	}
 
 	@Test
 	public void checkSecurityAccess() {
-		mgr.checkSecurityAccess("securityaccesstarget");
+		nullsecuritymgr.checkSecurityAccess("securityaccesstarget");
 	}
 
 	

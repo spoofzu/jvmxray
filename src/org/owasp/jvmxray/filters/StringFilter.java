@@ -5,8 +5,9 @@ import java.util.Enumeration;
 import java.util.Properties;
 
 import org.owasp.jvmxray.driver.JVMXRayFilterRule;
-import org.owasp.jvmxray.driver.NullSecurityManager.Events;
 import org.owasp.jvmxray.driver.NullSecurityManager.FilterActions;
+import org.owasp.jvmxray.event.IEvent;
+import org.owasp.jvmxray.event.IEvent.Events;
 
 /**
  * Filter to handle the first argument of each event type as a String.
@@ -17,12 +18,12 @@ import org.owasp.jvmxray.driver.NullSecurityManager.FilterActions;
 public class StringFilter extends JVMXRayFilterRule {
 
 	private FilterActions defaultfilter;
-	private EnumSet<Events> events;
+	private EnumSet<IEvent.Events> events;
 	private Properties p;
 	private Properties np;
 	private boolean bCritieriaPresent = false;
 	
-	public StringFilter(EnumSet<Events> supported, FilterActions defaultfilter, Properties p) {
+	public StringFilter(EnumSet<IEvent.Events> supported, FilterActions defaultfilter, Properties p) {
 		
 		// defaultfilter = FilterActions.ALLOW, prints all java packages.
 		// defaultfilter = FilterActions.DENY, suppresses all java packages.
@@ -48,16 +49,16 @@ public class StringFilter extends JVMXRayFilterRule {
 	}
 
 	@Override
-	public FilterActions isMatch(Events type, Object ...params) {
+	public FilterActions isMatch(IEvent event) {
 		
 		FilterActions results = FilterActions.NEUTRAL;
 		
-		// Get searchable fields for the record.
-		Object[] obj = params;
+		// Get searchable fields for the record type.
+		Object[] obj = event.getParams();
 		
 		// Only handle specified events also ensure a parameter is
 		// present, if none, then no matching work to do.
-		if( events.contains( type ) && obj.length > 0 ) {
+		if( events.contains( event.getEventType() ) && obj.length > 0 ) {
 				
 			// Skip if no criteria specified.
 			if (bCritieriaPresent) {
@@ -84,12 +85,12 @@ public class StringFilter extends JVMXRayFilterRule {
 						try {
 							fidx = Integer.valueOf(sf);
 						} catch (NumberFormatException e){
-							String msg = "Non-numeric search field specified. key="+key+" type="+type.toString()+" error="+e.getMessage();
+							String msg = "Non-numeric search field specified. key="+key+" type="+event.getEventType().toString()+" error="+e.getMessage();
 							RuntimeException e1 = new RuntimeException(msg);
 						}
 						// Test to ensure field index is appropriate for this record type.
 						if( fidx > obj.length || fidx < 0 ) {
-							String msg = "Invalid search index for record type. Valid range is, 0-"+obj.length+". key="+key+" type="+type.toString();
+							String msg = "Invalid search index for record type. Valid range is, 0-"+obj.length+". key="+key+" type="+event.getEventType().toString();
 							RuntimeException e = new RuntimeException(msg);
 						}
 						
