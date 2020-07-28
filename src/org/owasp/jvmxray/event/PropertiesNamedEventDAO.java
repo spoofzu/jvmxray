@@ -1,6 +1,6 @@
 package org.owasp.jvmxray.event;
 
-public class PropertiesNamedEventDAO extends ImmutableEvent implements IPropertiesNamedEvent {
+public class PropertiesNamedEventDAO extends BaseEvent implements IPropertiesNamedEvent {
 
 	PropertiesNamedEventDAO(int pk, int state, long timestamp, String tid, String identity, String stacktrace,
 			 String key) {

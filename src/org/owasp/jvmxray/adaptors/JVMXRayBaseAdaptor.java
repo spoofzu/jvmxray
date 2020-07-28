@@ -4,7 +4,7 @@ package org.owasp.jvmxray.adaptors;
 import java.sql.Connection;
 import java.util.Properties;
 
-import org.owasp.jvmxray.event.ImmutableEvent;
+import org.owasp.jvmxray.event.BaseEvent;
 import org.owasp.jvmxray.event.IEvent;
 import org.owasp.jvmxray.util.DBUtil;
 

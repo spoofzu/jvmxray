@@ -1,6 +1,6 @@
 package org.owasp.jvmxray.event;
 
-public class SocketPackageDefineDAO extends ImmutableEvent implements IPackageDefineEvent {
+public class SocketPackageDefineDAO extends BaseEvent implements IPackageDefineEvent {
 
 	SocketPackageDefineDAO(int pk, int state, long timestamp, String tid, String identity, String stacktrace,
 			String pkg ) {

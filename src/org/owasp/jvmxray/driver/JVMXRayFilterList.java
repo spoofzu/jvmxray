@@ -3,9 +3,10 @@ package org.owasp.jvmxray.driver;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import org.owasp.jvmxray.driver.NullSecurityManager.Callstack;
 import org.owasp.jvmxray.driver.NullSecurityManager.FilterActions;
 import org.owasp.jvmxray.event.IEvent;
-import org.owasp.jvmxray.event.IEvent.Events;
+
 
 /**
  * Used by the framework to iterate over a list of FilterDomainRules.
@@ -24,20 +25,28 @@ class JVMXRayFilterList {
 		return list.iterator();
 	}
 	
-	FilterActions filterEvents( IEvent event ) {
-		
-		FilterActions result = FilterActions.DENY;
-		
+	JVMXRayFilterRule getFilterRule( IEvent event ) {
+		JVMXRayFilterRule result = null;
 		Iterator<JVMXRayFilterRule> i = iterator();
 		while( i.hasNext() ) {
 			JVMXRayFilterRule r = i.next();
-			FilterActions filterresult = r.isMatch( event );
-			if( filterresult == FilterActions.ALLOW || filterresult == FilterActions.DENY ) {
-				result = filterresult;
+			FilterActions fr = r.isMatch( event );
+			if( fr == FilterActions.ALLOW || fr == FilterActions.DENY ) {
+				result = r;
 				break;
 			} 
 		}
-		
 		return result;
 	}
+	
+	FilterActions filterEvents( IEvent event ) {
+		JVMXRayFilterRule fr = getFilterRule(event);
+		return fr.isMatch( event );
+	}
+	
+	Callstack getCallstackOptions( IEvent event ) {
+		JVMXRayFilterRule fr = getFilterRule(event);
+		return fr.getCallstackOptions();
+	}
+	
 }

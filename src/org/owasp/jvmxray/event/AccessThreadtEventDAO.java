@@ -1,6 +1,6 @@
 package org.owasp.jvmxray.event;
 
-public class AccessThreadtEventDAO extends ImmutableEvent implements IAccessThreadEvent {
+public class AccessThreadtEventDAO extends BaseEvent implements IAccessThreadEvent {
 	
 	public AccessThreadtEventDAO(int pk, int state, long timestamp, String tid, String identity, String stacktrace, String threadid) {
 		super(pk, state, timestamp, tid, Events.ACCESS_THREAD, identity, stacktrace, threadid, "", "");

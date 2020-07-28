@@ -1,6 +1,6 @@
 package org.owasp.jvmxray.event;
 
-public class AccessThreadGroupEventDAO extends ImmutableEvent implements IAccessThreadGroupEvent {
+public class AccessThreadGroupEventDAO extends BaseEvent implements IAccessThreadGroupEvent {
 	
 	public AccessThreadGroupEventDAO(int id, int state, long timestamp, String tid, String identity, String stacktrace,
 		 String tg) {

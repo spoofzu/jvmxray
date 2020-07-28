@@ -5,6 +5,7 @@ import java.util.Enumeration;
 import java.util.Properties;
 
 import org.owasp.jvmxray.driver.JVMXRayFilterRule;
+import org.owasp.jvmxray.driver.NullSecurityManager.Callstack;
 import org.owasp.jvmxray.driver.NullSecurityManager.FilterActions;
 import org.owasp.jvmxray.event.IEvent;
 import org.owasp.jvmxray.event.IEvent.Events;
@@ -22,8 +23,9 @@ public class StringFilter extends JVMXRayFilterRule {
 	private Properties p;
 	private Properties np;
 	private boolean bCritieriaPresent = false;
+	private Callstack callstackopts;
 	
-	public StringFilter(EnumSet<IEvent.Events> supported, FilterActions defaultfilter, Properties p) {
+	public StringFilter(EnumSet<IEvent.Events> supported, FilterActions defaultfilter, Properties p, Callstack callstackopts) {
 		
 		// defaultfilter = FilterActions.ALLOW, prints all java packages.
 		// defaultfilter = FilterActions.DENY, suppresses all java packages.
@@ -31,6 +33,7 @@ public class StringFilter extends JVMXRayFilterRule {
 		this.events = supported;
 		this.defaultfilter = defaultfilter;
 		this.p = p;
+		this.callstackopts = callstackopts;
 		
 		// Create new properties file with only the criteria specifications.
 		np = new Properties();
@@ -46,6 +49,10 @@ public class StringFilter extends JVMXRayFilterRule {
 			}
 		}
 		
+	}
+	
+	public Callstack getCallstackOptions() {
+		return callstackopts;
 	}
 
 	@Override

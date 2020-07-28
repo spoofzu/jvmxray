@@ -1,6 +1,6 @@
 package org.owasp.jvmxray.event;
 
-public class PermissionEventDAO extends ImmutableEvent implements IPermissionEvent {
+public class PermissionEventDAO extends BaseEvent implements IPermissionEvent {
 
 
 	PermissionEventDAO(int pk, int state, long timestamp, String tid, String identity, String stacktrace,

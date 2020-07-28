@@ -1,6 +1,6 @@
 package org.owasp.jvmxray.event;
 
-public class FileReadWithFileDescriptorEventDAO extends ImmutableEvent implements IFileReadWithFileDescriptorEvent {
+public class FileReadWithFileDescriptorEventDAO extends BaseEvent implements IFileReadWithFileDescriptorEvent {
 
 
 	FileReadWithFileDescriptorEventDAO(int pk, int state, long timestamp, String tid, String identity,

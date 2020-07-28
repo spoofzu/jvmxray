@@ -1,6 +1,6 @@
 package org.owasp.jvmxray.event;
 
-public class FileDeleteEventDAO extends ImmutableEvent implements IFileDeleteEvent {
+public class FileDeleteEventDAO extends BaseEvent implements IFileDeleteEvent {
 
 	public FileDeleteEventDAO(int pk, int state, long timestamp, String tid, String identity, String stacktrace,
 			String file ) {

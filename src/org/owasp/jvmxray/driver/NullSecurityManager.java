@@ -29,7 +29,7 @@ public class NullSecurityManager  extends SecurityManager {
 	 * Stacktrace detail property.  Settings are specified in NullSecurityManager.Callstack
 	 * and described in the jvmxray.properties file.
 	 */
-	public static final String CONF_PROP_STACKTRACE = "jvmxray.event.stacktrace";
+	//public static final String CONF_PROP_STACKTRACE = "jvmxray.event.stacktrace";
 	
 	// Lock access to securitymanager methods while executing.  Must be locked as default until
 	// dbconn has time to initialize.
@@ -42,7 +42,7 @@ public class NullSecurityManager  extends SecurityManager {
 	private JVMXRayFilterList rulelist = new JVMXRayFilterList();
 	
 	// Level of detail for callstack.  Disabled by default.
-	private Callstack callstackopt = Callstack.NONE;
+	//private Callstack callstackopt = Callstack.NONE;
 	
 	// Events to process.
 	private EnumSet<Events> usrevents = EnumSet.noneOf(Events.class);
@@ -164,7 +164,7 @@ public class NullSecurityManager  extends SecurityManager {
 								System.currentTimeMillis(),  // timestamp
 								getThreadStamp(), // log the thread name and id
 								id,  // Cloud service id of this event
-								getStackTrace(), // Stacktrace, if enabled
+								"", // Stacktrace, assign later
 								target // Event parameter
 								);
 			processEvent(ev);
@@ -183,7 +183,7 @@ public class NullSecurityManager  extends SecurityManager {
 								System.currentTimeMillis(),  // timestamp
 								getThreadStamp(), // log the thread name and id
 								id,  // Cloud service id of this event
-								getStackTrace(), // Stacktrace, if enabled
+								"", // Stacktrace, assign later
 								t.toString() // Event parameter
 								);
 			processEvent(ev);
@@ -202,7 +202,7 @@ public class NullSecurityManager  extends SecurityManager {
 								System.currentTimeMillis(),  // timestamp
 								getThreadStamp(), // log the thread name and id
 								id,  // Cloud service id of this event
-								getStackTrace(), // Stacktrace, if enabled
+								"", // Stacktrace, assign later
 								tg.toString() // Event parameter
 								);
 			processEvent(ev);
@@ -221,8 +221,7 @@ public class NullSecurityManager  extends SecurityManager {
 								System.currentTimeMillis(),  // timestamp
 								getThreadStamp(), // log the thread name and id
 								id,  // Cloud service id of this event
-								getStackTrace() // Stacktrace, if enabled
-								);
+								""); // Stacktrace, assign later
 			processEvent(ev);
 			setLocked(false);
 		}
@@ -239,7 +238,7 @@ public class NullSecurityManager  extends SecurityManager {
 								System.currentTimeMillis(),  // timestamp
 								getThreadStamp(), // log the thread name and id
 								id,  // Cloud service id of this event
-								getStackTrace(), // Stacktrace, if enabled
+								"", // Stacktrace, assign later
 								status // exit code
 								);
 			processEvent(ev);
@@ -258,8 +257,7 @@ public class NullSecurityManager  extends SecurityManager {
 								System.currentTimeMillis(),  // timestamp
 								getThreadStamp(), // log the thread name and id
 								id,  // Cloud service id of this event
-								getStackTrace() // Stacktrace, if enabled
-								);
+								""); // Stacktrace, assign later
 			processEvent(ev);
 			setLocked(false);
 		}
@@ -276,7 +274,7 @@ public class NullSecurityManager  extends SecurityManager {
 								System.currentTimeMillis(),  // timestamp
 								getThreadStamp(), // log the thread name and id
 								id,  // Cloud service id of this event
-								getStackTrace(), // Stacktrace, if enabled
+								"", // Stacktrace, assign later
 								file ); //  File to delete
 			processEvent(ev);
 			setLocked(false);
@@ -288,13 +286,13 @@ public class NullSecurityManager  extends SecurityManager {
 		if( !isLocked() && isEventEnabled(Events.FILE_EXECUTE) ) {
 			setLocked(true);
 			EventFactory factory = EventFactory.getInstance();
-			IEvent ev = factory.createFileDeleteEvent(
+			IEvent ev = factory.createFileExecuteEvent(
 								IEvent.PK_UNUSED, // No PK since this is new event
 								IEvent.STATE_UNUSED, // State is not used at this time
 								System.currentTimeMillis(),  // timestamp
 								getThreadStamp(), // log the thread name and id
 								id,  // Cloud service id of this event
-								getStackTrace(), // Stacktrace, if enabled
+								"", // Stacktrace, assign later
 								cmd ); //  Command to execute
 			processEvent(ev);
 			setLocked(false);
@@ -306,13 +304,13 @@ public class NullSecurityManager  extends SecurityManager {
 		if( !isLocked() && isEventEnabled(Events.FILE_READ) ) {
 			setLocked(true);
 			EventFactory factory = EventFactory.getInstance();
-			IEvent ev = factory.createFileDeleteEvent(
+			IEvent ev = factory.createFileReadEvent(
 								IEvent.PK_UNUSED, // No PK since this is new event
 								IEvent.STATE_UNUSED, // State is not used at this time
 								System.currentTimeMillis(),  // timestamp
 								getThreadStamp(), // log the thread name and id
 								id,  // Cloud service id of this event
-								getStackTrace(), // Stacktrace, if enabled
+								"", // Stacktrace, assign later
 								file ); //  File to read
 			processEvent(ev);
 			setLocked(false);
@@ -330,7 +328,7 @@ public class NullSecurityManager  extends SecurityManager {
 								System.currentTimeMillis(),  // timestamp
 								getThreadStamp(), // log the thread name and id
 								id,  // Cloud service id of this event
-								getStackTrace(), // Stacktrace, if enabled
+								"", // Stacktrace, assign later
 								file, // file to read
 								context.toString() ); //  file context
 			
@@ -350,7 +348,7 @@ public class NullSecurityManager  extends SecurityManager {
 								System.currentTimeMillis(),  // timestamp
 								getThreadStamp(), // log the thread name and id
 								id,  // Cloud service id of this event
-								getStackTrace()); // Stacktrace, if enabled
+								""); // Stacktrace, assign later
 			
 			processEvent(ev);
 			setLocked(false);
@@ -368,7 +366,7 @@ public class NullSecurityManager  extends SecurityManager {
 								System.currentTimeMillis(),  // timestamp
 								getThreadStamp(), // log the thread name and id
 								id,  // Cloud service id of this event
-								getStackTrace(), // Stacktrace, if enabled
+								"", // Stacktrace, assign later
 								file); // File to write
 			
 			processEvent(ev);
@@ -387,9 +385,7 @@ public class NullSecurityManager  extends SecurityManager {
 								System.currentTimeMillis(),  // timestamp
 								getThreadStamp(), // log the thread name and id
 								id,  // Cloud service id of this event
-								getStackTrace() // Stacktrace, if enabled
-								);
-			
+								""); // Stacktrace, assign later
 			processEvent(ev);
 			setLocked(false);
 		}
@@ -406,7 +402,7 @@ public class NullSecurityManager  extends SecurityManager {
 								System.currentTimeMillis(),  // timestamp
 								getThreadStamp(), // log the thread name and id
 								id,  // Cloud service id of this event
-								getStackTrace(), // Stacktrace, if enabled
+								"", // Stacktrace, assign later
 								lib); // library name
 			
 			processEvent(ev);
@@ -425,7 +421,7 @@ public class NullSecurityManager  extends SecurityManager {
 								System.currentTimeMillis(),  // timestamp
 								getThreadStamp(), // log the thread name and id
 								id,  // Cloud service id of this event
-								getStackTrace(), // Stacktrace, if enabled
+								"", // Stacktrace, assign later
 								pkg); // package name
 			
 			processEvent(ev);
@@ -444,7 +440,7 @@ public class NullSecurityManager  extends SecurityManager {
 								System.currentTimeMillis(),  // timestamp
 								getThreadStamp(), // log the thread name and id
 								id,  // Cloud service id of this event
-								getStackTrace(), // Stacktrace, if enabled
+								"", // Stacktrace, assign later
 								pkg); // package name
 			
 			processEvent(ev);
@@ -463,7 +459,7 @@ public class NullSecurityManager  extends SecurityManager {
 								System.currentTimeMillis(),  // timestamp
 								getThreadStamp(), // log the thread name and id
 								id,  // Cloud service id of this event
-								getStackTrace(), // Stacktrace, if enabled
+								"", // Stacktrace, assign later
 								perm.getName(),  // Permission name
 								perm.getActions()); // Permission actions
 			
@@ -483,7 +479,7 @@ public class NullSecurityManager  extends SecurityManager {
 								System.currentTimeMillis(),  // timestamp
 								getThreadStamp(), // log the thread name and id
 								id,  // Cloud service id of this event
-								getStackTrace(), // Stacktrace, if enabled
+								"", // Stacktrace, assign later
 								perm.getName(),  // Permission name
 								perm.getActions(), // Permission actions
 								context.toString()); // Context info
@@ -504,7 +500,7 @@ public class NullSecurityManager  extends SecurityManager {
 								System.currentTimeMillis(),  // timestamp
 								getThreadStamp(), // log the thread name and id
 								id,  // Cloud service id of this event
-								getStackTrace()); // Stacktrace, if enabled		
+								""); // Stacktrace, assign later	
 			processEvent(ev);
 			setLocked(false);
 		}
@@ -521,7 +517,7 @@ public class NullSecurityManager  extends SecurityManager {
 								System.currentTimeMillis(),  // timestamp
 								getThreadStamp(), // log the thread name and id
 								id,  // Cloud service id of this event
-								getStackTrace()); // Stacktrace, if enabled		
+								""); // Stacktrace, assign later	
 			processEvent(ev);
 			setLocked(false);
 		}
@@ -538,7 +534,7 @@ public class NullSecurityManager  extends SecurityManager {
 								System.currentTimeMillis(),  // timestamp
 								getThreadStamp(), // log the thread name and id
 								id,  // Cloud service id of this event
-								getStackTrace(), // Stacktrace, if enabled		
+								"", // Stacktrace, assign later	
 								key); // Property key
 			processEvent(ev);
 			setLocked(false);
@@ -556,7 +552,7 @@ public class NullSecurityManager  extends SecurityManager {
 								System.currentTimeMillis(),  // timestamp
 								getThreadStamp(), // log the thread name and id
 								id,  // Cloud service id of this event
-								getStackTrace(), // Stacktrace, if enabled		
+								"", // Stacktrace, assign later	
 								host,  // Host name
 								port ); // Port number
 			processEvent(ev);
@@ -575,7 +571,7 @@ public class NullSecurityManager  extends SecurityManager {
 								System.currentTimeMillis(),  // timestamp
 								getThreadStamp(), // log the thread name and id
 								id,  // Cloud service id of this event
-								getStackTrace(), // Stacktrace, if enabled		
+								"", // Stacktrace, assign later	
 								host,  // Host name
 								port ); // Port number
 			processEvent(ev);
@@ -594,7 +590,7 @@ public class NullSecurityManager  extends SecurityManager {
 								System.currentTimeMillis(),  // timestamp
 								getThreadStamp(), // log the thread name and id
 								id,  // Cloud service id of this event
-								getStackTrace(), // Stacktrace, if enabled		
+								"", // Stacktrace, assign later	
 								host,  // Host name
 								port, // Port number
 								context.toString()); // Context info.
@@ -614,7 +610,7 @@ public class NullSecurityManager  extends SecurityManager {
 								System.currentTimeMillis(),  // timestamp
 								getThreadStamp(), // log the thread name and id
 								id,  // Cloud service id of this event
-								getStackTrace(), // Stacktrace, if enabled		
+								"", // Stacktrace, assign later	
 								port); // Port number
 			processEvent(ev);
 			setLocked(false);
@@ -632,7 +628,7 @@ public class NullSecurityManager  extends SecurityManager {
 								System.currentTimeMillis(),  // timestamp
 								getThreadStamp(), // log the thread name and id
 								id,  // Cloud service id of this event
-								getStackTrace(), // Stacktrace, if enabled		
+								"", // Stacktrace, assign later		
 								maddr.toString()); // Multicast address
 			processEvent(ev);
 			setLocked(false);
@@ -650,7 +646,7 @@ public class NullSecurityManager  extends SecurityManager {
 								System.currentTimeMillis(),  // timestamp
 								getThreadStamp(), // log the thread name and id
 								id,  // Cloud service id of this event
-								getStackTrace(), // Stacktrace, if enabled		
+								"", // Stacktrace, assign later	
 								maddr.toString(), // Multicast address
 								String.format("%02X ", ttl)); // Time to live
 			processEvent(ev);
@@ -673,14 +669,11 @@ public class NullSecurityManager  extends SecurityManager {
 		return super.getThreadGroup();
 	}
 
-	private String getStackTrace() {
-		// Produce stacktrace if enabled.
+	private String getStackTrace(IEvent event) {
 		String stacktrace = "";
 		StackTraceElement[] ste = null;
-		if( callstackopt != Callstack.NONE ) {
-			ste = Thread.currentThread().getStackTrace();
-			stacktrace = generateCallStack(ste);
-		}
+		ste = Thread.currentThread().getStackTrace();
+		stacktrace = generateCallStack(rulelist.getCallstackOptions(event), ste);
 		return stacktrace;
 	}
 	
@@ -691,10 +684,11 @@ public class NullSecurityManager  extends SecurityManager {
 	 * @param type type of event being processed
 	 * @param event actual event being processed
 	 */
-	private void processEvent( IEvent event ) {
+	private void processEvent( IEvent event )  {
 		// Events event, Object[] obj1, String format, Object ...obj2
 		try {
 			if( rulelist.filterEvents( event ) == FilterActions.ALLOW ) {
+				event.setStackTrace(getStackTrace(event));
 				spoolEvent( event );
 			}
 		}catch(Throwable t) {
@@ -740,8 +734,8 @@ public class NullSecurityManager  extends SecurityManager {
 		p = PropertyUtil.getJVMXRayProperties();
     	
     	// Get the trace level
-    	String lvl = p.getProperty(CONF_PROP_STACKTRACE);
-    	callstackopt = Callstack.valueOf(lvl);
+//    	String lvl = p.getProperty(CONF_PROP_STACKTRACE);
+//    	callstackopt = Callstack.valueOf(lvl);
     	
     	// Get the assigned server identity or the default.
     	id = System.getProperty(PropertyUtil.SYS_PROP_EVENT_SERV_IDENTITY, PropertyUtil.SYS_PROP_EVENT_SERV_IDENTITY_DEFAULT);
@@ -752,6 +746,7 @@ public class NullSecurityManager  extends SecurityManager {
     		// Common settings for all filters.
     		String fclass = p.getProperty("jvmxray.filter"+i+".class");
     		String events = p.getProperty("jvmxray.filter"+i+".events");
+    		String strace = p.getProperty("jvmxray.filter"+i+".stacktrace");
     		String defaults = p.getProperty("jvmxray.filter"+i+".default");
     		
     		// No more filters or missing filter.  Continue to look for
@@ -783,12 +778,16 @@ public class NullSecurityManager  extends SecurityManager {
 
             	 }
              }
+             
+             // Grab callstackopts for the filter
+             Callstack opts = Callstack.NONE;
+             opts = Callstack.valueOf(strace);
             	 
         	 // Create instance of specified filter using reflection
     		 Class c = getClass().getClassLoader().loadClass(fclass);
-             Constructor cd = c.getConstructor(EnumSet.class, FilterActions.class, Properties.class);
+             Constructor cd = c.getConstructor(EnumSet.class, FilterActions.class, Properties.class, Callstack.class);
              FilterActions filteraction = FilterActions.valueOf(defaults);
-             JVMXRayFilterRule fdr = (JVMXRayFilterRule)cd.newInstance(gvents,filteraction, np);
+             JVMXRayFilterRule fdr = (JVMXRayFilterRule)cd.newInstance(gvents,filteraction, np, opts);
              
             		 
              // Add the rule to the list
@@ -827,7 +826,7 @@ public class NullSecurityManager  extends SecurityManager {
      * Generate a callstack based upon specification.
      * @param callstack Type of callstack to generate.
      */
-    String generateCallStack(StackTraceElement[] stacktrace) {
+    String generateCallStack(Callstack callstackopt, StackTraceElement[] stacktrace) {
     	
     	StringBuffer buff = new StringBuffer();
 		URL location = null;

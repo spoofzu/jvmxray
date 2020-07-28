@@ -1,6 +1,6 @@
 package org.owasp.jvmxray.event;
 
-public class AccessSecurityEventDAO extends ImmutableEvent implements IAccessSecurityEvent {
+public class AccessSecurityEventDAO extends BaseEvent implements IAccessSecurityEvent {
 	
 	public AccessSecurityEventDAO(int id, int state, long timestamp, String tid, String identity, String stacktrace, String target) {	
 		super(id, state, timestamp, tid, Events.ACCESS_SECURITY, identity, stacktrace, target, "", "");

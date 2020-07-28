@@ -1,6 +1,6 @@
 package org.owasp.jvmxray.event;
 
-public abstract class ImmutableEvent implements IEvent {
+public abstract class BaseEvent implements IEvent {
 
 	private int pk;
 	private int st;
@@ -13,7 +13,7 @@ public abstract class ImmutableEvent implements IEvent {
 	private String p2;
 	private String p3;
 	
-	ImmutableEvent(int pk, int state, long timestamp, String tid, Events type, String identity, String stacktrace, String p1, String p2, String p3) {
+	BaseEvent(int pk, int state, long timestamp, String tid, Events type, String identity, String stacktrace, String p1, String p2, String p3) {
 		this.pk = pk;
 		this.st = state;
 		this.ts = timestamp;
@@ -52,6 +52,10 @@ public abstract class ImmutableEvent implements IEvent {
 
     public String getStackTrace() {
     	return tr;
+    }
+    
+    public void setStackTrace( String st) {
+    	tr = st;
     }
     
     public String[] getParams() {

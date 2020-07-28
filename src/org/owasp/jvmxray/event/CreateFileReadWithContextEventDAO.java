@@ -1,6 +1,6 @@
 package org.owasp.jvmxray.event;
 
-public class CreateFileReadWithContextEventDAO extends ImmutableEvent implements IFileReadWithContextEvent {
+public class CreateFileReadWithContextEventDAO extends BaseEvent implements IFileReadWithContextEvent {
 
 	CreateFileReadWithContextEventDAO(int pk, int state, long timestamp, String tid, Events event, String identity,
 			String stacktrace, String file, String context) {

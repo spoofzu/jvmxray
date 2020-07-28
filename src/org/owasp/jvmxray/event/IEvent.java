@@ -52,6 +52,8 @@ public interface IEvent {
 
     public String getStackTrace();
     
+    public void setStackTrace(String st);
+    
     public String[] getParams();
 
 	

@@ -1,7 +1,7 @@
 package org.owasp.jvmxray.event;
 
 
-public class SocketAcceptEventDAO extends ImmutableEvent implements ISocketAcceptEvent {
+public class SocketAcceptEventDAO extends BaseEvent implements ISocketAcceptEvent {
 	
 	SocketAcceptEventDAO(int pk, int state, long timestamp, String tid, String identity, String stacktrace,
 			 String host, int port) {

@@ -1,6 +1,6 @@
 package org.owasp.jvmxray.event;
 
-public class PropertiesAnyEventDAO extends ImmutableEvent implements IPropertiesAnyEvent {
+public class PropertiesAnyEventDAO extends BaseEvent implements IPropertiesAnyEvent {
 
 	PropertiesAnyEventDAO(int pk, int state, long timestamp, String tid, String identity, String stacktrace ) {
 		super(pk, state, timestamp, tid, Events.PROPERTIES_ANY, identity, stacktrace, "", "", "" );

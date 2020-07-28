@@ -1,6 +1,6 @@
 package org.owasp.jvmxray.event;
 
-public class FileWriteEventDAO extends ImmutableEvent implements IFileWriteEvent {
+public class FileWriteEventDAO extends BaseEvent implements IFileWriteEvent {
 
 	private String file;
 

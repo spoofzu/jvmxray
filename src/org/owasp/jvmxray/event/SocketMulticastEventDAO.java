@@ -1,6 +1,6 @@
 package org.owasp.jvmxray.event;
 
-public class SocketMulticastEventDAO extends ImmutableEvent implements ISocketMulticastEvent {
+public class SocketMulticastEventDAO extends BaseEvent implements ISocketMulticastEvent {
 
 	SocketMulticastEventDAO(int pk, int state, long timestamp, String tid, String identity, String stacktrace,
 			String addr) {

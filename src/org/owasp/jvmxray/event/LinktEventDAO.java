@@ -1,6 +1,6 @@
 package org.owasp.jvmxray.event;
 
-public class LinktEventDAO extends ImmutableEvent implements ILinkEvent {
+public class LinktEventDAO extends BaseEvent implements ILinkEvent {
 
 
 	LinktEventDAO(int pk, int state, long timestamp,  String tid, String identity, String stacktrace,

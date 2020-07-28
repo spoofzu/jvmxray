@@ -4,6 +4,7 @@ import java.util.EnumSet;
 import java.util.Properties;
 
 import org.owasp.jvmxray.driver.JVMXRayFilterRule;
+import org.owasp.jvmxray.driver.NullSecurityManager.Callstack;
 import org.owasp.jvmxray.driver.NullSecurityManager.FilterActions;
 import org.owasp.jvmxray.event.IEvent;
 import org.owasp.jvmxray.event.IEvent.Events;
@@ -19,8 +20,9 @@ public class NullFilter extends JVMXRayFilterRule {
 	private FilterActions defaultfilter;
 	private EnumSet<IEvent.Events> events;
 	private Properties p;
+	private Callstack callstackopts;
 	
-	public NullFilter(EnumSet<IEvent.Events> supported, FilterActions defaultfilter, Properties p) {
+	public NullFilter(EnumSet<IEvent.Events> supported, FilterActions defaultfilter, Properties p, Callstack callstackopts) {
 		
 		// defaultfilter = FilterActions.ALLOW, prints all java packages.
 		// defaultfilter = FilterActions.DENY, suppresses all java packages.
@@ -28,9 +30,15 @@ public class NullFilter extends JVMXRayFilterRule {
 		this.events = supported;
 		this.defaultfilter = defaultfilter;
 		this.p = p;
+		this.callstackopts = callstackopts;
 		
 	}
 
+	@Override
+	public Callstack getCallstackOptions() {
+		return callstackopts;
+	}
+	
 	@Override
 	public FilterActions isMatch(IEvent event) {
 			

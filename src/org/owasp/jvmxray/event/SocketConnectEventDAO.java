@@ -1,6 +1,6 @@
 package org.owasp.jvmxray.event;
 
-public class SocketConnectEventDAO extends ImmutableEvent implements ISocketConnectEvent {
+public class SocketConnectEventDAO extends BaseEvent implements ISocketConnectEvent {
 
 
 	SocketConnectEventDAO(int pk, int state, long timestamp, String tid, String identity, String stacktrace,

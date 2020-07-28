@@ -1,6 +1,6 @@
 package org.owasp.jvmxray.event;
 
-public class ClassLoaderEventDAO extends ImmutableEvent implements IClassLoaderEvent {
+public class ClassLoaderEventDAO extends BaseEvent implements IClassLoaderEvent {
 	
 	public ClassLoaderEventDAO(int pk, int state, long timestamp, String tid, String identity, String stacktrace) {
 		super(pk, state, timestamp, tid, Events.CLASSLOADER_CREATE, identity, stacktrace, "", "", "");

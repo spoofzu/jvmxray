@@ -1,6 +1,6 @@
 package org.owasp.jvmxray.event;
 
-public class ExitDAO extends ImmutableEvent implements IExitEvent {
+public class ExitDAO extends BaseEvent implements IExitEvent {
 
 	private int status;
 	

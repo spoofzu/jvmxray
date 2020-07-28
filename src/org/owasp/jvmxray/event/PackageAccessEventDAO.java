@@ -1,6 +1,6 @@
 package org.owasp.jvmxray.event;
 
-public class PackageAccessEventDAO extends ImmutableEvent implements IPackageAccessEvent {
+public class PackageAccessEventDAO extends BaseEvent implements IPackageAccessEvent {
 
 	PackageAccessEventDAO(int pk, int state, long timestamp, String tid, String identity, String stacktrace,
 			String pkg) {

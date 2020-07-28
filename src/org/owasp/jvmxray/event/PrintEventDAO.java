@@ -1,6 +1,6 @@
 package org.owasp.jvmxray.event;
 
-public class PrintEventDAO extends ImmutableEvent implements IPrintEvent {
+public class PrintEventDAO extends BaseEvent implements IPrintEvent {
 
 	PrintEventDAO(int pk, int state, long timestamp, String tid, String identity, String stacktrace) {
 		super(pk, state, timestamp, tid, Events.PRINT, identity, stacktrace, "", "", "");
