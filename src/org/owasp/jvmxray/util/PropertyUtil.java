@@ -1,16 +1,20 @@
 package org.owasp.jvmxray.util;
 
 import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.Reader;
+import java.io.Writer;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.util.Properties;
 
 import javax.net.ssl.HttpsURLConnection;
 
 public class PropertyUtil {
-
+	
 	/**
 	 * System property name that specifies the URL to load the jvmxray properties
 	 */
@@ -34,10 +38,9 @@ public class PropertyUtil {
 	public static final String SYS_PROP_EVENT_SERV_IDENTITY = "jvmxray.event.nullsecuritymanager.server.identity";
 	
 	/**
-	 * Server identity default value.  It's likely users will assign the default identity but if not a string value
-	 * of 1 is assigned.
+	 * File containing server identity on local file system.
 	 */
-	public static final String SYS_PROP_EVENT_SERV_IDENTITY_DEFAULT = "1";
+	public static final String CONF_PROP_SERV_IDENTITY_FILE="jvmxray.event.nullsecuritymanager.id.file";
 	
 	/**
 	 * Filename property. JVMXRay event spool.
@@ -45,9 +48,9 @@ public class PropertyUtil {
 	public static final String CONF_PROP_EVENT_SPOOL_FILE = "jvmxray.event.nullsecuritymanager.spool.filename";
 	
 	/**
-	 * Directory property. JVMXRay event spool.
+	 * Directory property. JVMXRay base directory.
 	 */
-	public static final String CONF_PROP_EVENT_SPOOL_DIRECTORY = "jvmxray.event.nullsecuritymanager.spool.directory";
+	public static final String CONF_PROP_EVENT_DIRECTORY = "jvmxray.event.nullsecuritymanager.directory";
 	
 	/**
 	 * Max spool file size in bytes
@@ -74,16 +77,70 @@ public class PropertyUtil {
 	 */
 	public static final String CONF_PROP_MAXWAIT_INITIALIZATION = "jvmxray.event.nullsecuritymanager.server.maxwait.initialization";
 	
-	
+	private static PropertyUtil pu;	
 	
 	private PropertyUtil() {}
+	
+	public static final synchronized PropertyUtil getInstance() {
+		if ( pu == null ) {
+			pu = new PropertyUtil();
+		}
+		return pu;
+	}
 
+	// Saves cloud identity to the local filesystem.
+	public final void saveServerId( String id ) throws MalformedURLException, IOException {
+		
+		// Get the server identity file to use on local file system.
+		Properties p = PropertyUtil.getInstance().getJVMXRayProperties();
+		String basedir = p.getProperty(CONF_PROP_EVENT_DIRECTORY);
+		String idfile = p.getProperty(CONF_PROP_SERV_IDENTITY_FILE);
+		File f = new File(basedir, idfile);	
+		
+		// If a file does not exist then create one.  If one exists, then skip and return.
+		// To force a new id creation simply delete a file, a new id will be created.
+		if( f.exists() ) return;
+		Properties np = new Properties();
+		Writer propWriter = Files.newBufferedWriter(f.toPath());
+		np.put( "id", id );
+		np.store(propWriter, "JVMXRay Unique Server Identity");
+		propWriter.close();
+		
+	}
+	
+	// Return the servers cloud identity from the local file system.
+	public final String getServerId() throws MalformedURLException, IOException {
+		
+		// Get the server identity file to use on local file system.
+		Properties p = PropertyUtil.getInstance().getJVMXRayProperties();	
+		String basedir = p.getProperty(CONF_PROP_EVENT_DIRECTORY);
+		String idfile = p.getProperty(CONF_PROP_SERV_IDENTITY_FILE);
+		File f = new File(basedir, idfile);	
+		
+		// If a file does not exist then create one.  If one exists, then skip and return.
+		// To force a new id creation simply delete a file, a new id will be created.
+		String id = "";
+		Properties np = new Properties();
+		if( f.exists() ) {
+			Reader propReader = Files.newBufferedReader(f.toPath());
+			np.load(propReader);
+			id = np.getProperty("id");
+			propReader.close();
+			
+		} else {
+			throw new IOException( "Server identity is unavailable.  f="+f.toString() );
+		}
+		
+		return id;
+		
+	}
+	
 	/**
 	 * Load jvmproperties.  Attempt to load from URL, if that fails, then load from resources.
 	 * @return Properties file.
 	 * @throws IOException
 	 */
-	public static final Properties getJVMXRayProperties() throws IOException, MalformedURLException {
+	public final Properties getJVMXRayProperties() throws IOException, MalformedURLException {
 		
 		Properties p = new Properties();
     	InputStream in = null;
@@ -117,6 +174,19 @@ public class PropertyUtil {
     	
     	return p;
 	
+	}
+	
+	/**
+	 * Reformat VMID's 
+	 * @param value String to filter.  Any character outside the set 
+	 * "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890" is replaced with
+	 * an - symbol.  A simpler VMID id format suitable for use with file systems, etc.
+	 * @return Filtered String.
+	 */
+	public static final String formatVMID(String vmid) {
+		String result = vmid.replace(":-","-");
+		result = result.replace(":","-");
+		return result;
 	}
 	
 	

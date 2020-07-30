@@ -7,6 +7,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.InetAddress;
 import java.net.URL;
+import java.rmi.dgc.VMID;
 import java.security.Permission;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -41,9 +42,6 @@ public class NullSecurityManager  extends SecurityManager {
 	// Hold list of filters to process.
 	private JVMXRayFilterList rulelist = new JVMXRayFilterList();
 	
-	// Level of detail for callstack.  Disabled by default.
-	//private Callstack callstackopt = Callstack.NONE;
-	
 	// Events to process.
 	private EnumSet<Events> usrevents = EnumSet.noneOf(Events.class);
 	
@@ -53,7 +51,6 @@ public class NullSecurityManager  extends SecurityManager {
 	private Connection dbconn;
 	
 	private DBUtil dbutil;
-	private FileUtil fiutil;
 	
 	/**
 	 * Implemented by filters but generally, <br/>
@@ -111,8 +108,7 @@ public class NullSecurityManager  extends SecurityManager {
 			// Specific exception thrown is, 
 			// java.util.ServiceConfigurationError: java.sql.Driver: not accessible to 
 			// module java.sql during VM init
-			fiutil = FileUtil.getInstance();
-			dbutil = DBUtil.getInstance(p);
+			dbutil = DBUtil.getInstance();
 			try {
 				dbconn = dbutil.createConnection();
 				if( dbconn != null ) {
@@ -730,15 +726,35 @@ public class NullSecurityManager  extends SecurityManager {
     											   InstantiationException, IllegalAccessException, IllegalArgumentException, 
     											   InvocationTargetException, IOException {
     	
+    	PropertyUtil pu = PropertyUtil.getInstance();
+    	
 		// Load jvmxray.properties
-		p = PropertyUtil.getJVMXRayProperties();
+		p = pu.getJVMXRayProperties();
     	
-    	// Get the trace level
-//    	String lvl = p.getProperty(CONF_PROP_STACKTRACE);
-//    	callstackopt = Callstack.valueOf(lvl);
-    	
-    	// Get the assigned server identity or the default.
-    	id = System.getProperty(PropertyUtil.SYS_PROP_EVENT_SERV_IDENTITY, PropertyUtil.SYS_PROP_EVENT_SERV_IDENTITY_DEFAULT);
+    	// Get the assigned server identity or generate a new identity and save it.
+		try {
+			// Throws exceptions if can't load file with id.
+			id = pu.getServerId();
+		} catch( Exception e ) {
+			
+			// Server identity from command line, if assigned by user.
+        	String i1 = System.getProperty(PropertyUtil.SYS_PROP_EVENT_SERV_IDENTITY);
+        
+        	String i3=""; String lid="";
+        	// If no id assigned by user, generate a new one.
+        	if( i1 == null ) { 
+        		String i2 = new VMID().toString();
+        		i3 = PropertyUtil.formatVMID(i2);
+        		lid=i3;
+        	// Id assigned by user, save it.
+        	} else {
+        		lid=i1;
+        	}
+		
+			// If exception occurs, they bubble up.
+			pu.saveServerId(lid);
+			id = lid;
+		}
     	
     	// Iterate over all the properties
     	for( int i=1; i < 500; i++ ) {
@@ -750,7 +766,7 @@ public class NullSecurityManager  extends SecurityManager {
     		String defaults = p.getProperty("jvmxray.filter"+i+".default");
     		
     		// No more filters or missing filter.  Continue to look for
-    		// next numbered fitler.
+    		// next numbered filter.
     		if( fclass == null || events == null || defaults == null )
     			continue;
     		

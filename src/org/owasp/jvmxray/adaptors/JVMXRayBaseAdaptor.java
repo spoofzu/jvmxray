@@ -15,7 +15,7 @@ abstract public class JVMXRayBaseAdaptor {
 	public JVMXRayBaseAdaptor() {}
 
 	void init(Properties p) throws Exception {
-		dbutil = DBUtil.getInstance(p);
+		dbutil = DBUtil.getInstance();
 		Connection dbconn = dbutil.createConnection();
 		
 		do {

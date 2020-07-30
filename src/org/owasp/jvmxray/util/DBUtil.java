@@ -1,6 +1,8 @@
 package org.owasp.jvmxray.util;
 
 import java.io.File;
+import java.io.IOException;
+import java.net.MalformedURLException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -16,15 +18,15 @@ import org.owasp.jvmxray.event.IEvent.Events;
 public class DBUtil {
 
 	private static DBUtil u = null;
-	private static Properties p = null;
+	private Properties p;
 		
 	private DBUtil() {}
 	
-	public static final synchronized DBUtil getInstance(Properties p) {
+	public static final synchronized DBUtil getInstance() throws MalformedURLException, IOException {
 		if ( u == null ) {
 			u = new DBUtil();
 		}
-		DBUtil.p = p;
+		u.p = PropertyUtil.getInstance().getJVMXRayProperties();
 		return u;
 	}
 
@@ -36,7 +38,7 @@ public class DBUtil {
 	public Connection createConnection() throws SQLException { 
 		StringBuffer sql = new StringBuffer();
 		String homedir = System.getProperty("user.home");
-    	String proprdir = p.getProperty(PropertyUtil.CONF_PROP_EVENT_SPOOL_DIRECTORY);
+    	String proprdir = p.getProperty(PropertyUtil.CONF_PROP_EVENT_DIRECTORY);
     	String propfile = p.getProperty(PropertyUtil.CONF_PROP_EVENT_SPOOL_FILE);
     	
     	// The default db is {user.home}\jvmxrayspool.db unless the user overrides

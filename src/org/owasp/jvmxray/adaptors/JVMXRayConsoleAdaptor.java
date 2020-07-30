@@ -33,7 +33,7 @@ public class JVMXRayConsoleAdaptor extends JVMXRayBaseAdaptor {
 	public static final void main(String[] args) {
 		try {
 			JVMXRayConsoleAdaptor b = new JVMXRayConsoleAdaptor();
-			Properties p = PropertyUtil.getJVMXRayProperties();
+			Properties p = PropertyUtil.getInstance().getJVMXRayProperties();
 			b.init(p);
 		} catch( Throwable t ) {
 			t.printStackTrace();

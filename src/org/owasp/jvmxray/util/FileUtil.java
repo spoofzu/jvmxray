@@ -1,7 +1,5 @@
 package org.owasp.jvmxray.util;
 
-import java.util.Properties;
-
 public class FileUtil {
 	
 	private static FileUtil fu = null;
@@ -19,7 +17,6 @@ public class FileUtil {
 		}
 		return fu;
 	}
-	
 	
 	/**
 	 * Filter string value.  

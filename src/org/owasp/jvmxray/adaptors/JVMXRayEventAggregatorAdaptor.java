@@ -29,7 +29,7 @@ public class JVMXRayEventAggregatorAdaptor extends JVMXRayBaseAdaptor {
 
 	
 	private void initialize() throws MalformedURLException, IOException {
-		Properties p = PropertyUtil.getJVMXRayProperties();
+		Properties p = PropertyUtil.getInstance().getJVMXRayProperties();
 		String finterval = p.getProperty(PropertyUtil.CONF_PROP_EVENT_AGG_FILE_INTERVAL, "30");
 		Integer interval = Integer.valueOf(finterval);
 			
@@ -72,7 +72,7 @@ public class JVMXRayEventAggregatorAdaptor extends JVMXRayBaseAdaptor {
 		df.setTimeZone(stz); 
 		String dt = df.format(new Date());
 		
-		Properties p = PropertyUtil.getJVMXRayProperties();
+		Properties p = PropertyUtil.getInstance().getJVMXRayProperties();
 		String fname = p.getProperty(PropertyUtil.CONF_PROP_EVENT_AGG_FILE);
 		File file = null;
 		PrintWriter writer = null;
@@ -140,7 +140,7 @@ public class JVMXRayEventAggregatorAdaptor extends JVMXRayBaseAdaptor {
 	public static final void main(String[] args) {
 		try {
 			JVMXRayEventAggregatorAdaptor b = new JVMXRayEventAggregatorAdaptor();
-			Properties p = PropertyUtil.getJVMXRayProperties();
+			Properties p = PropertyUtil.getInstance().getJVMXRayProperties();
 			b.init(p);
 		} catch( Throwable t ) {
 			t.printStackTrace();
