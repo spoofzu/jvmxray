@@ -2,12 +2,13 @@
 
 # Welcome to JVMXRay
 
-JVMXRay is a technology for monitoring access to system resources within the Java Virtual Machine.  It’s designed with application security emphasis but some will also find it beneficial for software quality processes and diagnostics.
-
+&nbsp; | &nbsp;
+------------ | -------------
+![xrayduke](https://user-images.githubusercontent.com/8450615/88954072-af62ef00-d24e-11ea-95f9-734395481248.png) | VMXRay is a technology for monitoring access to system resources within the Java Virtual Machine.  It’s designed with application security emphasis but some will also find it beneficial for software quality processes and diagnostics. 
 ```
 CONSIDERATIONS:
 This project is being activty under review for acceptance as an OWASP project. Please
-consider this early stage code, with bugs, not suitable for production use. 
+consider this early stage code. 
 There be dragons.  You were warned!
 ```
 
