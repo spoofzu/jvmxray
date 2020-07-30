@@ -4,13 +4,9 @@
 
 &nbsp; | &nbsp;
 ------------ | -------------
-![xrayduke](https://user-images.githubusercontent.com/8450615/88954072-af62ef00-d24e-11ea-95f9-734395481248.png) | VMXRay is a technology for monitoring access to system resources within the Java Virtual Machine.  It’s designed with application security emphasis but some will also find it beneficial for software quality processes and diagnostics. 
-```
-CONSIDERATIONS:
-This project is being activty under review for acceptance as an OWASP project. Please
-consider this early stage code. 
-There be dragons.  You were warned!
-```
+![xrayduke](https://user-images.githubusercontent.com/8450615/88954072-af62ef00-d24e-11ea-95f9-734395481248.png) | VMXRay is a technology for monitoring access to system resources within the Java Virtual Machine.  It’s designed with application security emphasis but some will also find it beneficial for software quality processes and diagnostics.
+
+[More about Oracle Java Duke mascot...](https://wiki.openjdk.java.net/display/duke/Main)
 
 ## Benefits
 Following is a quick list of some of the more important benefits.
@@ -26,6 +22,13 @@ An ancilary benefit of not requiring source code is that JVMXRay provides insigh
 
 ### Extensible & Open
 Don't see an adapter or filter that works for you and know how to code?  Roll up your sleeves and write one.  It's extensible.  Fix a bug and submit a pull requrest.  All the source code is available.
+
+```
+INFORMATION:
+Project under review for acceptance as an OWASP project. Please
+consider this early stage code. 
+Thar be dragons mate.  You were warned!
+```
 
 ## Audience
 The anticipated audience for JVMXRay is two-fold,<br/>
