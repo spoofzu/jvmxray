@@ -9,13 +9,22 @@ import java.net.UnknownHostException;
 import java.security.BasicPermission;
 import java.security.Permission;
 
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.owasp.jvmxray.driver.NullSecurityManager;
+import org.owasp.jvmxray.server.test.JVMXRayServletContainer;
 
+/**
+ * Quality tests for the various methods of NullSecurityManager.  The purpose is
+ * to identify some simple functionality problems in NullSecurityManager.
+ * @author Milton Smith
+ *
+ */
 public class NullSecurityManagerTest {
 	
 	private static NullSecurityManager nullsecuritymgr = null;
+	private static JVMXRayServletContainer server;
 	private Permission perm = new TestPermission();
 	
 	public class TestPermission extends BasicPermission {
@@ -24,14 +33,30 @@ public class NullSecurityManagerTest {
 			super("testpermissionname1");
 		}
 		public String getActions() {
-			// setting the action fm the two arg constructor does not work, return specific value.
+			// Note: setting permission action fm the two arg constructor
+			// does not work.  As a workaround, hard coding a
+			// eeturn value.
 			return "testaction1";
 		}
 	}
 	
+	// Initialize HTTP/S server for testing.
 	@BeforeClass
-	public static void init() {	
+	public static void setup() {	
+		try {
+			server = JVMXRayServletContainer.getInstance();
+			server.start();  
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.exit(10);
+		}
 		nullsecuritymgr = new NullSecurityManager();
+	}
+	
+	// Terminate server upon conclusion of test.
+	@AfterClass
+	public static void finish() {	
+		server.stop();
 	}
 	
 	@Test

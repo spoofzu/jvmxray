@@ -1,6 +1,7 @@
 package org.owasp.jvmxray.driver;
 
 
+import java.io.File;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
@@ -9,31 +10,58 @@ import java.net.InetAddress;
 import java.net.URL;
 import java.rmi.dgc.VMID;
 import java.security.Permission;
-import java.sql.Connection;
-import java.sql.SQLException;
 import java.util.EnumSet;
 import java.util.Enumeration;
 import java.util.Properties;
-import java.util.ServiceConfigurationError;
 
 import org.owasp.jvmxray.event.EventFactory;
 import org.owasp.jvmxray.event.IEvent;
 import org.owasp.jvmxray.event.IEvent.Events;
-import org.owasp.jvmxray.exception.JVMXRayDBError;
-import org.owasp.jvmxray.util.DBUtil;
-import org.owasp.jvmxray.util.FileUtil;
 import org.owasp.jvmxray.util.PropertyUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import ch.qos.logback.classic.LoggerContext;
+import ch.qos.logback.classic.joran.JoranConfigurator;
+import ch.qos.logback.core.joran.spi.JoranException;
+import ch.qos.logback.core.util.StatusPrinter;
+
+
+/**
+ * 
+ * NullSecurityManager conforms to the java.lang.SecurityManager specifications.  This class intercepts
+ * access to protected resources, builds an event, and sends the event to a server for processing.
+ * 
+ * @author Milton Smith
+ *
+ */
 public class NullSecurityManager  extends SecurityManager {
 	
-	/**
-	 * Stacktrace detail property.  Settings are specified in NullSecurityManager.Callstack
-	 * and described in the jvmxray.properties file.
-	 */
-	//public static final String CONF_PROP_STACKTRACE = "jvmxray.event.stacktrace";
+	/** Get logger instance. */
+	private static final Logger logger = LoggerFactory.getLogger("org.owasp.jvmxray.driver.NullSecurityManager");
 	
-	// Lock access to securitymanager methods while executing.  Must be locked as default until
-	// dbconn has time to initialize.
+	// Initialize logback
+	static {
+	    // assume SLF4J is bound to logback in the current environment
+	    LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
+	    
+	    JoranConfigurator configurator = new JoranConfigurator();
+	    configurator.setContext(context);
+	    // Call context.reset() to clear any previous configuration, e.g. default 
+	    // configuration. For multi-step configuration, omit calling context.reset().
+	    context.reset(); 
+	    try {
+	    	configurator.doConfigure(new File("./logback.xml"));
+		} catch (JoranException e) {
+			e.printStackTrace();
+		}
+	    StatusPrinter.printInCaseOfErrorsOrWarnings(context);
+	    logger.debug("Logback initalized.");
+
+	}
+	
+	// Lock access to NullSecurityManager methods while executing.  Blocked by default until
+	// NullSecurityManager is properly initialized.
 	private volatile boolean bLocked = true;
 	
 	// jvmxray.properties
@@ -47,10 +75,9 @@ public class NullSecurityManager  extends SecurityManager {
 	
 	// Server identity
 	private String id;
-	
-	private Connection dbconn;
-	
-	private DBUtil dbutil;
+
+	// JSON end-point for event data.
+	private URL webhookurl;
 	
 	/**
 	 * Implemented by filters but generally, <br/>
@@ -78,77 +105,26 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 	
 	
+	/**
+	 * CTOR
+	 */
 	public NullSecurityManager ()  {
 		
 		try {
-		
-			// Can't occur in initialize() since isEventEnabled() must be properly initialized
-			// prior to SM functions being called.
+			// Initialize JVMXRay properties.  If successful, release the lock and
+			// accept calls from policy management framework.
 			initializeFromProperties();
-			
-			String sdelay = p.getProperty(PropertyUtil.CONF_PROP_MAXWAIT_INITIALIZATION);
-			int delay = Integer.parseInt(sdelay);
-			
-			// Due to the architecture SecurityManager and our use of it
-			// beyond it's intended design some features cause exceptions if used
-			// prior to full VM initialization.  In the case of JDBC, ServiceConfigurationError
-			// exceptions occur if connections are initialized too early.  It's also
-			// a problem with early use of other features like JMX and Classloaders.
-			// To work around, we attempt to initialize a connection immediately.  This 
-			// works fine for unit testing but fails in containers.  To support containers
-			// we start a background thread and delay event processing for a number
-			// of seconds specified by 
-			// jvmxray.event.nullsecuritymanager.server.delay.initialization
-			// or a non-null database connection is returned, whichever comes
-			// first.  This allows container initialization
-			// will proceed, but any events issued by the service prior to
-			// initialization are lost.  If a db connection is established prior
-			// to timer elapse, the thread exits successfully.
-			//
-			// Specific exception thrown is, 
-			// java.util.ServiceConfigurationError: java.sql.Driver: not accessible to 
-			// module java.sql during VM init
-			dbutil = DBUtil.getInstance();
-			try {
-				dbconn = dbutil.createConnection();
-				if( dbconn != null ) {
-					setLocked(false);
-				} else {
-					JVMXRayDBError e = new JVMXRayDBError("JDBC connection failed to initialize.  dbconn=null");
-					throw e;
-				}
-			}catch(ServiceConfigurationError e) {
-				Thread t = new Thread() {
-					public void run() {			
-						long start = System.currentTimeMillis();
-						while( System.currentTimeMillis() - start < delay ) {
-							try {
-								Thread.sleep(1000);
-							} catch (InterruptedException e) {}
-							Thread.yield();
-							try {
-								dbconn = dbutil.createConnection();
-							} catch (ServiceConfigurationError e) {
-								
-							} catch (SQLException e) {
-								e.printStackTrace();
-							}
-							if ( dbconn != null ) {
-								break;
-							}
-						}
-						setLocked(false);
-					}
-				};
-				t.start();
-			}			
+			bLocked = false;		
 		} catch (Exception e) {
-			e.printStackTrace();
+			logger.error( "NullSecurityManager can't read properties.  Exiting.", e);
 			System.exit(30);
 		}
 		
 	}
 	
+	/**
+	 * @see java.lang.SecurityManager.checkSecurityAccess(String)
+	 */
 	@Override
 	public synchronized void checkSecurityAccess(String target) {
 		if( !isLocked() && isEventEnabled(Events.ACCESS_SECURITY) ) {
@@ -168,6 +144,9 @@ public class NullSecurityManager  extends SecurityManager {
 		}
 	}
 	
+	/**
+	 * @see java.lang.SecurityManager.checkAccess(Thread)
+	 */
 	@Override
 	public synchronized void checkAccess(Thread t) {
 		if( !isLocked() && isEventEnabled(Events.ACCESS_THREAD) ) {
@@ -187,6 +166,9 @@ public class NullSecurityManager  extends SecurityManager {
 		}
 	}
 	
+	/**
+	 * @see java.lang.SecurityManager.checkAccess(ThreadGroup)
+	 */
 	@Override
 	public synchronized void checkAccess(ThreadGroup tg) {
 		if( !isLocked() && isEventEnabled(Events.ACCESS_THREADGROUP) ) {
@@ -206,6 +188,9 @@ public class NullSecurityManager  extends SecurityManager {
 		}
 	}
 	
+	/**
+	 * @see java.lang.SecurityManager.checkCreateClassLoader()
+	 */
 	@Override
 	public synchronized void checkCreateClassLoader() {
 		if( !isLocked() && isEventEnabled(Events.CLASSLOADER_CREATE) ) {
@@ -223,6 +208,9 @@ public class NullSecurityManager  extends SecurityManager {
 		}
 	}	
 	
+	/**
+	 * @see java.lang.SecurityManager.checkExit(int)
+	 */
 	@Override
 	public synchronized void checkExit(int status) {
 		if( !isLocked() && isEventEnabled(Events.EXIT) ) {
@@ -242,6 +230,9 @@ public class NullSecurityManager  extends SecurityManager {
 		}		
 	}
 	
+	/**
+	 * @see java.lang.SecurityManager.checkSetFactory()
+	 */
 	@Override
 	public synchronized void checkSetFactory() {
 		if( !isLocked() && isEventEnabled(Events.FACTORY) ) {
@@ -258,7 +249,10 @@ public class NullSecurityManager  extends SecurityManager {
 			setLocked(false);
 		}
 	}
-	
+
+	/**
+	 * @see java.lang.SecurityManager.checkDelete(String)
+	 */
 	@Override
 	public synchronized void checkDelete(String file) {
 		if( !isLocked() &&  isEventEnabled(Events.FILE_DELETE) ) {
@@ -277,6 +271,9 @@ public class NullSecurityManager  extends SecurityManager {
 		}
 	}
 	
+	/**
+	 * @see java.lang.SecurityManager.checkExec(String)
+	 */
 	@Override
 	public synchronized void checkExec(String cmd) {
 		if( !isLocked() && isEventEnabled(Events.FILE_EXECUTE) ) {
@@ -295,6 +292,9 @@ public class NullSecurityManager  extends SecurityManager {
 		}
 	}
 	
+	/**
+	 * @see java.lang.SecurityManager.checkRead(String)
+	 */
 	@Override
 	public synchronized void checkRead(String file) {
 		if( !isLocked() && isEventEnabled(Events.FILE_READ) ) {
@@ -313,6 +313,9 @@ public class NullSecurityManager  extends SecurityManager {
 		}
 	}
 	
+	/**
+	 * @see java.lang.SecurityManager.checkRead(String, Object)
+	 */
 	@Override
 	public synchronized void checkRead(String file, Object context) {
 		if( !isLocked() && isEventEnabled(Events.FILE_READ_WITH_CONTEXT) ) {
@@ -333,6 +336,9 @@ public class NullSecurityManager  extends SecurityManager {
 		}
 	}
 	
+	/**
+	 * @see java.lang.SecurityManager.checkRead(FileDescriptor)
+	 */
 	@Override
 	public synchronized void checkRead(FileDescriptor fd) {
 		if( !isLocked() && isEventEnabled(Events.FILE_READ_WITH_FILEDESCRIPTOR) ) {
@@ -351,6 +357,9 @@ public class NullSecurityManager  extends SecurityManager {
 		}
 	}
 	
+	/**
+	 * @see java.lang.SecurityManager.checkWrite(String)
+	 */
 	@Override
 	public synchronized void checkWrite(String file) {
 		if( !isLocked() && isEventEnabled(Events.FILE_WRITE) ) {
@@ -370,6 +379,9 @@ public class NullSecurityManager  extends SecurityManager {
 		}
 	}
 	
+	/**
+	 * @see java.lang.SecurityManager.checkWrite(FileDescriptor)
+	 */
 	@Override
 	public synchronized void checkWrite(FileDescriptor fd) {
 		if( !isLocked() && isEventEnabled(Events.FILE_WRITE_WITH_FILEDESCRIPTOR) ) {
@@ -387,6 +399,9 @@ public class NullSecurityManager  extends SecurityManager {
 		}
 	}
 	
+	/**
+	 * @see java.lang.SecurityManager.checkLink(String)
+	 */
 	@Override
 	public synchronized void checkLink(String lib) {
 		if( !isLocked() && isEventEnabled(Events.LINK) ) {
@@ -406,6 +421,9 @@ public class NullSecurityManager  extends SecurityManager {
 		}		
 	}
 	
+	/**
+	 * @see java.lang.SecurityManager.checkPackageAccess(String)
+	 */
 	@Override
 	public synchronized void checkPackageAccess(String pkg) {
 		if( !isLocked() && isEventEnabled(Events.PACKAGE_ACCESS) ) {
@@ -425,6 +443,9 @@ public class NullSecurityManager  extends SecurityManager {
 		}
 	}
 	
+	/**
+	 * @see java.lang.SecurityManager.checkPackageDefinition(String)
+	 */
 	@Override
 	public synchronized void checkPackageDefinition(String pkg) {
 		if( !isLocked() && isEventEnabled(Events.PACKAGE_DEFINE) ) {
@@ -444,6 +465,9 @@ public class NullSecurityManager  extends SecurityManager {
 		}
 	}
 	
+	/**
+	 * @see java.lang.SecurityManager.checkPermission(Permission)
+	 */
 	@Override
 	public synchronized void checkPermission(Permission perm) {
 		if( !isLocked() && isEventEnabled(Events.PERMISSION) ) {
@@ -464,6 +488,9 @@ public class NullSecurityManager  extends SecurityManager {
 		}
 	}
 	
+	/**
+	 * @see java.lang.SecurityManager.checkPermission(Permission, Object)
+	 */
 	@Override
 	public synchronized void checkPermission(Permission perm, Object context) {
 		if( !isLocked() && isEventEnabled(Events.PERMISSION_WITH_CONTEXT) ) {
@@ -485,6 +512,9 @@ public class NullSecurityManager  extends SecurityManager {
 		}
 	}
 	
+	/**
+	 * @see java.lang.SecurityManager.checkPrintJobAccess()
+	 */
 	@Override
 	public synchronized void checkPrintJobAccess() {
 		if( !isLocked() && isEventEnabled(Events.PRINT) ) {
@@ -502,6 +532,9 @@ public class NullSecurityManager  extends SecurityManager {
 		}
 	}
 	
+	/**
+	 * @see java.lang.SecurityManager.checkPropertiesAccess()
+	 */
 	@Override
 	public synchronized void checkPropertiesAccess() {
 		if( !isLocked() && isEventEnabled(Events.PROPERTIES_ANY) ) {
@@ -519,6 +552,9 @@ public class NullSecurityManager  extends SecurityManager {
 		}
 	}
 
+	/**
+	 * @see java.lang.SecurityManager.checkPropertyAccess(String)
+	 */
 	@Override
 	public synchronized void checkPropertyAccess(String key) {
 		if( !isLocked() && isEventEnabled(Events.PROPERTIES_NAMED) ) {
@@ -537,6 +573,9 @@ public class NullSecurityManager  extends SecurityManager {
 		}
 	}
 	
+	/**
+	 * @see java.lang.SecurityManager.checkAccept(String, int)
+	 */
 	@Override
 	public synchronized void checkAccept(String host, int port) {
 		if( !isLocked() && isEventEnabled(Events.SOCKET_ACCEPT) ) {
@@ -556,6 +595,9 @@ public class NullSecurityManager  extends SecurityManager {
 		}
 	}
 
+	/**
+	 * @see java.lang.SecurityManager.checkConnect(String, int)
+	 */
 	@Override
 	public synchronized void checkConnect(String host, int port) {
 		if( !isLocked() && isEventEnabled(Events.SOCKET_CONNECT) ) {
@@ -575,6 +617,9 @@ public class NullSecurityManager  extends SecurityManager {
 		}
 	}
 	
+	/**
+	 * @see java.lang.SecurityManager.checkConnect(String, int, Object)
+	 */
 	@Override
 	public synchronized void checkConnect(String host, int port, Object context) {
 		if( !isLocked() && isEventEnabled(Events.SOCKET_CONNECT_WITH_CONTEXT) ) {
@@ -595,6 +640,9 @@ public class NullSecurityManager  extends SecurityManager {
 		}
 	}
 
+	/**
+	 * @see java.lang.SecurityManager.checkListen(int)
+	 */
 	@Override
 	public synchronized void checkListen(int port) {
 		if( !isLocked() && isEventEnabled(Events.SOCKET_LISTEN) ) {
@@ -613,6 +661,9 @@ public class NullSecurityManager  extends SecurityManager {
 		}	
 	}
 
+	/**
+	 * @see java.lang.SecurityManager.checkMulticast(InetAddress)
+	 */
 	@Override
 	public synchronized void checkMulticast(InetAddress maddr) {
 		if( !isLocked() && isEventEnabled(Events.SOCKET_MULTICAST) ) {
@@ -631,6 +682,9 @@ public class NullSecurityManager  extends SecurityManager {
 		}	
 	}
 	
+	/**
+	 * @see java.lang.SecurityManager.checkMulticast(InetAddress, byte)
+	 */
 	@Override
 	public synchronized void checkMulticast(InetAddress maddr, byte ttl) {
 		if( !isLocked() && isEventEnabled(Events.SOCKET_MULTICAST_WITH_TTL) ) {
@@ -650,21 +704,35 @@ public class NullSecurityManager  extends SecurityManager {
 		}	
 	}
 
+	/**
+	 * @see java.lang.SecurityManager.getClassContext()
+	 */
 	@Override
 	protected Class<?>[] getClassContext() {
 		return super.getClassContext();
 	}
 
+	/**
+	 * @see java.lang.SecurityManager.getSecurityContext()
+	 */
 	@Override
 	public Object getSecurityContext() {
 		return super.getSecurityContext();
 	}
 
+	/**
+	 * @see java.lang.SecurityManager.getThreadGroup()
+	 */
 	@Override
 	public ThreadGroup getThreadGroup() {
 		return super.getThreadGroup();
 	}
 
+	/**
+	 * Generate a stack track.  Required depending on JVMXRay property settings.
+	 * @param event
+	 * @return  Stack trace
+	 */
 	private String getStackTrace(IEvent event) {
 		String stacktrace = "";
 		StackTraceElement[] ste = null;
@@ -681,25 +749,20 @@ public class NullSecurityManager  extends SecurityManager {
 	 * @param event actual event being processed
 	 */
 	private void processEvent( IEvent event )  {
-		// Events event, Object[] obj1, String format, Object ...obj2
 		try {
 			if( rulelist.filterEvents( event ) == FilterActions.ALLOW ) {
 				event.setStackTrace(getStackTrace(event));
-				spoolEvent( event );
+				JVMXRayClient c = new JVMXRayClient(webhookurl);
+				JVMXRayResponse response = c.fireEvent(event);
+				logger.debug("Response code: "+response.getResponseCode()+" data: "+response.getResponseData());
 			}
 		}catch(Throwable t) {
-			t.printStackTrace();
+			// TODOMS: Debatable if we should exit.  May be desirable to log 
+			// and continue in the event the server condition is recoverable.  For example, a network
+			// outage that lasts a few mins.  Need to think about this more.
+			logger.error("Unrecoverable error reading from server.  Max retries exceeded.", t);
 			System.exit(20);
 		}
-	}
-	
-	
-	private void spoolEvent(IEvent event) throws IOException, SQLException {
-		
-		dbutil.insertEvent(dbconn,
-				           event );
-
-		
 	}
 	
 	private boolean isLocked() {
@@ -712,7 +775,7 @@ public class NullSecurityManager  extends SecurityManager {
 	
 	
 	/**
-	 * Initialize the NullSecurityManager subclass via property settings.
+	 * Initialize the NullSecurityManager subclass via property settings from jvmxray.properties.
 	 * @throws ClassNotFoundException 
 	 * @throws SecurityException 
 	 * @throws NoSuchMethodException 
@@ -754,6 +817,14 @@ public class NullSecurityManager  extends SecurityManager {
 			// If exception occurs, they bubble up.
 			pu.saveServerId(lid);
 			id = lid;
+		}
+		
+		// Set the webhook url to send event data.
+		try {
+			String surl = p.getProperty(PropertyUtil.CONF_PROP_WEBHOOK_URL);
+			webhookurl = new URL(surl);
+		} catch( Exception e ) {
+			
 		}
     	
     	// Iterate over all the properties
@@ -819,7 +890,6 @@ public class NullSecurityManager  extends SecurityManager {
 	 * @return True, the event is enabled.  False, the event is not enabled.
 	 */
     private boolean isEventEnabled(Events event) {
-    	
     	boolean iseventenabled = false;
     	for (Events c : usrevents) {
     		if ( event==c ) {
@@ -840,10 +910,10 @@ public class NullSecurityManager  extends SecurityManager {
     
 	/**
      * Generate a callstack based upon specification.
-     * @param callstack Type of callstack to generate.
+     * @param callstackopt Type of callstack to generate.
+     * @param stacktrace StackTraceElement[] array of stack trace data.
      */
     String generateCallStack(Callstack callstackopt, StackTraceElement[] stacktrace) {
-    	
     	StringBuffer buff = new StringBuffer();
 		URL location = null;
     	
@@ -883,7 +953,7 @@ public class NullSecurityManager  extends SecurityManager {
     			}
     			break;		
     		case NONE:
-    			buff.append("<disabled>");
+    			buff.append("disabled");
     			break;
 
     	}

@@ -77,6 +77,8 @@ public class PropertyUtil {
 	 */
 	public static final String CONF_PROP_MAXWAIT_INITIALIZATION = "jvmxray.event.nullsecuritymanager.server.maxwait.initialization";
 	
+	public static final String CONF_PROP_WEBHOOK_URL= "jvmxray.event.webhook.target";
+	
 	private static PropertyUtil pu;	
 	
 	private PropertyUtil() {}

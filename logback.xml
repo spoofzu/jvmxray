@@ -1,27 +1,46 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration>
+<configuration scan="true" scanPeriod="30 seconds" > 
   
-  <!-- sample comfiguration -->
+  <!-- Console log -->
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
       <encoder>
-       <pattern>%msg%n</pattern>
+        <pattern>%date{ISO8601} [%thread] %-5level [%file:%line] - %msg%n</pattern>
       </encoder>
   </appender>
   
-   <appender name="FILE" class="ch.qos.logback.core.FileAppender">
+  <property name="HOME_LOG" value="logs/jvmxray.log"/>
+      
+  <appender name="FILE-ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>${HOME_LOG}</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+        <fileNamePattern>logs/archived/jvmxray.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+        <!-- each archived file, size max 10MB -->
+        <maxFileSize>10MB</maxFileSize>
+        <!-- total size of all archive files, if total size > 20GB, it will delete old archived file -->
+        <totalSizeCap>20GB</totalSizeCap>
+        <!-- 60 days to keep -->
+        <maxHistory>60</maxHistory>
+    </rollingPolicy>
     <encoder>
-      <pattern>%date{ISO8601} [%thread] %-5level [%file:%line] - %msg%n</pattern>
+        <pattern>%date{ISO8601} [%thread] %-5level [%file:%line] - %msg%n</pattern>
     </encoder>
   </appender>
      
-   <!-- sink logback messages for now, noisy -->
-   <logger name="ch.qos.logback" level="ERROR" additivity="false">
-   		 <appender-ref ref="FILE" />
-   </logger>
-     
-  <root level="INFO">
+  <!-- Uncomment to, echo events sent to server on client console. -->
+  <!--
+  <logger name="org.owasp.jvmxray.driver.NullSecurityManager" level="DEBUG" additivity="false">
+      <appender-ref ref="STDOUT" />
+  </logger>
+  -->
+  
+  <!-- Sink logback INFO messages, noisy -->
+  <logger name="ch.qos.logback" level="ERROR" additivity="false">
+	  <appender-ref ref="STDOUT" />
+  </logger>
+
+  <root level="error">
     <appender-ref ref="STDOUT" />
-    <appender-ref ref="FILE" />
+    <appender-ref ref="FILE-ROLLING" />
   </root>
   
 </configuration>
