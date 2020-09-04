@@ -2,29 +2,33 @@
 
 # Welcome to JVMXRay
 
-JVMXRay is a technology for monitoring access to system resources within the Java Virtual Machine.  It’s designed with application security emphasis but some will also find it beneficial for software quality processes and diagnostics.
+&nbsp; | &nbsp;
+------------ | -------------
+![xrayduke](https://user-images.githubusercontent.com/8450615/88954072-af62ef00-d24e-11ea-95f9-734395481248.png) | VMXRay is a technology for monitoring access to system resources within the Java Virtual Machine.  It’s designed with application security emphasis but some will also find it beneficial for software quality processes and diagnostics.
 
-```
-CONSIDERATIONS:
-This project is being activty under review for acceptance as an OWASP project. Please
-consider this early stage code, with bugs, not suitable for production use. 
-There be dragons.  You were warned!
-```
+[More about Oracle Java Duke mascot...](https://wiki.openjdk.java.net/display/duke/Main)
 
 ## Benefits
 Following is a quick list of some of the more important benefits.
 
-### Identify protected resources
+### :rocket: Identify protected resources
 Track different types of events of interest related to sockets, files, process execution, and more.  When an event of interest occurs, process it as you wish.  At the moment, adaptors for the system console (e.g., System.out), logback, and Java Logging, are available with others in process. 
 
-### No code changes required
+### :rocket: No code changes required
 JVMXRay does not require any changes to your application source code to work.  The code is pulled into the JVM by a command line option.  The solution is 100% Java code so it runs anywhere.
 
-### Supply chain insights
+### :rocket: Supply chain insights
 An ancilary benefit of not requiring source code is that JVMXRay provides insight into your applications dependencies including 3rd party libraries (e.g. Jar files).  Events provide the source of origin where your classes where loaded when the event is generated.
 
-### Extensible & Open
+### :rocket: Extensible & Open
 Don't see an adapter or filter that works for you and know how to code?  Roll up your sleeves and write one.  It's extensible.  Fix a bug and submit a pull requrest.  All the source code is available.
+
+```
+INFORMATION:
+Project under review for acceptance as an OWASP project. Please
+consider this early stage code. 
+Thar be dragons mate.  You were warned!
+```
 
 ## Audience
 The anticipated audience for JVMXRay is two-fold,<br/>
