@@ -45,11 +45,7 @@ The following provides some basic information to download and compile JVMXRay so
 
 # Sample Output...
 
-The output from this technology can be presented in different ways.  The following is a small example of events captures using the JMX adaptor and uses the jconsole viewer that comes with Java.
-
-![jconsole1](https://user-images.githubusercontent.com/8450615/75402724-777c0800-58ba-11ea-8873-22e14a89a468.png)
-
-What does the sample log output look like?  Output formats are flexible but following is small idea of what you can capture in a file.
+The output from this technology can be presented in different ways.  What does the sample log output look like?  Output formats are flexible but following is small idea of what you can capture in a file.
 
 ```
 CONSOLEADAPTOR 2020-02-24 14:13:28 PST PACKAGE_ACCESS,pkg=javax.crypto,stack=<disabled>
@@ -57,10 +53,8 @@ CONSOLEADAPTOR 2020-02-24 14:13:28 PST PERMISSION,n=getProperty.keystore.type.co
 CONSOLEADAPTOR 2020-02-24 14:13:28 PST FILE_READ,f=/Library/Java/JavaVirtualMachines/jdk-11.0.1.jdk/Contents/Home/lib/security/cacerts,stack=<disabled>
 CONSOLEADAPTOR 2020-02-24 14:13:28 PST PERMISSION,n=suppressAccessChecks, a=, cn=java.lang.reflect.ReflectPermission,stack=<disabled>
 CONSOLEADAPTOR 2020-02-24 14:13:28 PST PERMISSION,n=getProtectionDomain, a=, cn=java.lang.RuntimePermission,stack=<disabled>
-CONSOLEADAPTOR 2020-02-24 14:13:28 PST PERMISSION,n=getProtectionDomain, a=, cn=java.lang.RuntimePermission,stack=<disabled>
 CONSOLEADAPTOR 2020-02-24 14:13:28 PST SOCKET_CONNECT,h=192.30.255.112, p=443,stack=<disabled>
 ```
-Some of the events appear duplicated since the console adaptor is a simplified output.
 
 ## How it Works
 The Java Virtual Machine provides a robust security framework for controlling access to protected resources.  JVMXRay provides an implementation of the java.lang.SecurityManager component, called NullSecurityManager.  Ironically, the NullSecurityManager provides no policy enforcement but instead monitors activities to protected resources.  It's expected other cloud log processing tools, big data tools, or cloud secuirty tools will process these events into meaningful contextual information.
