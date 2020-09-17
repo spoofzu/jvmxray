@@ -6,6 +6,13 @@
 ------------ | -------------
 ![xrayduke](https://user-images.githubusercontent.com/8450615/88954072-af62ef00-d24e-11ea-95f9-734395481248.png) | VMXRay is a technology for monitoring access to system resources within the Java Virtual Machine.  It’s designed with application security emphasis but some will also find it beneficial for software quality processes and diagnostics.
 
+>     NEWS Sep 17, 20202:  JVMXRay is undergoing architectual improvements and 
+>                          transitioning from SQLite* to TCP/IP REST client/server model.
+>                          A demo/test is developed to test simple client features.
+>                          Moving forward a better and more robust server with
+>                          analytics and other featuers is planned.  Please
+>                          standby and keep checking-in, thanks!
+
 [More about Oracle Java Duke mascot...](https://wiki.openjdk.java.net/display/duke/Main)
 
 ## Benefits
