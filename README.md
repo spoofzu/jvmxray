@@ -8,12 +8,12 @@
 
 [More about Oracle Java Duke mascot...](https://wiki.openjdk.java.net/display/duke/Main)
 
->     NEWS Sep 17, 20202:  JVMXRay is undergoing architectual improvements and 
->                          transitioning from SQLite* to TCP/IP REST client/server model.
->                          A demo/test is developed to test simple client features.
->                          Moving forward a better and more robust server with
->                          analytics and other featuers is planned.  Please
->                          standby and keep checking-in, thanks!
+>     NEWS Sep 17, 2020:  JVMXRay is undergoing architectual improvements and 
+>                         transitioning from SQLite* to TCP/IP REST client/server model.
+>                         A demo/test is developed to test simple client features.
+>                         Moving forward a better and more robust server with
+>                         analytics and other featuers is planned.  Please
+>                         standby and keep checking-in, thanks!
 
 ## Benefits
 Following is a quick list of some of the more important benefits.
