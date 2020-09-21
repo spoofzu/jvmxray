@@ -113,7 +113,7 @@ public class JSONUtil {
 		return buff.toString();
 	}
 
-	public final void _toJSONScalarValue( StringBuffer buff, String key, String value, boolean trailingcomma ) {
+	private final void _toJSONScalarValue( StringBuffer buff, String key, String value, boolean trailingcomma ) {
 		String c = trailingcomma ? "," : "";
 		buff.append("   \""+key+"\": ");
 		buff.append("\"");
@@ -123,7 +123,7 @@ public class JSONUtil {
 		buff.append(EOL);
 	}
 	
-	public final void _toJSONMultiValue( StringBuffer buff, String key, String[] value ) {
+	private final void _toJSONMultiValue( StringBuffer buff, String key, String[] value ) {
 		buff.append("   \""+key+"\": ");
 		buff.append("\"");
 		String t="";

@@ -15,11 +15,11 @@ import org.owasp.jvmxray.util.JSONUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class JVMXRayClient {
+public abstract class JVMXRayClient {
 
 	/** Get logger instance. */
 	private static final Logger logger = LoggerFactory.getLogger("org.owasp.jvmxray.webhook.JVMXRayClient");
-	
+	protected int MAX_TRIES = 5;
 	private URL url;
 	private HttpURLConnection connection = null;
 	private OutputStreamWriter writer = null;
@@ -31,8 +31,26 @@ public class JVMXRayClient {
 		this.url = url;		
 		
 	}
+
+	public void fireEvent() throws JVMXRayConnectionException {
+		try {
+			IEvent event = getEvent();
+			JVMXRayResponse response = _fireEvent(event);
+			finishConnection( response );
+		} catch( Exception e ) {
+			throw new JVMXRayConnectionException("Connection exception.  msg="+e.getMessage(), e);
+		}
+	}
+
+	public abstract void startConnection(HttpURLConnection connection) throws Exception;
 	
-	public void openConnection() throws JVMXRayConnectionException {
+	public abstract IEvent getEvent() throws Exception;
+	
+	public abstract void finishConnection(JVMXRayResponse response) throws Exception;
+	
+	public abstract int retries( int currentAttempt );
+	
+	private void openConnection() throws JVMXRayConnectionException {
 		try {	
 			String protocol = url.getProtocol();
 			if( protocol==null && protocol.length() > 0 ) {
@@ -47,20 +65,13 @@ public class JVMXRayClient {
 			} else {
 				throw new JVMXRayConnectionException("Unsupported Protocol.  protocol="+protocol );
 			}
-			connection.setDoOutput(true);
-			connection.setRequestMethod("POST");
-			connection.setRequestProperty("User-Agent", "JVMXRayV1");
-			//connection.setRequestProperty("Accept", "*/*");
-			connection.setRequestProperty("Content-Type", "application/json; utf-8");
-			//connection.setRequestProperty("Accept-Language", "en-US");
-			connection.setRequestProperty("Accept", "text/html");
-			
+			startConnection(connection);
 		} catch( Exception e ) {
 			throw new JVMXRayConnectionException("Connection exception.  msg="+e.getMessage(), e );
 		}	
 	}
 	
-	public void closeConnection() {
+	private void closeConnection() {
 		if ( writer == null ) return;
 		try {
 			writer.flush();
@@ -71,22 +82,14 @@ public class JVMXRayClient {
 			} catch (Exception e) {}
 		}
 	}
-
-	public JVMXRayResponse fireEvent( IEvent event ) throws JVMXRayConnectionException {
+	
+	private JVMXRayResponse _fireEvent( IEvent event ) throws JVMXRayConnectionException {
 		JVMXRayResponse response = null;
 		JSONUtil j = JSONUtil.getInstance();
 		// If problem getting data, make 5 attempts before giving up.
-		int MAX_TRIES = 5, tries = 0;
+		int tries = 0;
 		JVMXRayConnectionException err = new JVMXRayConnectionException();
-		int n=500;
-		//
-		// If failed to send to server, try again:
-		// Tries: 0   Seconds to wait: 0
-		//        1                    500
-		//        2                    4000
-		//        3                   13500
-		//        4                   32000
-		//
+		int n=retries(tries);
 		while( tries < MAX_TRIES ) {
 			openConnection();
 			String data = j.toJSON(event);
@@ -102,7 +105,7 @@ public class JVMXRayClient {
 				} catch (InterruptedException e2) {}
 				logger.debug("Recoverable error reading from server.  Attempts="+tries, err);
 				tries++;
-				n=500*(tries^3);
+				n=retries(tries);
 			}
 			// Continue on if we received a response.
 			if (response != null ) {
@@ -117,10 +120,9 @@ public class JVMXRayClient {
 		}
 
 		return response;
-		
 	}
 	
-	protected void sendData(String data) throws JVMXRayConnectionException {
+	private void sendData(String data) throws JVMXRayConnectionException {
 		try {
 			//int len = data.length();
 			connection.connect();
@@ -134,7 +136,7 @@ public class JVMXRayClient {
 		}
 	}
 	
-	public JVMXRayResponse getResponse() throws JVMXRayConnectionException {
+	private JVMXRayResponse getResponse() throws JVMXRayConnectionException {
 		StringBuilder response = new StringBuilder();
 		int responsecode = 0;
 		try {

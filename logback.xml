@@ -28,11 +28,11 @@
      
   <!-- Uncomment to, echo events sent to server on client console. -->
   <!--
-  <logger name="org.owasp.jvmxray.driver.NullSecurityManager" level="DEBUG" additivity="false">
+    <logger name="org.owasp.jvmxray.driver.NullSecurityManager" level="DEBUG" additivity="false">
       <appender-ref ref="STDOUT" />
   </logger>
   -->
-  
+      
   <!-- Sink logback INFO messages, noisy -->
   <logger name="ch.qos.logback" level="ERROR" additivity="false">
 	  <appender-ref ref="STDOUT" />

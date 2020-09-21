@@ -6,7 +6,9 @@ import java.io.FileDescriptor;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
+import java.net.HttpURLConnection;
 import java.net.InetAddress;
+import java.net.ProtocolException;
 import java.net.URL;
 import java.rmi.dgc.VMID;
 import java.security.Permission;
@@ -17,6 +19,9 @@ import java.util.Properties;
 import org.owasp.jvmxray.event.EventFactory;
 import org.owasp.jvmxray.event.IEvent;
 import org.owasp.jvmxray.event.IEvent.Events;
+import org.owasp.jvmxray.exception.JVMXRayConnectionException;
+import org.owasp.jvmxray.exception.JVMXRayException;
+import org.owasp.jvmxray.exception.JVMXRayRuntimeException;
 import org.owasp.jvmxray.util.PropertyUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,21 +47,30 @@ public class NullSecurityManager  extends SecurityManager {
 	
 	// Initialize logback
 	static {
-	    // assume SLF4J is bound to logback in the current environment
-	    LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
-	    
-	    JoranConfigurator configurator = new JoranConfigurator();
-	    configurator.setContext(context);
-	    // Call context.reset() to clear any previous configuration, e.g. default 
-	    // configuration. For multi-step configuration, omit calling context.reset().
-	    context.reset(); 
+		LoggerContext context = null;
 	    try {
+			// assume SLF4J is bound to logback in the current environment
+		    context = (LoggerContext) LoggerFactory.getILoggerFactory();
+		    if( context == null ) {
+		    	String msg = "Logback Jordan initialization problem.  msg=null context";
+		    	throw new JVMXRayRuntimeException(msg);
+		    }
+		    JoranConfigurator configurator = new JoranConfigurator();
+		    configurator.setContext(context);
+		    // Call context.reset() to clear any previous configuration, e.g. default 
+		    // configuration. For multi-step configuration, omit calling context.reset().
+		    context.reset(); 
 	    	configurator.doConfigure(new File("./logback.xml"));
-		} catch (JoranException e) {
-			e.printStackTrace();
-		}
-	    StatusPrinter.printInCaseOfErrorsOrWarnings(context);
-	    logger.debug("Logback initalized.");
+		    logger.debug("Logback initalized.");
+		} catch (Exception e) {
+			System.err.println("Fatal error: cannot initialized logback logging system.");
+	    	String msg = "Logback initialization problem.  msg="+e.getMessage();
+	    	JVMXRayRuntimeException ne = new JVMXRayRuntimeException(msg, e);
+	    	ne.printStackTrace();
+	    	// No point throwing exception since it's difficult to determine it's handling.
+	    	// Instead we dump stack and exit.
+	    	System.exit(55);
+		} 
 
 	}
 	
@@ -752,15 +766,47 @@ public class NullSecurityManager  extends SecurityManager {
 		try {
 			if( rulelist.filterEvents( event ) == FilterActions.ALLOW ) {
 				event.setStackTrace(getStackTrace(event));
-				JVMXRayClient c = new JVMXRayClient(webhookurl);
-				JVMXRayResponse response = c.fireEvent(event);
-				logger.debug("Response code: "+response.getResponseCode()+" data: "+response.getResponseData());
+				JVMXRayClient client = new JVMXRayClient(webhookurl) {
+					// Reassign max tries or use 5 for default.
+					protected int MAX_TRIES = 5;
+					@Override
+					public void startConnection(HttpURLConnection connection) throws Exception {
+						connection.setDoOutput(true);
+						connection.setRequestMethod("POST");
+						connection.setRequestProperty("User-Agent", "JVMXRayV1");
+						//connection.setRequestProperty("Accept", "*/*");
+						connection.setRequestProperty("Content-Type", "application/json; utf-8");
+						//connection.setRequestProperty("Accept-Language", "en-US");
+						connection.setRequestProperty("Accept", "text/html");				
+					}
+					@Override
+					public IEvent getEvent() throws JVMXRayConnectionException {
+						return event;
+					}
+					@Override
+					public void finishConnection(JVMXRayResponse response) {
+						int responsecode = response.getResponseCode();
+						String responsedata = response.getResponseData();
+						logger.debug("Response code: "+responsecode+" data: "+responsedata);
+					}
+					//
+					// If failed to send to server, try again:
+					// Tries: 0   Milliseconds to wait: 0
+					//        1                         500
+					//        2                         4000
+					//        3                         13500
+					//        4                         32000
+					//
+					@Override
+					public int retries(int currentAttempt) {
+						return 500*(currentAttempt^3);
+					}
+
+				};
+				client.fireEvent();
 			}
 		}catch(Throwable t) {
-			// TODOMS: Debatable if we should exit.  May be desirable to log 
-			// and continue in the event the server condition is recoverable.  For example, a network
-			// outage that lasts a few mins.  Need to think about this more.
-			logger.error("Unrecoverable error reading from server.  Max retries exceeded.", t);
+			logger.error("Unrecoverable error, server exiting.  msg="+t.getMessage(), t);
 			System.exit(20);
 		}
 	}
