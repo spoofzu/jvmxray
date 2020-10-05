@@ -9,11 +9,21 @@ import java.io.Writer;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
+import java.util.Enumeration;
 import java.util.Properties;
 
 import javax.net.ssl.HttpsURLConnection;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class PropertyUtil {
+	
+	//TODOMS: Once/if we decide to dynamically update configuration on server this class will need to be 
+	//        improved to include TTL to track out of date properties.  They will also need to be made
+	//        thread safe since properties can be updated at any moment on the server.  Including this
+	//        reminder in the code for now.
+	//
 	
 	/**
 	 * System property name that specifies the URL to load the jvmxray properties
@@ -52,34 +62,20 @@ public class PropertyUtil {
 	 */
 	public static final String CONF_PROP_EVENT_DIRECTORY = "jvmxray.event.nullsecuritymanager.directory";
 	
-	/**
-	 * Max spool file size in bytes
-	 */
-	public static final String CONF_PROP_EVENT_SPOOL_LIMIT = "jvmxray.event.nullsecuritymanager.spool.limit";
+	///**
+	// * Interval in seconds. Optional property for the JVMXRayEventAggregator and
+	// * described in the jvmxray.properties file.  Interval in seconds to update
+	// * the aggregated events file.
+	// */
+	//public static final String CONF_PROP_EVENT_AGG_FILE_INTERVAL = "jvmxray.adaptor.jvmxrayeventaggregator.fileupdateinterval";
 	
-	/**
-	 * Filename property. Optional property for the JVMXRayEventAggregator and
-	 * described in the jvmxray.properties file.  Name of the output file from the
-	 * aggregated events.
-	 */
-	public static final String CONF_PROP_EVENT_AGG_FILE = "jvmxray.adaptor.jvmxrayeventaggregator.filename";
-	
-	/**
-	 * Interval in seconds. Optional property for the JVMXRayEventAggregator and
-	 * described in the jvmxray.properties file.  Interval in seconds to update
-	 * the aggregated events file.
-	 */
-	public static final String CONF_PROP_EVENT_AGG_FILE_INTERVAL = "jvmxray.adaptor.jvmxrayeventaggregator.fileupdateinterval";
-	
-	
-	/**
-	 * Maximum time delay to wait during initialization before failure.
-	 */
-	public static final String CONF_PROP_MAXWAIT_INITIALIZATION = "jvmxray.event.nullsecuritymanager.server.maxwait.initialization";
 	
 	public static final String CONF_PROP_WEBHOOK_URL= "jvmxray.event.webhook.target";
 	
 	private static PropertyUtil pu;	
+	
+	/** Get logger instance. */
+	private static final Logger logger = LoggerFactory.getLogger("org.owasp.jvmxray.util.PropertyUtil");
 	
 	private PropertyUtil() {}
 	
@@ -94,7 +90,7 @@ public class PropertyUtil {
 	public final void saveServerId( String id ) throws MalformedURLException, IOException {
 		
 		// Get the server identity file to use on local file system.
-		Properties p = PropertyUtil.getInstance().getJVMXRayProperties();
+		Properties p = getJVMXRayProperties();
 		String basedir = p.getProperty(CONF_PROP_EVENT_DIRECTORY);
 		String idfile = p.getProperty(CONF_PROP_SERV_IDENTITY_FILE);
 		File f = new File(basedir, idfile);	
@@ -114,7 +110,7 @@ public class PropertyUtil {
 	public final String getServerId() throws MalformedURLException, IOException {
 		
 		// Get the server identity file to use on local file system.
-		Properties p = PropertyUtil.getInstance().getJVMXRayProperties();	
+		Properties p = getJVMXRayProperties();	
 		String basedir = p.getProperty(CONF_PROP_EVENT_DIRECTORY);
 		String idfile = p.getProperty(CONF_PROP_SERV_IDENTITY_FILE);
 		File f = new File(basedir, idfile);	
@@ -139,14 +135,14 @@ public class PropertyUtil {
 	
 	/**
 	 * Load jvmproperties.  Attempt to load from URL, if that fails, then load from resources.
+	 * Any system or environment variables are resolved at runtime prior to returning the
+	 * properties to the caller.
 	 * @return Properties file.
 	 * @throws IOException
 	 */
 	public final Properties getJVMXRayProperties() throws IOException, MalformedURLException {
-		
 		Properties p = new Properties();
     	InputStream in = null;
-    	
     	try {    		
         	String surl = System.getProperty(SYS_PROP_CONFIG_URL, SYS_PROP_DEFAULT);
         	try {
@@ -165,7 +161,6 @@ public class PropertyUtil {
         		}
         	}
 	    	p.load(in);
-    		
     	} finally {
        	 if( in != null )
 			try {
@@ -173,9 +168,89 @@ public class PropertyUtil {
 				in = null;
 			} catch (IOException e) {}
     	}
-    	
-    	return p;
+    	Properties modprops = resolveJVMXRayProperties(p);
+    	return modprops;
+	}
 	
+	// Process any unresolved variables.  Return new properties table to the
+	// caller.  For System Property settings only: If there is an
+	// existing setting, we overwrite it's value.  If the setting does not
+	// exist, it's created.  Note, resolved or updated shell variables are
+	// not propagated back to the shell.
+	private final Properties resolveJVMXRayProperties(Properties op) {
+		Properties np = new Properties();
+		Enumeration<String> e = (Enumeration<String>)op.propertyNames();
+		while( e.hasMoreElements() ) {
+			// Copy all properties (with or without variables).
+			String key = e.nextElement();
+			String value = op.getProperty(key);
+			np.setProperty(key,value);			
+			// Resolve sys and env variables.
+			String nsKey = varResolve(key);
+			String nsValue = varResolve(value);
+			// If key has a variable, update it.
+			if(!nsKey.equals(key) || !nsValue.equals(value)) {
+				String oprop = key + "=" + value;
+				String nprop = nsKey + "=" + nsValue;
+				// When a variable is resolved, apply it.
+				System.setProperty(nsKey,nsValue);
+				np.setProperty(nsKey,nsValue);
+				logger.info("Configuration variable resolved.  original="+oprop+" new="+nprop);
+			}
+			
+		}
+		return np;
+ 	}
+	
+	
+	// String index of first character of match.  -1 if no match.
+	private final int varStartIndex( String value, int offset ) {
+		int idx = -1;
+		if( value != null ) {
+			if( value.length()>0) {
+				if( offset>value.length() || offset<0) throw new RuntimeException("Bad offset.");
+				idx = value.indexOf("${sys:", offset);
+				if( idx < 0 ) {
+					idx = value.indexOf("${env:"); 
+				}
+			}
+		}
+		return idx;
+	}
+	
+	// String index of first character of end match.  -1 if no match.
+	// Call varStartIndex() use offset when calling varEndIndex() to
+	// ensure match ends the target tag.
+	private final int varEndIndex( String value, int offset ) {
+		int idx = -1;
+		if( value != null ) {
+			if( value.length()>0) {
+				idx = value.indexOf("}", offset);
+			}
+		}
+		return idx;
+	}
+	
+	// Reentrant tag resolver.  Resolves system properties or environment
+	// variables used in jvmxray configuration.
+	private final String varResolve( String value ) {
+		if( value == null ) return null;
+		StringBuilder build = new StringBuilder(250);
+		int sidx = varStartIndex( value, 0);
+		int eidx = varEndIndex( value, 0);
+		if( sidx > -1 ) {
+			String type = value.substring(sidx+2,sidx+5);
+			String key = value.substring(sidx+6, eidx);
+			boolean isSystemVarType = type.equals("sys");
+			String rval = (isSystemVarType) ? System.getProperty(key): System.getenv(key);
+			build.append(value.substring(0,sidx));
+			build.append(rval);
+			build.append(value.substring(eidx+1,value.length()));
+		} else {
+			build.append(value);
+		}
+		String result = build.toString();
+		return (varStartIndex(result,0) > -1) ? varResolve(result) : result;
 	}
 	
 	/**

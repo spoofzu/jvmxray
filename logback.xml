@@ -25,19 +25,33 @@
         <pattern>%date{ISO8601} [%thread] %-5level [%file:%line] - %msg%n</pattern>
     </encoder>
   </appender>
-     
-  <!-- Uncomment to, echo events sent to server on client console. -->
+  
+  <!-- Uncomment to, print shell/java properties on startup.  Useful debugging configuration problems or improve record keeping. -->
   <!--
-    <logger name="org.owasp.jvmxray.driver.NullSecurityManager" level="DEBUG" additivity="false">
+  <logger name="org.owasp.security.logging.util.SecurityUtil" level="INFO" additivity="false">
       <appender-ref ref="STDOUT" />
   </logger>
   -->
+  
+  <!-- Uncomment to, print configuration properties resolved on startup.  Useful debugging configuration problems. -->
+  <!--
+  <logger name="org.owasp.jvmxray.util.PropertyUtil" level="INFO" additivity="false">
+      <appender-ref ref="STDOUT" />
+  </logger>
+  --> 
+  
+  <!-- Uncomment to, echo events sent to server on client console. Useful debugging configuration problems. -->
+  <logger name="org.owasp.jvmxray.driver.NullSecurityManager" level="DEBUG" additivity="false">
+      <appender-ref ref="STDOUT" />
+  </logger>
       
-  <!-- Sink logback INFO messages, noisy -->
+  <!-- Sink noisy logback framework messages -->
   <logger name="ch.qos.logback" level="ERROR" additivity="false">
 	  <appender-ref ref="STDOUT" />
   </logger>
 
+  <!-- Root logger set to error by default.  Has effect of turning off logging unless 
+       we enable logging in select features. -->
   <root level="error">
     <appender-ref ref="STDOUT" />
     <appender-ref ref="FILE-ROLLING" />

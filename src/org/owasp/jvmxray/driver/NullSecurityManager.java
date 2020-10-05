@@ -8,7 +8,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.net.HttpURLConnection;
 import java.net.InetAddress;
-import java.net.ProtocolException;
 import java.net.URL;
 import java.rmi.dgc.VMID;
 import java.security.Permission;
@@ -20,16 +19,14 @@ import org.owasp.jvmxray.event.EventFactory;
 import org.owasp.jvmxray.event.IEvent;
 import org.owasp.jvmxray.event.IEvent.Events;
 import org.owasp.jvmxray.exception.JVMXRayConnectionException;
-import org.owasp.jvmxray.exception.JVMXRayException;
 import org.owasp.jvmxray.exception.JVMXRayRuntimeException;
 import org.owasp.jvmxray.util.PropertyUtil;
+import org.owasp.security.logging.util.SecurityUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.joran.JoranConfigurator;
-import ch.qos.logback.core.joran.spi.JoranException;
-import ch.qos.logback.core.util.StatusPrinter;
 
 
 /**
@@ -123,17 +120,18 @@ public class NullSecurityManager  extends SecurityManager {
 	 * CTOR
 	 */
 	public NullSecurityManager ()  {
-		
 		try {
-			// Initialize JVMXRay properties.  If successful, release the lock and
-			// accept calls from policy management framework.
+			// Initialize JVMXRay properties. 
 			initializeFromProperties();
-			bLocked = false;		
+			// Begin listening for events.
+			bLocked = false;			
+		    // Print on startup, if configured.
+		    SecurityUtil.logShellEnvironmentVariables();
+		    SecurityUtil.logJavaSystemProperties();
 		} catch (Exception e) {
 			logger.error( "NullSecurityManager can't read properties.  Exiting.", e);
 			System.exit(30);
 		}
-		
 	}
 	
 	/**
@@ -743,6 +741,28 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 
 	/**
+	 * This is a special method to track metadata related to the event.
+	 * For example, the currently logged on user in a web application.
+	 */
+	public synchronized void sendMappedVariable(String key, String value) {
+		if( !isLocked() && isEventEnabled(Events.MAPPED_CONTEXT) ) {
+			setLocked(true);
+			EventFactory factory = EventFactory.getInstance();
+			IEvent ev = factory.createSocketMulticastWithTTLEvent(
+								IEvent.PK_UNUSED, // No PK since this is new event
+								IEvent.STATE_UNUSED, // State is not used at this time
+								System.currentTimeMillis(),  // timestamp
+								getThreadStamp(), // log the thread name and id
+								id,  // Cloud service id of this event
+								"", // Stacktrace, assign later	
+								key, // Keypair keyname
+								value); // Keypair value
+			processEvent(ev);
+			setLocked(false);
+		}	
+	}
+	
+	/**
 	 * Generate a stack track.  Required depending on JVMXRay property settings.
 	 * @param event
 	 * @return  Stack trace
@@ -764,6 +784,14 @@ public class NullSecurityManager  extends SecurityManager {
 	 */
 	private void processEvent( IEvent event )  {
 		try {
+			// Note(s):  There is no transaction pooling/cashing just yet.
+			//           A client, caller of NullSecurityManager, blocks
+			//           unit processEvent() completes.  Probably need
+			//           something more robust for production use
+			//           eventually.  For example, some configuration
+			//           settings to, block, transaction TTL,
+			//           or possibly better options.
+			//
 			if( rulelist.filterEvents( event ) == FilterActions.ALLOW ) {
 				event.setStackTrace(getStackTrace(event));
 				JVMXRayClient client = new JVMXRayClient(webhookurl) {
