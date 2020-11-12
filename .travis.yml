@@ -27,10 +27,5 @@ deploy:
       tags: true
       jdk: oraclejdk11
 	
-  
-#notifications:
-#  email:
-#    recipients:
-#      - xxx@gmail.com
-#    on_success: never # default: change
-#    on_failure: always # default: always
+notifications:
+  slack: owasp:MWqNdXOeo7rSkj8md58yJQyA
