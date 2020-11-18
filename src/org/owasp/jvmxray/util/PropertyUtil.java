@@ -69,6 +69,10 @@ public class PropertyUtil {
 	// */
 	//public static final String CONF_PROP_EVENT_AGG_FILE_INTERVAL = "jvmxray.adaptor.jvmxrayeventaggregator.fileupdateinterval";
 	
+	/**
+	 * Maximum time delay to wait during initialization before failure.
+	 */
+	public static final String CONF_PROP_MAXWAIT_INITIALIZATION = "jvmxray.event.nullsecuritymanager.server.maxwait.initialization";
 	
 	public static final String CONF_PROP_WEBHOOK_URL= "jvmxray.event.webhook.target";
 	

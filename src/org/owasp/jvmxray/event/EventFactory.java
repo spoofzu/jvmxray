@@ -1,7 +1,5 @@
 package org.owasp.jvmxray.event;
 
-import java.util.Map;
-
 import org.owasp.jvmxray.event.IEvent.Events;
 import org.owasp.jvmxray.exception.JVMXRayBadTypeRuntimeException;
 
@@ -322,10 +320,10 @@ public class EventFactory {
 	
 	}
 
-	public IMappedContextEvent createMappedContent( int id, int state, long timestamp, String tid, String identity, String stacktrace,
+	public IMappedEvent createMappedContent( int id, int state, long timestamp, String tid, String identity, String stacktrace,
 			 String key, String value) {
 
-			return new MappedContextEventDAO(id, state, timestamp, tid, identity, stacktrace,
+			return new MappedEventDAO(id, state, timestamp, tid, identity, stacktrace,
 					  key, value);
 	
 	}

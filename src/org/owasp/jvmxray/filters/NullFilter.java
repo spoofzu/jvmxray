@@ -7,7 +7,6 @@ import org.owasp.jvmxray.driver.JVMXRayFilterRule;
 import org.owasp.jvmxray.driver.NullSecurityManager.Callstack;
 import org.owasp.jvmxray.driver.NullSecurityManager.FilterActions;
 import org.owasp.jvmxray.event.IEvent;
-import org.owasp.jvmxray.event.IEvent.Events;
 
 /**
  * The NullFilter performs no function except to enable or disable a specified

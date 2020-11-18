@@ -14,7 +14,6 @@ import java.security.Permission;
 import java.util.EnumSet;
 import java.util.Enumeration;
 import java.util.Properties;
-
 import org.owasp.jvmxray.event.EventFactory;
 import org.owasp.jvmxray.event.IEvent;
 import org.owasp.jvmxray.event.IEvent.Events;
@@ -41,35 +40,6 @@ public class NullSecurityManager  extends SecurityManager {
 	
 	/** Get logger instance. */
 	private static final Logger logger = LoggerFactory.getLogger("org.owasp.jvmxray.driver.NullSecurityManager");
-	
-	// Initialize logback
-	static {
-		LoggerContext context = null;
-	    try {
-			// assume SLF4J is bound to logback in the current environment
-		    context = (LoggerContext) LoggerFactory.getILoggerFactory();
-		    if( context == null ) {
-		    	String msg = "Logback Jordan initialization problem.  msg=null context";
-		    	throw new JVMXRayRuntimeException(msg);
-		    }
-		    JoranConfigurator configurator = new JoranConfigurator();
-		    configurator.setContext(context);
-		    // Call context.reset() to clear any previous configuration, e.g. default 
-		    // configuration. For multi-step configuration, omit calling context.reset().
-		    context.reset(); 
-	    	configurator.doConfigure(new File("./logback.xml"));
-		    logger.debug("Logback initalized.");
-		} catch (Exception e) {
-			System.err.println("Fatal error: cannot initialized logback logging system.");
-	    	String msg = "Logback initialization problem.  msg="+e.getMessage();
-	    	JVMXRayRuntimeException ne = new JVMXRayRuntimeException(msg, e);
-	    	ne.printStackTrace();
-	    	// No point throwing exception since it's difficult to determine it's handling.
-	    	// Instead we dump stack and exit.
-	    	System.exit(55);
-		} 
-
-	}
 	
 	// Lock access to NullSecurityManager methods while executing.  Blocked by default until
 	// NullSecurityManager is properly initialized.
@@ -120,18 +90,116 @@ public class NullSecurityManager  extends SecurityManager {
 	 * CTOR
 	 */
 	public NullSecurityManager ()  {
-		try {
-			// Initialize JVMXRay properties. 
-			initializeFromProperties();
-			// Begin listening for events.
-			bLocked = false;			
-		    // Print on startup, if configured.
-		    SecurityUtil.logShellEnvironmentVariables();
-		    SecurityUtil.logJavaSystemProperties();
-		} catch (Exception e) {
-			logger.error( "NullSecurityManager can't read properties.  Exiting.", e);
+		
+		//***********************************************
+		// Initilization Step 1: Logging
+		//***********************************************
+		ProtectedTask n1 = new ProtectedTask("Initilization Step 1: Logging") {
+			@Override
+			public boolean execute() throws Exception {
+				super.execute();
+				// assume SLF4J is bound to logback in the current environment
+				LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
+				if( context == null ) {
+					String msg = "Logback Jordan initialization problem.  msg=null context";
+					throw new JVMXRayRuntimeException(msg);
+				}
+				JoranConfigurator configurator = new JoranConfigurator();
+				configurator.setContext(context);
+				// Call context.reset() to clear any previous configuration, e.g. default 
+				// configuration. For multi-step configuration, omit calling context.reset().
+				context.reset(); 
+			    configurator.doConfigure(new File("logback.xml"));
+				return true;
+			}
+			@Override
+			public boolean rollback(Exception e) {
+				setLocked(false);
+				return true;
+			}
+			@Override
+			public boolean preProcess() throws Exception {
+				setLocked(true);
+				return true;
+			}
+			@Override
+			public boolean postProcess() throws Exception {
+				setLocked(false);
+				logger.debug("Logback initalized.");
+				return true;
+			}
+		};
+				
+		//***********************************************
+		// Initialization Step 2: Property Initialization
+		//***********************************************
+		ProtectedTask n2 = new ProtectedTask("Initialization Step 2: Property Initialization") {
+			@Override
+			public boolean execute() throws Exception {
+				super.execute();
+				initializeFromProperties();
+				return true;
+			}
+			@Override
+			public boolean rollback(Exception e) {
+				setLocked(false);
+				return true;
+			}
+			@Override
+			public boolean preProcess() throws Exception {
+				setLocked(true);
+				return true;
+			}
+			@Override
+			public boolean postProcess() throws Exception {
+				setLocked(false);
+				return true;
+			}
+		};
+		n1.setNextNode(n2);
+		
+		//***********************************************
+		// Initialization Step 3: Log environment startup
+		//***********************************************
+		ProtectedTask n3 = new ProtectedTask("Initialization Step 3: Log Environment Startup") {
+			@Override
+			public boolean execute() throws Exception {
+				super.execute();
+			    // Print on startup, if configured.
+			    SecurityUtil.logShellEnvironmentVariables();
+			    SecurityUtil.logJavaSystemProperties();
+				return true;
+			}
+			@Override
+			public boolean rollback(Exception e) {
+				setLocked(false);
+				return true;
+			}
+			@Override
+			public boolean preProcess() throws Exception {
+				setLocked(true);
+				return true;
+			}
+			@Override
+			public boolean postProcess() throws Exception {
+				setLocked(false);
+				return true;
+			}
+		};
+		n2.setNextNode(n3);
+		
+		//***********************************************
+		// Initialization, Execute task chain.
+		//***********************************************
+		ProtectedTaskModel model = ProtectedTaskModel.getInstance();
+		boolean success = model.executeChainedTask(n1);
+		if( success ) {
+			logger.info( "Initialization success." );
+		} else {
+			logger.error( "Initialization failed.  See logs for details.");
 			System.exit(30);
 		}
+			
 	}
 	
 	/**

@@ -9,13 +9,7 @@ import org.owasp.jvmxray.driver.NullSecurityManager.Callstack;
 import org.owasp.jvmxray.driver.NullSecurityManager.FilterActions;
 import org.owasp.jvmxray.event.IEvent;
 
-/**
- * Filter to handle the first argument of each event type as a String.
- * Supports different matching criteria like startwith, endswith, and matches.
- * @author Milton Smith
- *
- */
-public class StringFilter extends JVMXRayFilterRule {
+public class MappedScalarValue extends JVMXRayFilterRule {
 
 	private FilterActions defaultfilter;
 	private EnumSet<IEvent.Events> events;
@@ -23,11 +17,10 @@ public class StringFilter extends JVMXRayFilterRule {
 	private Properties np;
 	private boolean bCritieriaPresent = false;
 	private Callstack callstackopts;
-	
-	public StringFilter(EnumSet<IEvent.Events> supported, FilterActions defaultfilter, Properties p, Callstack callstackopts) {
+
+	public MappedScalarValue(EnumSet<IEvent.Events> supported, FilterActions defaultfilter, Properties p, Callstack callstackopts) {
 		
-		// defaultfilter = FilterActions.ALLOW, prints all java packages.
-		// defaultfilter = FilterActions.DENY, suppresses all java packages.
+		// defaultfilter = Default filter actions ignored for this filter.
 		
 		this.events = supported;
 		this.defaultfilter = defaultfilter;
@@ -40,25 +33,19 @@ public class StringFilter extends JVMXRayFilterRule {
 		while (keys.hasMoreElements() ) {
 			String key = keys.nextElement();
 			String value = p.getProperty(key);
-			if (key.contains("startswith") ||
-			    key.contains("endswith") ||
-				key.contains("matches")) {
+			if ( (key.contains("onchange")) || (key.contains("ttl")) ) {
 				np.setProperty(key,value);
 				bCritieriaPresent = true;
-			}
+			} 
 		}
 		
 	}
 	
-	public Callstack getCallstackOptions() {
-		return callstackopts;
-	}
-
 	@Override
 	public FilterActions isMatch(IEvent event) {
-		
-		FilterActions results = FilterActions.NEUTRAL;
-		
+
+		// Neutral allows other filters to process after we do.
+		FilterActions results = FilterActions.NEUTRAL;	
 		// Get searchable fields for the record type.
 		Object[] obj = event.getParams();
 		
@@ -79,14 +66,13 @@ public class StringFilter extends JVMXRayFilterRule {
 					// Break on first positive match.  Iterate over the
 					// numbered criteria, which may be out of order.
 					for( int idx=1; idx < 500 ; idx++ ) {
-						// Property name format if field search is specified, keyname.keyname.match_criteria.field_search_criteria
+						// Property name format if field search is specified, key = lev1N.lev2N.lev3N...
 						String sf = "0";
 						String[] lvls = key.split(".");
 						if( lvls.length == 3 ) {
 	 						int keyidx = key.lastIndexOf('.');
 							sf = key.substring(keyidx,key.length());
 						}
-						
 						int fidx = 0;
 						try {
 							fidx = Integer.valueOf(sf);
@@ -105,25 +91,13 @@ public class StringFilter extends JVMXRayFilterRule {
 						// Check to make sure index specified by user is searchable (String type).
 						if( obj[fidx] instanceof String) {
 							String search_field = (String)obj[fidx];
-							if( key.contains("startswith"+idx) ) {
+							if( key.contains("onchange"+idx) ) {
 								if ( search_field.toString().startsWith(value) ) {
 									bCriteriaMatch = true;
 									results = defaultfilter; 
 									break;
 								}
-							} else if( key.contains("endswith"+idx) ) {
-								if ( search_field.toString().endsWith(value) ) {
-									bCriteriaMatch = true;
-									results = defaultfilter; 
-									break;
-								}
-							} else if( key.contains("matches"+idx) ) {
-								if ( search_field.toString().matches(value) ) {
-									bCriteriaMatch = true;
-									results = defaultfilter; 
-									break;
-								}
-							}
+							} 
 						}
 					}
 				}
@@ -142,6 +116,12 @@ public class StringFilter extends JVMXRayFilterRule {
 		}
 			
 		return results;
+	}
+		
+
+	@Override
+	public Callstack getCallstackOptions() {
+		return callstackopts;
 	}
 
 }
