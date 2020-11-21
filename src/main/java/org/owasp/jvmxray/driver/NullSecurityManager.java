@@ -39,8 +39,9 @@ import ch.qos.logback.classic.joran.JoranConfigurator;
 public class NullSecurityManager  extends SecurityManager {
 	
 	/** Get logger instance. */
-	private static final Logger logger = LoggerFactory.getLogger("org.owasp.jvmxray.driver.NullSecurityManager");
-	
+	private static Logger logger = LoggerFactory.getLogger("org.owasp.jvmxray.driver.NullSecurityManager");
+	private static LoggerContext context;
+
 	// Lock access to NullSecurityManager methods while executing.  Blocked by default until
 	// NullSecurityManager is properly initialized.
 	private volatile boolean bLocked = true;
@@ -84,8 +85,7 @@ public class NullSecurityManager  extends SecurityManager {
 		SOURCEPATH,
 		FULL
 	}
-	
-	
+
 	/**
 	 * CTOR
 	 */
@@ -99,7 +99,8 @@ public class NullSecurityManager  extends SecurityManager {
 			public boolean execute() throws Exception {
 				super.execute();
 				// assume SLF4J is bound to logback in the current environment
-				LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
+				//LoggerContext
+				context = (LoggerContext) LoggerFactory.getILoggerFactory();
 				if( context == null ) {
 					String msg = "Logback Jordan initialization problem.  msg=null context";
 					throw new JVMXRayRuntimeException(msg);
