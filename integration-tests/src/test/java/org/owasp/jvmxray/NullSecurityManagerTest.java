@@ -25,7 +25,7 @@ import org.owasp.jvmxray.driver.NullSecurityManager;
  *
  */
 @Category(IntegrationTest.class)
-public class NullSecurityManagerIT {
+public class NullSecurityManagerTest {
 	
 	private static NullSecurityManager nullsecuritymgr = null;
 	private static JVMXRayServletContainer server;
