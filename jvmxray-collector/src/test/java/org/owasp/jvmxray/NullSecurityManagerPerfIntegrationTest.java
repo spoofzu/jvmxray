@@ -59,7 +59,7 @@ public class NullSecurityManagerPerfIntegrationTest {
 	 * Wait 5 mins to allow for time to check /api/status/
 	 * TestPermissions.
 	 */
-	//@Test
+	@Test
 	public void performanceTest() {
 		int i=0;
 		for( i=0; i<500; i++ ) {
