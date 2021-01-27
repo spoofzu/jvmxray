@@ -88,22 +88,32 @@ public class JVMXRayServlet extends HttpServlet {
 		    // to minimize logging concerns.
 		    if (httpMethod.equals("GET")) {
 				if (httpQueryString.startsWith("/api/status/")) {
-				    statusPage(res);
+					statusPage(res);
+				} else if (httpQueryString.startsWith("/api/config/")) {
+						configPage(res);
 				} else if (httpQueryString.startsWith("/api/echo/")) {
 					echoPage(res, content);
 				} else {
 			    	res.setStatus(404);
 			    	res.getWriter().println("<b>The Requested resource not found.  resource="+httpQueryString+"</b>");
 				}
-	 
 		    } else if ( httpMethod.equals("POST") ) {
 				if (httpQueryString.startsWith("/api/status/")) {
-				    statusPage(res);
+					statusPage(res);
+				} else if (httpQueryString.startsWith("/api/config/")) {
+						configPage(res);
 				} else if (httpQueryString.startsWith("/api/echo/")) {
-				    echoPage(res, content);
+					echoPage(res, content);
 				} else {
-			    	res.setStatus(404);
-			    	res.getWriter().println("<b>The Requested resource not found.  resource="+httpQueryString+"</b>");
+					res.setStatus(404);
+					res.getWriter().println("<b>The Requested resource not found.  resource=" + httpQueryString + "</b>");
+				}
+			}else if (httpMethod.equals("HEAD") ) {
+				if (httpQueryString.startsWith("/api/config/")) {
+					configPageLastUpdate(res);
+				} else {
+					res.setStatus(404);
+					res.getWriter().println("<b>The Requested resource not found.  resource=" + httpQueryString + "</b>");
 				}
 		    } else { 	
 		    	res.setStatus(404);
@@ -165,7 +175,71 @@ public class JVMXRayServlet extends HttpServlet {
 	public void destroy() {
 		// Not called by JVMXRayServletContainer
 	}
-	
+
+	private void configPage(HttpServletResponse res) throws Exception {
+		SimpleDateFormat format;
+		String ret;
+		format = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", Locale.US);
+		format.setTimeZone(TimeZone.getTimeZone("PST"));
+		ret = format.format(new Date()) + " PST";
+
+		PrintWriter writer = res.getWriter();
+		writer.println("<h1>JVMXRay: Client Transaction Performance</h1>");;
+		writer.println("Last update(server time) "+ret);
+		writer.println("<br/>");
+		writer.println("<br/>");
+		writer.println("Total Transactions Processed = "+trxCount);
+		writer.println("<br/>");
+		writer.println("Min Transaction Elapsed Time(ms) = "+trxMin );
+		writer.println("<br/>");
+		writer.println("Max Transaction Maximum Elapsed Time(ms) = "+trxMax );
+		writer.println("<br/>");
+		writer.println("Avg Transaction Performance(ms) = "+trxAvg );
+		writer.println("<br/>");
+		writer.println("<br/>");
+		writer.println("Min Payload Size(bytes) = "+payloadMin );
+		writer.println("<br/>");
+		writer.println("Max Payload Size(bytes) = "+payloadMax );
+		writer.println("<br/>");
+		writer.println("Avg Payload Size(bytes) = "+payloadAvg );
+		writer.println("<br/>");
+
+		writer.println("");
+		res.setStatus(200);
+	}
+
+	private void configPageLastUpdate(HttpServletResponse res) throws Exception {
+		SimpleDateFormat format;
+		String ret;
+		format = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss", Locale.US);
+		format.setTimeZone(TimeZone.getTimeZone("PST"));
+		ret = format.format(new Date()) + " PST";
+
+		PrintWriter writer = res.getWriter();
+		writer.println("<h1>JVMXRay: Client Transaction Performance</h1>");;
+		writer.println("Last update(server time) "+ret);
+		writer.println("<br/>");
+		writer.println("<br/>");
+		writer.println("Total Transactions Processed = "+trxCount);
+		writer.println("<br/>");
+		writer.println("Min Transaction Elapsed Time(ms) = "+trxMin );
+		writer.println("<br/>");
+		writer.println("Max Transaction Maximum Elapsed Time(ms) = "+trxMax );
+		writer.println("<br/>");
+		writer.println("Avg Transaction Performance(ms) = "+trxAvg );
+		writer.println("<br/>");
+		writer.println("<br/>");
+		writer.println("Min Payload Size(bytes) = "+payloadMin );
+		writer.println("<br/>");
+		writer.println("Max Payload Size(bytes) = "+payloadMax );
+		writer.println("<br/>");
+		writer.println("Avg Payload Size(bytes) = "+payloadAvg );
+		writer.println("<br/>");
+
+		writer.println("");
+		res.setStatus(200);
+	}
+
     private void echoPage(HttpServletResponse res, String content) throws Exception {
 	    JSONUtil j = JSONUtil.getInstance();
 	    IEvent event = null;

@@ -102,6 +102,9 @@ public class EventFactory {
 		case SOCKET_MULTICAST_WITH_TTL:
 			event = createSocketMulticastWithTTLEvent( id, state, timestamp, tid, identity, stacktrace, p1, p2 );
 			break;
+		case MAPPED_CONTEXT:
+			event = createMappedContent( id, state, timestamp, tid, identity, stacktrace, p1, p2);
+			break;
 		default:
 			throw new JVMXRayBadTypeRuntimeException("Unsupported event type. type="+type);
 		}

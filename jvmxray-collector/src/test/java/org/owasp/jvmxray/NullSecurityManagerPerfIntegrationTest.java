@@ -21,7 +21,10 @@ public class NullSecurityManagerPerfIntegrationTest {
 
 	private static NullSecurityManager nullsecuritymgr = new NullSecurityManager();
 	private static JVMXRayServletContainer server;
-	
+
+	/**
+	 * Create a new sample permission for testing.
+	 */
 	public class TestPermission extends BasicPermission {
 		private static final long serialVersionUID = 5932223970203786295L;
 		private String action = "";
@@ -36,8 +39,9 @@ public class NullSecurityManagerPerfIntegrationTest {
 	}
 
 
-	// Initialize HTTP/S server for testing.
-	/*
+	/**
+	 * Initialize a server for testing.
+	 */
 	public static void setup() {	
 		try {
 			server = JVMXRayServletContainer.getInstance();
@@ -53,13 +57,11 @@ public class NullSecurityManagerPerfIntegrationTest {
 	public static void finish() {	
 		server.stop();
 	}
-	 */
 	
 	/** Call NullSecurityManager.checkPermission(Permission) N times.
 	 * Wait 5 mins to allow for time to check /api/status/
 	 * TestPermissions.
 	 */
-	@Test
 	public void performanceTest() {
 		int i=0;
 		for( i=0; i<500; i++ ) {
@@ -92,9 +94,8 @@ public class NullSecurityManagerPerfIntegrationTest {
 	 * performance data.  Kill the app when your done or 2min, whichever comes first.
 	 * @param argv Command line parameters.
 	 */
-	/*
 	public static void main( String[] argv) {
-		NullSecurityManagerPerfManualTest test = new NullSecurityManagerPerfManualTest();
+		NullSecurityManagerPerfIntegrationTest test = new NullSecurityManagerPerfIntegrationTest();
 		try {
 			test.setup();
 			test.performanceTest();
@@ -103,7 +104,6 @@ public class NullSecurityManagerPerfIntegrationTest {
 		}
 	}
 
-	 */
 
 
 }

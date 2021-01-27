@@ -1,7 +1,5 @@
 package org.owasp.jvmxray.driver;
 
-
-import java.io.File;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
@@ -18,21 +16,14 @@ import org.owasp.jvmxray.event.EventFactory;
 import org.owasp.jvmxray.event.IEvent;
 import org.owasp.jvmxray.event.IEvent.Events;
 import org.owasp.jvmxray.exception.JVMXRayConnectionException;
-import org.owasp.jvmxray.exception.JVMXRayRuntimeException;
 import org.owasp.jvmxray.util.PropertyUtil;
-//import org.owasp.security.logging.util.SecurityUtil;
-//import org.slf4j.Logger;
-//import org.slf4j.LoggerFactory;
-
-//import ch.qos.logback.classic.LoggerContext;
-//import ch.qos.logback.classic.joran.JoranConfigurator;
-
 
 /**
  * 
  * NullSecurityManager conforms to the java.lang.SecurityManager specifications.  This class intercepts
  * access to protected resources, builds an event, and sends the event to a server for processing.
- * 
+ *
+ * @see java.lang.SecurityManager
  * @author Milton Smith
  *
  */
@@ -87,58 +78,15 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 
 	/**
-	 * CTOR
+	 * See core JavaDocs.
+	 * @see java.lang.SecurityManager
 	 */
 	public NullSecurityManager ()  {
-		
-		//***********************************************
-		// Initilization Step 1: Logging
-		//***********************************************
-		/*
-		ProtectedTask n1 = new ProtectedTask("Initilization Step 1: Logging") {
-			@Override
-			public boolean execute() throws Exception {
-				super.execute();
-				//logger = LoggerFactory.getLogger("org.owasp.jvmxray.driver.NullSecurityManager");
-				// assume SLF4J is bound to logback in the current environment
-				/*
-				LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
-				if( context == null ) {
-					String msg = "Logback Jordan initialization problem.  msg=null context";
-					throw new JVMXRayRuntimeException(msg);
-				}
-				JoranConfigurator configurator = new JoranConfigurator();
-				configurator.setContext(context);
-				// Call context.reset() to clear any previous configuration, e.g. default 
-				// configuration. For multi-step configuration, omit calling context.reset().
-				context.reset(); 
-			    configurator.doConfigure(new File("logback.xml"));
-			    //logger = context.getLogger("org.owasp.jvmxray.driver.NullSecurityManager");
-
-				return true;
-			}
-			@Override
-			public boolean rollback(Exception e) {
-				setLocked(false);
-				return true;
-			}
-			@Override
-			public boolean preProcess() throws Exception {
-				setLocked(true);
-				return true;
-			}
-			@Override
-			public boolean postProcess() throws Exception {
-				setLocked(false);
-				System.out.println("Logback initalized."); //logger.debug
-				return true;
-			}
-		};*/
 				
 		//***********************************************
-		// Initialization Step 2: Property Initialization
+		// Initialization Step 1: Property Initialization
 		//***********************************************
-		ProtectedTask n2 = new ProtectedTask("Initialization Step 2: Property Initialization") {
+		ProtectedTask n1 = new ProtectedTask("Initialization: Property Initialization") {
 			@Override
 			public boolean execute() throws Exception {
 				super.execute();
@@ -161,57 +109,25 @@ public class NullSecurityManager  extends SecurityManager {
 				return true;
 			}
 		};
-		//n1.setNextNode(n2);
-		
-		//***********************************************
-		// Initialization Step 3: Log environment startup
-		//***********************************************
-		/*
-		ProtectedTask n3 = new ProtectedTask("Initialization Step 3: Log Environment Startup") {
-			@Override
-			public boolean execute() throws Exception {
-				super.execute();
-			    // Print on startup, if configured.
-			    SecurityUtil.logShellEnvironmentVariables();
-			    SecurityUtil.logJavaSystemProperties();
-				return true;
-			}
-			@Override
-			public boolean rollback(Exception e) {
-				setLocked(false);
-				return true;
-			}
-			@Override
-			public boolean preProcess() throws Exception {
-				setLocked(true);
-				return true;
-			}
-			@Override
-			public boolean postProcess() throws Exception {
-				setLocked(false);
-				return true;
-			}
-		};
-		n2.setNextNode(n3);
-
-		 */
 		
 		//***********************************************
 		// Initialization, Execute task chain.
 		//***********************************************
 		ProtectedTaskModel model = ProtectedTaskModel.getInstance();
-		boolean success = model.executeChainedTask(n2);
+		boolean success = model.executeChainedTask(n1);
 		if( success ) {
 			System.out.println( "JVMXray Initialization success." ); //logger.info
 		} else {
-			System.out.println( "JVMXray Initialization failed.  See logs for details."); //logger.error
+			System.err.println( "JVMXray Initialization failed.  See logs for details."); //logger.error
 			System.exit(30);
 		}
 			
 	}
-	
+
 	/**
-	 * @see java.lang.SecurityManager.checkSecurityAccess(String)
+	 * See core JavaDocs.
+	 * @param target
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public synchronized void checkSecurityAccess(String target) {
@@ -231,9 +147,11 @@ public class NullSecurityManager  extends SecurityManager {
 			setLocked(false);
 		}
 	}
-	
+
 	/**
-	 * @see java.lang.SecurityManager.checkAccess(Thread)
+	 * See core JavaDocs.
+	 * @param t
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public synchronized void checkAccess(Thread t) {
@@ -253,9 +171,11 @@ public class NullSecurityManager  extends SecurityManager {
 			setLocked(false);
 		}
 	}
-	
+
 	/**
-	 * @see java.lang.SecurityManager.checkAccess(ThreadGroup)
+	 * See core JavaDocs.
+	 * @param tg
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public synchronized void checkAccess(ThreadGroup tg) {
@@ -275,9 +195,10 @@ public class NullSecurityManager  extends SecurityManager {
 			setLocked(false);
 		}
 	}
-	
+
 	/**
-	 * @see java.lang.SecurityManager.checkCreateClassLoader()
+	 * See core JavaDocs.
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public synchronized void checkCreateClassLoader() {
@@ -294,10 +215,12 @@ public class NullSecurityManager  extends SecurityManager {
 			processEvent(ev);
 			setLocked(false);
 		}
-	}	
-	
+	}
+
 	/**
-	 * @see java.lang.SecurityManager.checkExit(int)
+	 * See core JavaDocs.
+	 * @param status
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public synchronized void checkExit(int status) {
@@ -317,9 +240,10 @@ public class NullSecurityManager  extends SecurityManager {
 			setLocked(false);
 		}		
 	}
-	
+
 	/**
-	 * @see java.lang.SecurityManager.checkSetFactory()
+	 * See core JavaDocs.
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public synchronized void checkSetFactory() {
@@ -339,7 +263,9 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 
 	/**
-	 * @see java.lang.SecurityManager.checkDelete(String)
+	 * See core JavaDocs.
+	 * @param file
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public synchronized void checkDelete(String file) {
@@ -358,9 +284,11 @@ public class NullSecurityManager  extends SecurityManager {
 			setLocked(false);
 		}
 	}
-	
+
 	/**
-	 * @see java.lang.SecurityManager.checkExec(String)
+	 * See core JavaDocs.
+	 * @param cmd
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public synchronized void checkExec(String cmd) {
@@ -379,9 +307,11 @@ public class NullSecurityManager  extends SecurityManager {
 			setLocked(false);
 		}
 	}
-	
+
 	/**
-	 * @see java.lang.SecurityManager.checkRead(String)
+	 * See core JavaDocs.
+	 * @param file
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public synchronized void checkRead(String file) {
@@ -402,7 +332,10 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 	
 	/**
-	 * @see java.lang.SecurityManager.checkRead(String, Object)
+	 * See core JavaDocs
+	 * @param file
+	 * @param context
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public synchronized void checkRead(String file, Object context) {
@@ -425,7 +358,9 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 	
 	/**
-	 * @see java.lang.SecurityManager.checkRead(FileDescriptor)
+	 * See core JavaDocs.
+	 * @param fd
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public synchronized void checkRead(FileDescriptor fd) {
@@ -446,7 +381,9 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 	
 	/**
-	 * @see java.lang.SecurityManager.checkWrite(String)
+	 * See core JavaDocs.
+	 * @param file
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public synchronized void checkWrite(String file) {
@@ -468,7 +405,9 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 	
 	/**
-	 * @see java.lang.SecurityManager.checkWrite(FileDescriptor)
+	 * See core JavaDocs.
+	 * @param fd
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public synchronized void checkWrite(FileDescriptor fd) {
@@ -488,7 +427,9 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 	
 	/**
-	 * @see java.lang.SecurityManager.checkLink(String)
+	 * See core JavaDocs.
+	 * @param lib
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public synchronized void checkLink(String lib) {
@@ -510,7 +451,9 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 	
 	/**
-	 * @see java.lang.SecurityManager.checkPackageAccess(String)
+	 * See core JavaDocs.
+	 * @param pkg
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public synchronized void checkPackageAccess(String pkg) {
@@ -532,7 +475,9 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 	
 	/**
-	 * @see java.lang.SecurityManager.checkPackageDefinition(String)
+	 * See core JavaDocs.
+	 * @param pkg
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public synchronized void checkPackageDefinition(String pkg) {
@@ -554,7 +499,9 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 	
 	/**
-	 * @see java.lang.SecurityManager.checkPermission(Permission)
+	 * See core JavaDocs.
+	 * @param perm
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public synchronized void checkPermission(Permission perm) {
@@ -577,7 +524,10 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 	
 	/**
-	 * @see java.lang.SecurityManager.checkPermission(Permission, Object)
+	 * See core JavaDocs.
+	 * @param perm
+	 * @param context
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public synchronized void checkPermission(Permission perm, Object context) {
@@ -601,7 +551,8 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 	
 	/**
-	 * @see java.lang.SecurityManager.checkPrintJobAccess()
+	 * See core JavaDocs.
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public synchronized void checkPrintJobAccess() {
@@ -621,7 +572,8 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 	
 	/**
-	 * @see java.lang.SecurityManager.checkPropertiesAccess()
+	 * See core JavaDocs.
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public synchronized void checkPropertiesAccess() {
@@ -641,7 +593,9 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 
 	/**
-	 * @see java.lang.SecurityManager.checkPropertyAccess(String)
+	 * See core JavaDocs.
+	 * @param key
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public synchronized void checkPropertyAccess(String key) {
@@ -662,7 +616,10 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 	
 	/**
-	 * @see java.lang.SecurityManager.checkAccept(String, int)
+	 * See core JavaDocs.
+	 * @param host
+	 * @param port
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public synchronized void checkAccept(String host, int port) {
@@ -684,7 +641,10 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 
 	/**
-	 * @see java.lang.SecurityManager.checkConnect(String, int)
+	 * See core JavaDocs.
+	 * @param host
+	 * @param port
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public synchronized void checkConnect(String host, int port) {
@@ -706,7 +666,11 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 	
 	/**
-	 * @see java.lang.SecurityManager.checkConnect(String, int, Object)
+	 * See core JavaDocs.
+	 * @param host
+	 * @param port
+	 * @param context
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public synchronized void checkConnect(String host, int port, Object context) {
@@ -729,7 +693,9 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 
 	/**
-	 * @see java.lang.SecurityManager.checkListen(int)
+	 * See core JavaDocs.
+	 * @param port
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public synchronized void checkListen(int port) {
@@ -750,7 +716,9 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 
 	/**
-	 * @see java.lang.SecurityManager.checkMulticast(InetAddress)
+	 * See core JavaDocs.
+	 * @param maddr
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public synchronized void checkMulticast(InetAddress maddr) {
@@ -771,7 +739,10 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 	
 	/**
-	 * @see java.lang.SecurityManager.checkMulticast(InetAddress, byte)
+	 * See core JavaDocs.
+	 * @param maddr
+	 * @param ttl
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public synchronized void checkMulticast(InetAddress maddr, byte ttl) {
@@ -793,7 +764,8 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 
 	/**
-	 * @see java.lang.SecurityManager.getClassContext()
+	 * See core javaDocs.
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	protected Class<?>[] getClassContext() {
@@ -801,7 +773,8 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 
 	/**
-	 * @see java.lang.SecurityManager.getSecurityContext()
+	 * See core javaDocs.
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public Object getSecurityContext() {
@@ -809,7 +782,8 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 
 	/**
-	 * @see java.lang.SecurityManager.getThreadGroup()
+	 * See core javaDocs.
+	 * @see java.lang.SecurityManager
 	 */
 	@Override
 	public ThreadGroup getThreadGroup() {
@@ -817,14 +791,16 @@ public class NullSecurityManager  extends SecurityManager {
 	}
 
 	/**
-	 * This is a special method to track metadata related to the event.
-	 * For example, the currently logged on user in a web application.
+	 * Include related event metadata. For example, the currently
+	 * logged on user in a web application.
+	 * @param key Metadata name, must be unique.
+	 * @param value Metadata value.
 	 */
-	public synchronized void sendMappedVariable(String key, String value) {
+	private synchronized void sendMappedVariable(String key, String value) {
 		if( !isLocked() && isEventEnabled(Events.MAPPED_CONTEXT) ) {
 			setLocked(true);
 			EventFactory factory = EventFactory.getInstance();
-			IEvent ev = factory.createSocketMulticastWithTTLEvent(
+			IEvent ev = factory.createMappedContent(
 								IEvent.PK_UNUSED, // No PK since this is new event
 								IEvent.STATE_UNUSED, // State is not used at this time
 								System.currentTimeMillis(),  // timestamp
@@ -840,8 +816,8 @@ public class NullSecurityManager  extends SecurityManager {
 	
 	/**
 	 * Generate a stack track.  Required depending on JVMXRay property settings.
-	 * @param event
-	 * @return  Stack trace
+	 * @param event Active event.
+	 * @return  Stack trace based upon user preferences.
 	 */
 	private String getStackTrace(IEvent event) {
 		String stacktrace = "";
@@ -855,8 +831,7 @@ public class NullSecurityManager  extends SecurityManager {
 	 * Process an event.  Required since callers
 	 * may trigger additional nested security manager permission
 	 * calls resulting in a stack overflow.
-	 * @param type type of event being processed
-	 * @param event actual event being processed
+	 * @param event Active event.
 	 */
 	private void processEvent( IEvent event )  {
 		try {

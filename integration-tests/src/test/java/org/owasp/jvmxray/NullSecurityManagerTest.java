@@ -16,7 +16,6 @@ import org.junit.experimental.categories.Category;
 
 import org.owasp.jvmxray.collector.JVMXRayServletContainer;
 import org.owasp.jvmxray.driver.NullSecurityManager;
-//import org.owasp.jvmxray.server.test.JVMXRayServletContainer;
 
 /**
  * Quality tests for the various methods of NullSecurityManager.  The purpose is
