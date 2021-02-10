@@ -8,9 +8,8 @@
 
 [More about Oracle Java Duke mascot...](https://wiki.openjdk.java.net/display/duke/Main)
 
->
->     NEWS Feb 10, 2021:  Many improvements. See latest delivery notes and [Updated project WIKI...](https://github.com/spoofzu/jvmxray/wiki)
->
+NEWS Feb 10, 2021: Many improvements. See latest delivery notes and
+[updated project WIKI...](https://github.com/spoofzu/jvmxray/wiki)
 
 ## Benefits
 Following is a quick list of some of the more important benefits.
