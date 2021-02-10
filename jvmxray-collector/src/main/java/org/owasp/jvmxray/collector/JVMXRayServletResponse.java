@@ -17,6 +17,7 @@ public class JVMXRayServletResponse implements HttpServletResponse {
 	private PrintWriter writer;
 	private int sc;
 	private StringWriter sw;
+	private String content_type="text/html";
 
 	public JVMXRayServletResponse( StringWriter sw ) {
 		this.sw = sw;
@@ -30,7 +31,7 @@ public class JVMXRayServletResponse implements HttpServletResponse {
 
 	@Override
 	public String getContentType() {
-		throw new JVMXRayUnimplementedException("JVMXRayServletResponse.getContentType(): Not implemented.");
+		return content_type;
 	}
 
 	@Override
@@ -60,7 +61,7 @@ public class JVMXRayServletResponse implements HttpServletResponse {
 
 	@Override
 	public void setContentType(String type) {
-		throw new JVMXRayUnimplementedException("JVMXRayServletResponse.getCharacterEncoding(String): Not implemented.");
+		content_type = type;
 	}
 
 	@Override

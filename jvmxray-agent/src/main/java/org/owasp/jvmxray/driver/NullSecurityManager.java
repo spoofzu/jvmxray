@@ -9,13 +9,21 @@ import java.net.InetAddress;
 import java.net.URL;
 import java.rmi.dgc.VMID;
 import java.security.Permission;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.EnumSet;
 import java.util.Enumeration;
 import java.util.Properties;
+import java.util.ServiceConfigurationError;
+
 import org.owasp.jvmxray.event.EventFactory;
 import org.owasp.jvmxray.event.IEvent;
 import org.owasp.jvmxray.event.IEvent.Events;
 import org.owasp.jvmxray.exception.JVMXRayConnectionException;
+import org.owasp.jvmxray.exception.JVMXRayDBException;
+import org.owasp.jvmxray.util.DBUtil;
+import org.owasp.jvmxray.util.FileUtil;
+import org.owasp.jvmxray.util.LiteLogger;
 import org.owasp.jvmxray.util.PropertyUtil;
 
 /**
@@ -37,7 +45,7 @@ public class NullSecurityManager  extends SecurityManager {
 	// NullSecurityManager is properly initialized.
 	private volatile boolean bLocked = true;
 	
-	// jvmxray.properties
+	// jvmxrayclient.properties
 	protected Properties p = new Properties();
 	
 	// Hold list of filters to process.
@@ -51,6 +59,15 @@ public class NullSecurityManager  extends SecurityManager {
 
 	// JSON end-point for event data.
 	private URL webhookurl;
+
+	// Database connection
+	private Connection dbconn;
+
+	// Database utilities
+	private DBUtil dbutil;
+
+	// Lightweight logger
+	private LiteLogger ltlogger = LiteLogger.getLoggerinstance();
 	
 	/**
 	 * Implemented by filters but generally, <br/>
@@ -109,19 +126,123 @@ public class NullSecurityManager  extends SecurityManager {
 				return true;
 			}
 		};
+
+		//***********************************************
+		// Initialization Step 2: DB initialization
+		//***********************************************
+		ProtectedTask n2 = new ProtectedTask("Initialization: DB Initialization") {
+			@Override
+			public boolean execute() throws Exception {
+				super.execute();
+				try {
+					initDB();
+				}catch(JVMXRayDBException e) {
+					ltlogger.info("NullSecurityManager.ctor(): Local db unavailable.");
+				}
+				return true;
+			}
+			@Override
+			public boolean rollback(Exception e) {
+				setLocked(false);
+				dbconn = null;
+				dbutil = null;
+				return true;
+			}
+			@Override
+			public boolean preProcess() throws Exception {
+				setLocked(true);
+				return true;
+			}
+			@Override
+			public boolean postProcess() throws Exception {
+				setLocked(false);
+				return true;
+			}
+		};
 		
 		//***********************************************
 		// Initialization, Execute task chain.
 		//***********************************************
 		ProtectedTaskModel model = ProtectedTaskModel.getInstance();
+		// Connect nodes in chain.
+		n1.setNextNode(n2);
 		boolean success = model.executeChainedTask(n1);
 		if( success ) {
-			System.out.println( "JVMXray Initialization success." ); //logger.info
+			ltlogger.info("JVMXray Initialization success." ); //logger.info
 		} else {
-			System.err.println( "JVMXray Initialization failed.  See logs for details."); //logger.error
+			ltlogger.info("JVMXray Initialization failed.  See logs for details."); //logger.error
 			System.exit(30);
 		}
 			
+	}
+
+	private final void initDB() throws SQLException, JVMXRayDBException {
+		String sdelay = p.getProperty(PropertyUtil.CONF_PROP_MAXWAIT_INITIALIZATION);
+		int delay=45001;
+		try {
+			delay = Integer.parseInt(sdelay);
+		}catch(NumberFormatException e) {
+			if( ltlogger.isDebug() ) {
+				ltlogger.debug("NullSecurityManager.initDB(): key="+PropertyUtil.CONF_PROP_MAXWAIT_INITIALIZATION+" value="+sdelay);
+				e.printStackTrace();
+			}
+		}
+
+		// Due to the architecture SecurityManager and our use of it
+		// beyond it's intended design some features cause exceptions if used
+		// prior to full VM initialization.  In the case of JDBC, ServiceConfigurationError
+		// exceptions occur if connections are initialized too early.  It's also
+		// a problem with early use of other features like JMX and Classloaders.
+		// To work around, we attempt to initialize a connection immediately.  This
+		// works fine for unit testing but fails in containers.  To support containers
+		// we start a background thread and delay event processing for a number
+		// of seconds specified by
+		// jvmxray.event.nullsecuritymanager.server.delay.initialization
+		// or a non-null database connection is returned, whichever comes
+		// first.  This allows container initialization
+		// will proceed, but any events issued by the service prior to
+		// initialization are lost.  If a db connection is established prior
+		// to timer elapse, the thread exits successfully.
+		//
+		// Specific exception thrown is,
+		// java.util.ServiceConfigurationError: java.sql.Driver: not accessible to
+		// module java.sql during VM init
+		FileUtil fiutil = FileUtil.getInstance();
+		dbutil = DBUtil.getInstance(p);
+		try {
+			dbconn = dbutil.createConnection();
+			if( dbconn != null ) {
+				setLocked(false);
+			} else {
+				JVMXRayDBException e = new JVMXRayDBException("JDBC connection failed to initialize.  dbconn=null");
+				throw e;
+			}
+		}catch(ServiceConfigurationError e) {
+			final int fdelay = delay;
+			Thread t = new Thread() {
+				public void run() {
+					long start = System.currentTimeMillis();
+					while( System.currentTimeMillis() - start < fdelay ) {
+						try {
+							Thread.sleep(1000);
+						} catch (InterruptedException e) {}
+						Thread.yield();
+						try {
+							dbconn = dbutil.createConnection();
+						} catch (ServiceConfigurationError e) {
+
+						} catch (SQLException e) {
+							e.printStackTrace();
+						}
+						if ( dbconn != null ) {
+							break;
+						}
+					}
+					setLocked(false);
+				}
+			};
+			t.start();
+		}
 	}
 
 	/**
@@ -826,7 +947,12 @@ public class NullSecurityManager  extends SecurityManager {
 		stacktrace = generateCallStack(rulelist.getCallstackOptions(event), ste);
 		return stacktrace;
 	}
-	
+
+	private void spoolEvent(IEvent event) throws IOException, SQLException {
+		dbutil.insertEvent(dbconn,
+				event );
+	}
+
 	/**
 	 * Process an event.  Required since callers
 	 * may trigger additional nested security manager permission
@@ -844,51 +970,72 @@ public class NullSecurityManager  extends SecurityManager {
 			//           or possibly better options.
 			//
 			if( rulelist.filterEvents( event ) == FilterActions.ALLOW ) {
+				boolean eventlogged = false;
 				event.setStackTrace(getStackTrace(event));
-				JVMXRayClient client = new JVMXRayClient(webhookurl) {
-					// Reassign max tries or use 5 for default.
-					protected int MAX_TRIES = 5;
-					@Override
-					public void startConnection(HttpURLConnection connection) throws Exception {
-						connection.setDoOutput(true);
-						connection.setRequestMethod("POST");
-						connection.setRequestProperty("User-Agent", "JVMXRayV1");
-						//connection.setRequestProperty("Accept", "*/*");
-						connection.setRequestProperty("Content-Type", "application/json; utf-8");
-						//connection.setRequestProperty("Accept-Language", "en-US");
-						connection.setRequestProperty("Accept", "text/html");				
+				boolean server_present = (webhookurl!=null);
+				// If server configuration present, send event to remote server.
+				if( server_present ) {
+					JVMXRayClient client = new JVMXRayClient(webhookurl) {
+						// Reassign max tries or use 5 for default.
+						protected int MAX_TRIES = 5;
+						@Override
+						public void startConnection(HttpURLConnection connection) throws Exception {
+							connection.setDoOutput(true);
+							connection.setRequestMethod("POST");
+							connection.setRequestProperty("User-Agent", "JVMXRayV1");
+							//connection.setRequestProperty("Accept", "*/*");
+							connection.setRequestProperty("Content-Type", "application/json; utf-8");
+							//connection.setRequestProperty("Accept-Language", "en-US");
+							connection.setRequestProperty("Accept", "text/html");
+						}
+						@Override
+						public IEvent getEvent() throws JVMXRayConnectionException {
+							return event;
+						}
+						@Override
+						public void finishConnection(JVMXRayResponse response) {
+							int responsecode = response.getResponseCode();
+							String responsedata = response.getResponseData();
+							ltlogger.debug("NullSecurityManager.processEvent(): status code="+responsecode+
+									" server data["+responsedata.length()+"bytes]=" + responsedata);
+						}
+						//
+						// If failed to send to server, try again:
+						// Tries: 0   Milliseconds to wait: 0
+						//        1                         500
+						//        2                         4000
+						//        3                         13500
+						//        4                         32000
+						//
+						@Override
+						public int retries(int currentAttempt) {
+							return 500 * (currentAttempt ^ 3);
+						}
+					};
+					try {
+						client.fireEvent();
+						eventlogged = true;
+					}catch(JVMXRayConnectionException e) {
+						// Thrown on bad configuration or server unavailable.  Sink exception, log event to db or console later.
 					}
-					@Override
-					public IEvent getEvent() throws JVMXRayConnectionException {
-						return event;
-					}
-					@Override
-					public void finishConnection(JVMXRayResponse response) {
-						int responsecode = response.getResponseCode();
-						String responsedata = response.getResponseData();
-						System.out.println("JVMXRay Response code: "+responsecode+" data: "+responsedata); //logger.debug
-					}
-					//
-					// If failed to send to server, try again:
-					// Tries: 0   Milliseconds to wait: 0
-					//        1                         500
-					//        2                         4000
-					//        3                         13500
-					//        4                         32000
-					//
-					@Override
-					public int retries(int currentAttempt) {
-						return 500*(currentAttempt^3);
-					}
-
-				};
-				client.fireEvent();
+				}
+				// If local db propertly configured then log events locally.  Useful for local debugging.
+				if( dbconn != null ) {
+					spoolEvent(event);
+				}
+				// If event not logged on server for any reason log to console.  Better than nothing.
+				if( !eventlogged) {
+					ltlogger.info("NullSecurityManager.processEvent(): Server unavailable.  Log event to console. event="+event.toString());
+				// If event logged on server, log to console only if debug logging enabled.
+				} else {
+					ltlogger.debug("NullSecurityManager.processEvent(): client event debug enabled.  event="+event.toString());
+				}
 			}
 		}catch(Throwable t) {
-			//logger.error("Unrecoverable error, server exiting.  msg="+t.getMessage(), t);
-			System.out.println("Unrecoverable error, server exiting.  msg="+t.getMessage());
-			if (t != null) t.printStackTrace();
-			//System.exit(20);
+			ltlogger.info("Unrecoverable error, disregard event and proceed.  msg="+t.getMessage());
+			if( ltlogger.isDebug() ) {
+				t.printStackTrace();
+			}
 		}
 	}
 	
@@ -902,7 +1049,7 @@ public class NullSecurityManager  extends SecurityManager {
 	
 	
 	/**
-	 * Initialize the NullSecurityManager subclass via property settings from jvmxray.properties.
+	 * Initialize the NullSecurityManager subclass via property settings from jvmxrayclient.properties.
 	 * @throws ClassNotFoundException 
 	 * @throws SecurityException 
 	 * @throws NoSuchMethodException 
@@ -918,8 +1065,8 @@ public class NullSecurityManager  extends SecurityManager {
     	
     	PropertyUtil pu = PropertyUtil.getInstance();
     	
-		// Load jvmxray.properties
-		p = pu.getJVMXRayProperties();
+		// Load jvmxrayclient.properties
+		p = pu.getClientProperties();
     	
     	// Get the assigned server identity or generate a new identity and save it.
 		try {
@@ -946,12 +1093,12 @@ public class NullSecurityManager  extends SecurityManager {
 			id = lid;
 		}
 		
-		// Set the webhook url to send event data.
+		// Set the webhook url to remote server.
 		try {
 			String surl = p.getProperty(PropertyUtil.CONF_PROP_WEBHOOK_URL);
 			webhookurl = new URL(surl);
 		} catch( Exception e ) {
-			
+			webhookurl = null;
 		}
     	
     	// Iterate over all the properties

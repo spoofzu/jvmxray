@@ -3,6 +3,9 @@ package org.owasp.jvmxray.collector;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.SocketAddress;
 import java.security.Principal;
 import java.util.Collection;
 import java.util.Enumeration;
@@ -28,13 +31,15 @@ import org.owasp.jvmxray.exception.JVMXRayUnimplementedException;
 
 public class JVMXRayServletRequest implements HttpServletRequest {
 
+	private final Socket socket;
 	private ServletInputStream in;
     private String httpMethod;
     private String httpQueryString;
 	private String content;
 
-	public JVMXRayServletRequest(ServletInputStream in, String content, String httpMethod, String httpQueryString) throws IOException {
-	    this.in = in;
+	public JVMXRayServletRequest(Socket socket, ServletInputStream in, String content, String httpMethod, String httpQueryString) throws IOException {
+	    this.socket = socket;
+		this.in = in;
 		this.content = content;
 	    this.httpMethod = httpMethod;
 	    this.httpQueryString = httpQueryString;
