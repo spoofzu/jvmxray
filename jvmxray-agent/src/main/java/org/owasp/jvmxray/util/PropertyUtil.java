@@ -8,14 +8,11 @@ import java.io.Reader;
 import java.io.Writer;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.nio.file.Files;
 import java.util.Enumeration;
 import java.util.Properties;
 
-import javax.net.ssl.HttpsURLConnection;
-
-//import org.slf4j.Logger;
-//import org.slf4j.LoggerFactory;
 
 public class PropertyUtil {
 	
@@ -29,7 +26,8 @@ public class PropertyUtil {
 	 * System property name that specifies the URL to load the jvmxray properties
 	 */
 	public static final String SYS_PROP_CONFIG_URL = "jvmxray.configuration";
-	public static final String SYS_PROP_DEFAULT = "/jvmxray.properties";
+	public static final String SYS_PROP_CLIENT_DEFAULT = "/jvmxrayclient.properties";
+	public static final String SYS_PROP_SERVER_DEFAULT = "/jvmxrayserver.properties";
 	
 	/**
 	 * System property name of the security manager to use, <code>nullsecuritymanager.securitymanager</code>
@@ -39,7 +37,7 @@ public class PropertyUtil {
 	 * THIS PROPERTY IS NOT SUPPORTED AT THIS TIME
 	 * class name, <code>java.lang.SecurityManager</code>.
 	 */
-	public static final String SYS_PROP_SECURITY_MANAGER = "jvmxray.securitymanager";
+	//public static final String SYS_PROP_SECURITY_MANAGER = "jvmxray.securitymanager";
 	
 	/**
 	 * Server identity.  System property providing the globally unique identity for the application.  Useful for
@@ -56,7 +54,12 @@ public class PropertyUtil {
 	 * Filename property. JVMXRay event spool.
 	 */
 	public static final String CONF_PROP_EVENT_SPOOL_FILE = "jvmxray.event.nullsecuritymanager.spool.filename";
-	
+
+	/**
+	 * Directory property. JVMXRay event spool.
+	 */
+	public static final String CONF_PROP_EVENT_SPOOL_DIRECTORY = "jvmxray.event.nullsecuritymanager.spool.directory";
+
 	/**
 	 * Directory property. JVMXRay base directory.
 	 */
@@ -64,7 +67,7 @@ public class PropertyUtil {
 	
 	///**
 	// * Interval in seconds. Optional property for the JVMXRayEventAggregator and
-	// * described in the jvmxray.properties file.  Interval in seconds to update
+	// * described in the jvmxrayclient.properties file.  Interval in seconds to update
 	// * the aggregated events file.
 	// */
 	//public static final String CONF_PROP_EVENT_AGG_FILE_INTERVAL = "jvmxray.adaptor.jvmxrayeventaggregator.fileupdateinterval";
@@ -75,8 +78,17 @@ public class PropertyUtil {
 	public static final String CONF_PROP_MAXWAIT_INITIALIZATION = "jvmxray.event.nullsecuritymanager.server.maxwait.initialization";
 	
 	public static final String CONF_PROP_WEBHOOK_URL= "jvmxray.event.webhook.target";
-	
-	private static PropertyUtil pu;	
+
+	private LiteLogger ltlogger = LiteLogger.getLoggerinstance();
+
+	private static PropertyUtil pu;
+
+	// Cache properties for 60-sec.
+	private long TTL = 60* 1000;
+
+	private long last_refresh = 0;
+
+	private Properties modprops = null;
 	
 	/** Get logger instance. */
 	//private static final Logger logger = LoggerFactory.getLogger("org.owasp.jvmxray.util.PropertyUtil");
@@ -91,10 +103,10 @@ public class PropertyUtil {
 	}
 
 	// Saves cloud identity to the local filesystem.
-	public final void saveServerId( String id ) throws MalformedURLException, IOException {
+	public final synchronized void saveServerId( String id ) throws MalformedURLException, IOException {
 		
 		// Get the server identity file to use on local file system.
-		Properties p = getJVMXRayProperties();
+		Properties p = getJVMXRayProperties(PropertyUtil.SYS_PROP_CLIENT_DEFAULT);
 		String basedir = p.getProperty(CONF_PROP_EVENT_DIRECTORY);
 		String idfile = p.getProperty(CONF_PROP_SERV_IDENTITY_FILE);
 		File f = new File(basedir, idfile);	
@@ -114,7 +126,7 @@ public class PropertyUtil {
 	public final String getServerId() throws MalformedURLException, IOException {
 		
 		// Get the server identity file to use on local file system.
-		Properties p = getJVMXRayProperties();	
+		Properties p = getJVMXRayProperties(PropertyUtil.SYS_PROP_CLIENT_DEFAULT);
 		String basedir = p.getProperty(CONF_PROP_EVENT_DIRECTORY);
 		String idfile = p.getProperty(CONF_PROP_SERV_IDENTITY_FILE);
 		File f = new File(basedir, idfile);	
@@ -136,7 +148,15 @@ public class PropertyUtil {
 		return id;
 		
 	}
-	
+
+	public final synchronized Properties getClientProperties() throws IOException, MalformedURLException {
+		return getJVMXRayProperties(SYS_PROP_CLIENT_DEFAULT);
+	}
+
+	public final synchronized Properties getServerProperties() throws IOException, MalformedURLException {
+		return getJVMXRayProperties(SYS_PROP_SERVER_DEFAULT);
+	}
+
 	/**
 	 * Load jvmproperties.  Attempt to load from URL, if that fails, then load from resources.
 	 * Any system or environment variables are resolved at runtime prior to returning the
@@ -144,35 +164,66 @@ public class PropertyUtil {
 	 * @return Properties file.
 	 * @throws IOException
 	 */
-	public final Properties getJVMXRayProperties() throws IOException, MalformedURLException {
+	private final Properties getJVMXRayProperties(String propertyfile) throws IOException, MalformedURLException {
+		// Return cached properties if not expired.
+		long current_timestamp = System.currentTimeMillis();
+		if( modprops != null && ((last_refresh + TTL)>current_timestamp)) {
+			ltlogger.info("PropertyUtil.getJVMXRayProperties(): returning cashed properties. Properties("+modprops.hashCode()+")");
+			return modprops;
+		}
 		Properties p = new Properties();
     	InputStream in = null;
     	try {    		
-        	String surl = System.getProperty(SYS_PROP_CONFIG_URL, SYS_PROP_DEFAULT);
+        	String surl = System.getProperty(SYS_PROP_CONFIG_URL, propertyfile);
         	try {
+				ltlogger.debug("PropertyUtil.getJVMXRayProperties(): raw url="+surl);
 	        	URL url = new URL(surl);
-	   	     	HttpsURLConnection con = (HttpsURLConnection)url.openConnection();
-	   	     	in = new BufferedInputStream(con.getInputStream());
+				ltlogger.info("PropertyUtil.getJVMXRayProperties(): properties loaded from url="+url.toString());
+	   	     	URLConnection con = (URLConnection)url.openConnection();
+	   	     	// NOTE: Cannot ready stream or it's altered.  Any reading the stream alters it
+				// so that it cannot be used to deserialize a properties table.  Mark/reset
+				// should allows stream to be read again but it does not work.
+				in = new BufferedInputStream(con.getInputStream());
+				ltlogger.debug("PropertyUtil.getJVMXRayProperties(): content length="+con.getContentLength());
+				ltlogger.debug("PropertyUtil.getJVMXRayProperties(): content type="+con.getContentType());
+				ltlogger.debug("PropertyUtil.getJVMXRayProperties(): content encoding="+con.getContentEncoding());
+				ltlogger.debug("PropertyUtil.getJVMXRayProperties(): date="+con.getDate());
+				ltlogger.debug("PropertyUtil.getJVMXRayProperties(): expiration="+con.getExpiration());
+				ltlogger.debug("PropertyUtil.getJVMXRayProperties(): last modified="+con.getLastModified());
         	} catch( MalformedURLException e ) {
         		// If can't load fm url check to see if this is the default
         		// configuration.  If so, load the default.  Otherwise, it's
         		// likely user mistyped the URL so we throw exception.
-        		if( !surl.equals(SYS_PROP_DEFAULT) ) {
-            		e.printStackTrace();
+        		if( !surl.equals(propertyfile) ) {
             		throw e;
         		} else {
         			in = PropertyUtil.class.getResourceAsStream(surl);	
         		}
         	}
 	    	p.load(in);
+        	StringBuffer buff = new StringBuffer();
+        	buff.append("PropertyUtil.getJVMXRayProperties(): PropertyTable[");
+        	if( p==null ) {
+        		buff.append("<null>]");
+			}else{
+        		buff.append(p.hashCode());
+        		buff.append("]");
+        		buff.append(" keys/value pair count="+p.size());
+			}
+			ltlogger.debug(buff.toString());
     	} finally {
-       	 if( in != null )
-			try {
-				in.close();
-				in = null;
-			} catch (IOException e) {}
+       		if( in != null ) {
+				try {
+					in.close();
+					in = null;
+				} catch (IOException e) {
+				}
+			}
     	}
-    	Properties modprops = resolveJVMXRayProperties(p);
+    	// Save properties with variables resolved and update cache timestamp.
+    	modprops = resolveJVMXRayProperties(p);
+		ltlogger.info("PropertyUtil.getJVMXRayProperties(): Returning new properties. Properties("+modprops.hashCode()+")");
+		current_timestamp= System.currentTimeMillis();
     	return modprops;
 	}
 	

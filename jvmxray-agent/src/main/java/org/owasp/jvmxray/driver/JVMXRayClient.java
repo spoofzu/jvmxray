@@ -12,13 +12,9 @@ import javax.net.ssl.HttpsURLConnection;
 import org.owasp.jvmxray.event.IEvent;
 import org.owasp.jvmxray.exception.JVMXRayConnectionException;
 import org.owasp.jvmxray.util.JSONUtil;
-//import org.slf4j.Logger;
-//import org.slf4j.LoggerFactory;
 
 public abstract class JVMXRayClient {
 
-	/** Get logger instance. */
-	//private static final Logger logger = LoggerFactory.getLogger("org.owasp.jvmxray.webhook.JVMXRayClient");
 	protected int MAX_TRIES = 5;
 	private URL url;
 	private HttpURLConnection connection = null;

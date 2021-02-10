@@ -17,7 +17,7 @@ public class ProtectedTaskModel {
 		return pm;
 	}
 
-	public boolean executeChainedTask( iProtectedTask task ){
+	public boolean executeChainedTask( iProtectedTask task ) {
 		//TODOMS: Similar to code in JVMXRayClient._fireEvent() and filter processing.  Investigate opportunity for code reuse.
 		boolean result = false;
 		iProtectedTask t = task;

@@ -11,6 +11,11 @@ import java.util.Hashtable;
 import java.util.Locale;
 import java.util.TimeZone;
 
+/**
+ * Utilities for parsing raw http requests.  Created from code examples provided
+ * in whole or in part Juho Vh-Herttua for public use and distribution,
+ * http://www.java2s.com/Code/Java/Network-Protocol/HttpParser.htm
+ */
 public class HttpRAWParse {
 	  private static final String[][] HttpReplies = {{"100", "Continue"},
 	                                                 {"101", "Switching Protocols"},

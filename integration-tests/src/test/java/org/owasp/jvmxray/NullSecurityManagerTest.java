@@ -9,12 +9,10 @@ import java.net.UnknownHostException;
 import java.security.BasicPermission;
 import java.security.Permission;
 
-import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 
-import org.owasp.jvmxray.collector.JVMXRayServletContainer;
 import org.owasp.jvmxray.driver.NullSecurityManager;
 
 /**
@@ -27,8 +25,8 @@ import org.owasp.jvmxray.driver.NullSecurityManager;
 public class NullSecurityManagerTest {
 	
 	private static NullSecurityManager nullsecuritymgr = null;
-	private static JVMXRayServletContainer server;
 	private Permission perm = new TestPermission();
+	private static boolean bFlagged = false;
 	
 	public class TestPermission extends BasicPermission {
 		private static final long serialVersionUID = 5932223970203786295L;
@@ -38,29 +36,42 @@ public class NullSecurityManagerTest {
 		public String getActions() {
 			// Note: setting permission action fm the two arg constructor
 			// does not work.  As a workaround, hard coding a
-			// eeturn value.
+			// return value.
 			return "testaction1";
 		}
 	}
-	
+
 	// Initialize HTTP/S server for testing.
 	@BeforeClass
-	public static void setup() {	
+	public static synchronized void setup() {
 		try {
-			server = JVMXRayServletContainer.getInstance();
-			server.start();  
+			if(bFlagged) return;
+			// Force remote retrieval of configuration from JVMXRay server.  Uncomment to specify
+			// full qualified remote server end-point to load jvmxrayclient.properties.  All configuration
+			// settings will be loaded from this file.  Don't forget to start the server by running
+			// JVMXRayStandaloneServer.  Alternatively, to limit unit testing to the agent code,
+			// thus not requiring a running server, then leave the following line commented out
+			// and the jvmxray.configuration file will be loaded from the local jar.
+			//
+			//System.setProperty("jvmxray.configuration","http://localhost:9123/api/config/");
+
+			// Force debug logging in agent.  Agents must use light weight logger.
+			// Can't use slf4j loggers like server.  Settings are NONE, DEDUG, and INFO.
+			// Incorrect or unspecified then NONE is assigned default.
+			//
+			//
+			System.setProperty("jvmxray.lightlogger","DEBUG");
+			nullsecuritymgr = new NullSecurityManager();
+			bFlagged = true;
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.exit(10);
 		}
-		nullsecuritymgr = new NullSecurityManager();
 	}
 	
 	// Terminate server upon conclusion of test.
-	@AfterClass
-	public static void finish() {	
-		server.stop();
-	}
+//	@AfterClass
+//	public static void finish() { /* server.finish(); */ }
 	
 	@Test
 	public void checkPermission0() {

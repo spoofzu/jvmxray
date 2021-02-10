@@ -45,7 +45,7 @@ public class NullSecurityManagerPerfIntegrationTest {
 	public static void setup() {	
 		try {
 			server = JVMXRayServletContainer.getInstance();
-			server.start();  
+			server.listen();
 		} catch (Exception e) {
 			e.printStackTrace();
 			System.exit(10);
@@ -55,7 +55,7 @@ public class NullSecurityManagerPerfIntegrationTest {
 	
 	// Terminate server upon conclusion of test.
 	public static void finish() {	
-		server.stop();
+		server.finish();
 	}
 	
 	/** Call NullSecurityManager.checkPermission(Permission) N times.
