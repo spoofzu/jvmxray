@@ -11,6 +11,13 @@
 NEWS Feb 10, 2021: Many improvements. See latest delivery notes and
 [updated project WIKI...](https://github.com/spoofzu/jvmxray/wiki)
 
+## Contact/Chat Group
+For regular conversation around the product and development you can find us on OWASP Slack server under the [#owasp-jvmxray](https://owasp.slack.com/archives/C01CEV19DMW) channel.  To join OWASP Slack server,
+
+Navigate to [OWASP Slack signup...](https://owasp-slack.herokuapp.com/)<br/>
+Register with your e-mail address.<br/>
+When in the Slack, find our channel in the channel list, or type: /join #owasp-jvmxray<br/>
+
 ## Benefits
 Following is a quick list of some of the more important benefits.
 
