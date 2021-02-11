@@ -71,4 +71,5 @@ The Java Virtual Machine provides a robust security framework for controlling ac
 
 ## Project Leaders
 Milton Smith<br/>
+August Detlefsen<br/>
 John Melton
