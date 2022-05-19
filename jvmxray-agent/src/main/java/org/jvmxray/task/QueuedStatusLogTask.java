@@ -55,8 +55,8 @@ public class QueuedStatusLogTask extends BaseTask {
                 local = (Vector) queue.clone();
                 queue.clear();
             }
-            String dir = p.getProperty(PropertyUtil.SYS_PROP_CLIENT_BASE_DIR);
-            String fn = p.getProperty(PropertyUtil.SYS_PROP_CLIENT_STATUS_LOG_FN, PropertyUtil.SYS_PROP_AGENT_STATUS_DEFAULT_FN);
+            String dir = p.getProperty(PropertyUtil.SYS_PROP_AGENT_BASE_DIR);
+            String fn = p.getProperty(PropertyUtil.SYS_PROP_AGENT_STATUS_LOGFILE_FN, PropertyUtil.SYS_PROP_AGENT_STATUS_LOGFILE_DEFAULT);
             if (dir != null && fn != null) {
                 dir = dir.trim();
                 fn = fn.trim();

@@ -12,12 +12,12 @@ import java.util.Enumeration;
 import java.util.Properties;
 import java.util.Vector;
 
-public class QueuedEventNetworkTask extends BaseTask {
+public class NativeServerTransportTask extends BaseTask {
 
     private Vector queue = new Vector();
     private Properties p;
 
-    public QueuedEventNetworkTask(Properties p) {
+    public NativeServerTransportTask(Properties p) {
         this.p = p;
     }
 
@@ -44,13 +44,13 @@ public class QueuedEventNetworkTask extends BaseTask {
             if( wh!=null ) {
                 wh = wh.trim();
             } else {
-                throw new JVMXRayRuntimeException("QueuedEventNetworkTask.execute(): Bad configuration.  wh="+wh);
+                throw new JVMXRayRuntimeException("NativeServerTransportTask.execute(): Bad configuration.  wh="+wh);
             }
             URL webhookurl = null;
             try {
                 webhookurl = new URL(wh);
             }catch(MalformedURLException e) {
-                throw new JVMXRayRuntimeException("QueuedEventNetworkTask.execute(): Malformed URL.  wh="+wh);
+                throw new JVMXRayRuntimeException("NativeServerTransportTask.execute(): Malformed URL.  wh="+wh);
             }
             // Iterate over the event buffer
             Enumeration elements = local.elements();

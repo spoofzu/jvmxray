@@ -5,7 +5,7 @@ import java.security.BasicPermission;
 public class TestPermission extends BasicPermission {
     private static final long serialVersionUID = 5932223970203786295L;
 
-    TestPermission() {
+    public TestPermission() {
         super("testpermissionname1");
     }
 

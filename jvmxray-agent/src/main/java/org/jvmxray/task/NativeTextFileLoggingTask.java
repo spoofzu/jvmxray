@@ -9,12 +9,12 @@ import java.util.Enumeration;
 import java.util.Properties;
 import java.util.Vector;
 
-public class QueuedEventLogTask extends BaseTask {
+public class NativeTextFileLoggingTask extends BaseTask {
 
     private Properties p;
     private Vector queue = new Vector();
 
-    public QueuedEventLogTask(Properties p) {
+    public NativeTextFileLoggingTask(Properties p) {
         this.p = p;
     }
 
@@ -36,13 +36,13 @@ public class QueuedEventLogTask extends BaseTask {
                 local = (Vector) queue.clone();
                 queue.clear();
             }
-            String dir = p.getProperty(PropertyUtil.SYS_PROP_CLIENT_BASE_DIR);
-            String fn = p.getProperty(PropertyUtil.SYS_PROP_CLIENT_EVENT_LOG_FN, PropertyUtil.SYS_PROP_AGENT_EVENT_DEFAULT_FN);
+            String dir = p.getProperty(PropertyUtil.SYS_PROP_AGENT_BASE_DIR);
+            String fn = p.getProperty(PropertyUtil.SYS_PROP_AGENT_EVENT_LOGFILE_FN, PropertyUtil.SYS_PROP_AGENT_EVENT_LOGFILE_DEFAULT);
             if( dir!=null && fn!=null ) {
                 dir = dir.trim();
                 fn = fn.trim();
             } else {
-                throw new JVMXRayRuntimeException("QueuedEventLogTask.execute(): Bad configuration.  dir="+dir+" fn="+fn);
+                throw new JVMXRayRuntimeException("NativeTextFileLoggingTask.execute(): Bad configuration.  dir="+dir+" fn="+fn);
             }
             FileWriter fw = new FileWriter(dir+fn, true);
             pw = new PrintWriter(fw);

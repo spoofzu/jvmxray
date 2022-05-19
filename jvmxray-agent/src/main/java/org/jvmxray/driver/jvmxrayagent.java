@@ -2,8 +2,8 @@ package org.jvmxray.driver;
 
 import org.jvmxray.filters.IJVMXRayFilterRule;
 import org.jvmxray.filters.JVMXRayFilterList;
+import org.jvmxray.processors.IJVMXRayProcessor;
 import org.jvmxray.task.FilterActions;
-import org.jvmxray.task.QueuedEventNetworkTask;
 import org.jvmxray.task.QueuedStatusLogTask;
 import org.jvmxray.event.IEvent;
 import org.jvmxray.util.EventUtil;
@@ -17,20 +17,33 @@ import java.net.InetAddress;
 import java.net.URL;
 import java.rmi.dgc.VMID;
 import java.security.Permission;
-import java.util.EnumSet;
-import java.util.Enumeration;
-import java.util.Properties;
-import java.util.Timer;
+import java.util.*;
 
 /**
- * WhiteSecurityManager conforms to the java.lang.SecurityManager specifications.  This class
- * is loaded dynamically in your Java application through command line options.  The class
- * monitors access to protected resources used during runtime and sends them to a remote
- * server for futher processing.
+ * jvmxrayagent conforms to the java.lang.SecurityManager specifications.  The agent
+ * is dynamically loaded within a running Java application Virtual Machine through
+ * command line options like this,<br/>
+ * <code>
+ *     -Djava.security.manager=org.jvmxray.driver.jvmxrayagent"
+ * </code>
+ * The agent monitors access to protected resources used during runtime, turns them
+ * into events for further processing.  Depending upon configuration options events
+ * and metadata is sent to various destinations like, files, JSON end-points,
+ * pub/sub services, or other custom end-points you define.  Limit the flow
+ * of messages user configurable filters are provided like NullFilter and StringFilter
+ * for carving down message traffic to only those messages of interest to you.
+ * <p/>
+ * To extend and customize Agent behavior developers can can do the following.
+ * + Develop an event processor, event processors are listeners that receive each
+ *   agent events as they are fired.  You can pass the events through ot the framework
+ *   for normal processing or add your own innovative features.
+ * + Filters, filters reduce data to a subset of meaningful events.  Two filters are
+ *   provided StringFilter and NullFilter.  Developers can extend these existing filters
+ *   or write new filters.
  * @see java.lang.SecurityManager
  * @author Milton Smith
  */
-public class WhiteSecurityManager extends SecurityManager {
+public class jvmxrayagent extends SecurityManager {
 
     // jvmxrayclient.properties
     protected Properties p = new Properties();
@@ -39,22 +52,29 @@ public class WhiteSecurityManager extends SecurityManager {
     // Server identity
     private String id;
     private volatile boolean locked = false;
-    // Buffer of status Strings.  Used for logging diagnostics messages.
-    private QueuedStatusLogTask statuslogger;
-    // Buffer of status Strings.  Used for logging events.
-    private QueuedEventNetworkTask eventlogger;
     // Events to process.
     private EnumSet<IEvent.Events> usrevents = EnumSet.noneOf(IEvent.Events.class);
     // Event utilities
     private static final EventUtil eu = EventUtil.getInstance();
+    // Status/diagnostic messages are logged in a queue as Strings.  Background thread
+    // pulls events from queue and logs them at regular intervals.
+    private Timer timer = new Timer();
+    // Buffered status logging.
+    private QueuedStatusLogTask statuslogger;
+    // List of event processors, as defined in configuration.
+    private ArrayList<IJVMXRayProcessor> processors = new ArrayList<IJVMXRayProcessor>();
 
-    public WhiteSecurityManager() {
+    /**
+     * CTOR
+     */
+    public jvmxrayagent() {
         try {
             initializeFromProperties();  // Initialize property settings, resolve configuration variables, etc.
-            initialize(); // Initialize diagnostic logging.
-            statuslogger.logMessage("WhiteSecurityManager(CTOR): Initialization complete.");
+            initialize(); // Intialize status/diagnostic logging system.
+            statuslogger.logMessage("jvmxrayagent(CTOR): Initialization complete.");
         }catch(Throwable t){
-            statuslogger.logMessage("WhiteSecurityManager(CTOR): Error initializing.", t);
+            System.err.println("jvmxrayagent(CTOR): Error initializing. msg="+t.getMessage());
+            t.printStackTrace();
         }
     }
 
@@ -66,21 +86,14 @@ public class WhiteSecurityManager extends SecurityManager {
      * @throws Exception
      */
     private void initialize() throws Exception {
-        // Initialize the status logger.
-        statuslogger = new QueuedStatusLogTask(p);
-        // Initialize the network event logger.
-        eventlogger = new QueuedEventNetworkTask(p);
         // Status/diagnostic messages are logged in a queue as Strings.  Background thread
         // pulls events from queue and logs them at regular intervals.
         Timer timer = new Timer();
-        //TODOMS: Need PERIOD to be a configuration property.
-        long PERIOD = 1000 * 2;   // Write log entries every PERIOD-seconds
+        // Initialize the status logger.
+        statuslogger = new QueuedStatusLogTask(p);
         // Events are logged in a queue as Strings.  Background thread
         // pulls events from queue and logs them at regular intervals.
-        timer.scheduleAtFixedRate(statuslogger, 0, PERIOD);
-        // Events are logged in a queue as Strings.  Background thread
-        // pulls events from queue and logs them at regular intervals.
-        timer.scheduleAtFixedRate(eventlogger, 0, PERIOD);
+        timer.scheduleAtFixedRate(statuslogger, 0, 2000);
     }
 
     /**
@@ -845,7 +858,8 @@ public class WhiteSecurityManager extends SecurityManager {
         return super.getThreadGroup();
     }
 
-    // Gather up additional event metadata and process.
+    // Events generated by overloaded SecurityManager methods, check*(), call this
+    // method for processing (e.g., send to server, log to disk, etc).
     private void processEvent(String event)  {
         try {
             Callstack opts = null;
@@ -866,40 +880,43 @@ public class WhiteSecurityManager extends SecurityManager {
                 if(!opts.equals(Callstack.NONE)) {
                     event = getStackTrace(opts, event);
                 }
-                eventlogger.sendEvent(event);
+                // Passes event to each event processor as defined in agent configuration like
+                // nativeserverxportprocessor and nativelogmessagetofileprocessor, or develop your own processors to do other things.
+                fireEventProcessors(event);
             }
             // Log any unhandled exceptions and continue (if possible).
         } catch(Throwable t) {
-            statuslogger.logMessage("RedSecurityManager.processEvent():  Unhandled exception. msg="+t.getMessage(), t);
+            statuslogger.logMessage("jvmxrayagent.processEvent():  Unhandled exception. msg="+t.getMessage(), t);
         }
     }
 
-    /**
-     * Initialize the NullSecurityManager subclass via property settings from jvmxrayclient.properties.
-     * @throws ClassNotFoundException
-     * @throws SecurityException
-     * @throws NoSuchMethodException
-     * @throws InvocationTargetException
-     * @throws IllegalArgumentException
-     * @throws IllegalAccessException
-     * @throws InstantiationException
-     * @throws IOException
-     */
+    // When an event is fired, it's passed to each event processor specified in
+    // configuration.
+    private void fireEventProcessors(String event) {
+        Iterator i = processors.listIterator();
+        while( i.hasNext() ) {
+            // We don't fire them in any order at the moment.
+            IJVMXRayProcessor processor = (IJVMXRayProcessor)i.next();
+            processor.processEvent(event);
+        }
+    }
+
+    // Initialize the NullSecurityManager subclass via property settings from jvmxrayclient.properties.
     private void initializeFromProperties() throws ClassNotFoundException, NoSuchMethodException, SecurityException,
             InstantiationException, IllegalAccessException, IllegalArgumentException,
             InvocationTargetException, IOException {
 
         // Load jvmxrayclient.properties and cache it.
-        PropertyUtil pu = PropertyUtil.getInstance(PropertyUtil.SYS_PROP_CLIENT_DEFAULT);
+        PropertyUtil pu = PropertyUtil.getInstance(PropertyUtil.SYS_PROP_AGENT_CONFIG_DEFAULT);
         p = pu.getProperties();
 
         // Get the assigned server identity or generate a new identity and save it.
         try {
             // Throws exception if can't load file from configuration.
-            id = pu.getServerId();
+            id = pu.getAgentId();
         } catch( Exception e ) {
             // Server identity from command line, if assigned by user.
-            String i1 = System.getProperty(PropertyUtil.SYS_PROP_EVENT_SERV_IDENTITY);
+            String i1 = System.getProperty(PropertyUtil.SYS_PROP_AGENT_IDENTITY);
             String i3=""; String lid="";
             // If no id assigned by user, generate a new one.
             if( i1 == null ) {
@@ -911,16 +928,32 @@ public class WhiteSecurityManager extends SecurityManager {
                 lid=i1;
             }
             // If exception occurs, they bubble up.
-            pu.saveServerId(lid);
+            pu.saveAgentId(lid);
             id = lid;
         }
+        // Iterate over the first 500 command processors, current limit.
+        for( int i2=1; i2 < 500; i2++ ) {
+            String key = "jvmxray.agent.processor.classname"+i2;
+            String cclass = p.getProperty(key);
+            if( cclass == null ) {
+                continue;
+            }
+            cclass.trim();
+            p.setProperty(key,cclass);
+            Class c = getClass().getClassLoader().loadClass(cclass);
+            Constructor ctor = c.getConstructor(Properties.class, Timer.class);
+            IJVMXRayProcessor processor = (IJVMXRayProcessor)ctor.newInstance(p, timer);
+            processor.startup(); // Initialize processor.
+            processors.add(processor);
+        }
+
         // Iterate over the first 500 properties, current limit.
         for( int i1=1; i1 < 500; i1++ ) {
             // Common settings for all filters.
-            String fclass = p.getProperty("jvmxray.filter"+i1+".class");
-            String events = p.getProperty("jvmxray.filter"+i1+".events");
-            String strace = p.getProperty("jvmxray.filter"+i1+".stacktrace");
-            String defaults = p.getProperty("jvmxray.filter"+i1+".default");
+            String fclass = p.getProperty("jvmxray.agent.filter"+i1+".class");
+            String events = p.getProperty("jvmxray.agent.filter"+i1+".events");
+            String strace = p.getProperty("jvmxray.agent.filter"+i1+".stacktrace");
+            String defaults = p.getProperty("jvmxray.agent.filter"+i1+".default");
             // No more filters or missing filter.  Continue to look for
             // next numbered filter.
             if( fclass == null || events == null || strace == null || defaults == null ) {
@@ -932,10 +965,10 @@ public class WhiteSecurityManager extends SecurityManager {
             strace.trim();
             strace.trim();
             defaults.trim();
-            p.setProperty("jvmxray.filter"+i1+".class", fclass);
-            p.setProperty("jvmxray.filter"+i1+".events", events);
-            p.setProperty("jvmxray.filter"+i1+".stacktrace",strace);
-            p.setProperty("jvmxray.filter"+i1+".default",defaults);
+            p.setProperty("jvmxray.agent.filter"+i1+".class", fclass);
+            p.setProperty("jvmxray.agent.filter"+i1+".events", events);
+            p.setProperty("jvmxray.agent.filter"+i1+".stacktrace",strace);
+            p.setProperty("jvmxray.agent.filter"+i1+".default",defaults);
             // Collect all properties specific to the filter so we can include
             // with the rule.
             Properties np = new Properties();
@@ -998,7 +1031,6 @@ public class WhiteSecurityManager extends SecurityManager {
      * eventtypes callstack options as configured.
      */
     private String getStackTrace(Callstack opts, String event) {
-        StackTraceElement[] stack = Thread.currentThread().getStackTrace();
         EventUtil ep = EventUtil.getInstance();
         String pk = Integer.toString(ep.getPK(event));
         String st = Long.toString(ep.getState(event));
@@ -1006,7 +1038,7 @@ public class WhiteSecurityManager extends SecurityManager {
         String ti = ep.getThreadId(event);
         String et = ep.getEventType(event);
         String id = ep.getIdentity(event);
-        String cs = getStackTrace(opts, stack);
+        String cs = getStackTrace(opts);
         String p1 = ep.getParam1(event);
         String p2 = ep.getParam2(event);
         String p3 = ep.getParam3(event);
@@ -1017,49 +1049,75 @@ public class WhiteSecurityManager extends SecurityManager {
     /**
      * Generate a stacktrace.  Optional, assigned if configured.
      * @param opts Stacktrace options, LIMITED, SOURCEPATH, FULL.
-     * @param stacktrace Array of stack trace elements.
      */
-    private String getStackTrace(Callstack opts, StackTraceElement[] stacktrace) {
+    private String getStackTrace(Callstack opts) {
         StringBuffer buff = new StringBuffer();
         URL location = null;
 
+        // Performance, only generate a trace if an option is assigned.
+        StackTraceElement[] stacktrace = new StackTraceElement[0];
+        if (opts == Callstack.NONE) {
+            stacktrace = Thread.currentThread().getStackTrace();
+        }
+
         switch ( opts ) {
+            case NONE:
+                buff.append("DISABLED");
+                break;
             case LIMITED:
                 for (StackTraceElement e : stacktrace ) {
                     try {
+                        // form name
                         Class c = Class.forName(e.getClassName());
+                        buff.append("[");
                         buff.append(c.getName());
-                        buff.append("->");
+                        // Close tag
+                        buff.append("]->");
                     } catch( ClassNotFoundException e1) {
-                        statuslogger.logMessage("RedSecurityManager.generateCallStack(): msg="+e1.getMessage(), e1);
+                        statuslogger.logMessage("jvmxrayagent.generateCallStack(): msg="+e1.getMessage(), e1);
                     }
                 }
                 break;
             case SOURCEPATH:
                 for (StackTraceElement e : stacktrace ) {
                     try {
+                        // form name
                         Class c = Class.forName(e.getClassName());
+                        buff.append("[");
+                        buff.append(c.getName());
+                        // form path
                         location = c.getResource('/' + c.getName().replace('.', '/') + ".class");
                         buff.append(location.toString());
-                        buff.append("->");
+                        // Close tag
+                        buff.append("]->");
                     } catch( ClassNotFoundException e1) {
-                        statuslogger.logMessage("RedSecurityManager.generateCallStack(): msg="+e1.getMessage(), e1);
+                        statuslogger.logMessage("jvmxrayagent.generateCallStack(): msg="+e1.getMessage(), e1);
                     }
                 }
                 break;
             case FULL:
                 for (StackTraceElement e : stacktrace ) {
-                    buff.append(e.getClassName());
-                    buff.append('(');
-                    buff.append(e.getMethodName());
-                    buff.append(':');
-                    buff.append(e.getLineNumber());
-                    buff.append(')');
-                    buff.append("->");
+                    try {
+                        // form name
+                        Class c = Class.forName(e.getClassName());
+                        buff.append("[");
+                        buff.append(c.getName());
+                        buff.append("/");
+                        buff.append(e.getClassName());
+                        buff.append('(');
+                        buff.append(e.getMethodName());
+                        buff.append(':');
+                        buff.append(e.getLineNumber());
+                        buff.append(')');
+                        // form path
+                        location = c.getResource('/' + c.getName().replace('.', '/') + ".class");
+                        buff.append(location.toString());
+                        // Close tag
+                        buff.append("]->");
+                    } catch( ClassNotFoundException e1) {
+                        statuslogger.logMessage("jvmxrayagent.generateCallStack(): msg="+e1.getMessage(), e1);
+                    }
                 }
-                break;
-            case NONE:
-                buff.append("DISABLED");
                 break;
         }
 
@@ -1070,10 +1128,13 @@ public class WhiteSecurityManager extends SecurityManager {
         return buff.toString();
     }
 
+    // Used to lock API when processing an event.  Some events trigger other events leading
+    // to circular dependencies.
     private void setLocked(boolean value) {
         locked = value;
     }
 
+    // Test to see if API locked.
     private boolean isLocked() {
         return locked;
     }

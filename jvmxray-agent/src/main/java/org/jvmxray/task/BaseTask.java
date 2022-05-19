@@ -1,6 +1,5 @@
 package org.jvmxray.task;
 
-import java.util.ArrayList;
 import java.util.TimerTask;
 
 public abstract class BaseTask extends TimerTask {
@@ -27,6 +26,14 @@ public abstract class BaseTask extends TimerTask {
 
     public boolean isRunning() {
         return isRunning;
+    }
+
+    public void startup() {
+
+    }
+
+    public void shutdown() {
+
     }
 
 }

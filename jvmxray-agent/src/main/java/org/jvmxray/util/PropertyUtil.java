@@ -14,48 +14,41 @@ import java.util.Enumeration;
 import java.util.Properties;
 
 /**
- * NullSecurityManager conforms to the java.lang.SecurityManager specifications.  This class intercepts
- * access to protected resources, builds an event, and sends the event to a server for processing.
- *
+ * Helps manage Agent and Server property settings.
  * @author Milton Smith
  */
 public class PropertyUtil {
-	
-	/**
-	 * System property name that specifies the URL to load the jvmxray properties
-	 */
-	public static final String SYS_PROP_CONFIG_URL = "jvmxray.configuration";
-	public static final String SYS_PROP_CLIENT_DEFAULT = "/jvmxrayclient.properties";
-	public static final String SYS_PROP_SERVER_DEFAULT = "/jvmxrayserver.properties";
-	public static final String SYS_PROP_AGENT_STATUS_DEFAULT_FN = "jvmxraystatus.log";
-	public static final String SYS_PROP_AGENT_EVENT_DEFAULT_FN = "jvmxrayevent.log";
 
-	public static final String SYS_PROP_CLIENT_BASE_DIR = "jvmxray.agent.base.directory";
-	public static final String SYS_PROP_CLIENT_STATUS_LOG_FN = "jvmxray.agent.status.filename";
-	public static final String SYS_PROP_CLIENT_EVENT_LOG_FN = "jvmxray.agent.event.filename";
+	//  Agent configuration properties and default values.
+	public static final String SYS_PROP_AGENT_IDENTITY = "jvmxray.agent.identity";
+	public static final String SYS_PROP_AGENT_CONFIG_URL = "jvmxray.agent.configuration";
+	public static final String SYS_PROP_AGENT_CONFIG_DEFAULT = "/jvmxrayclient.properties";
+	public static final String SYS_PROP_AGENT_STATUS_LOGFILE_DEFAULT = "jvmxraystatus.log";
+	public static final String SYS_PROP_AGENT_EVENT_LOGFILE_DEFAULT = "jvmxrayevent.log";
+	public static final String SYS_PROP_AGENT_BASE_DIR = "jvmxray.agent.base.directory";
+	public static final String SYS_PROP_AGENT_STATUS_LOGFILE_FN = "jvmxray.agent.status.filename";
+	public static final String SYS_PROP_AGENT_EVENT_LOGFILE_FN = "jvmxray.agent.event.filename";
+	public static final String SYS_PROP_AGENT_TOPICNAME = "jvmxray.agent.processor.jms.topicname";
+	public static final String SYS_PROP_AGENT_CONNECTION_FACTORY = "jvmxray.agent.processor.jms.connectionfactoryname";
+	public static final String SYS_PROP_AGENT_BROKER_URL="jvmxray.agent.processor.jms.broker.url";
 
-	/**
-	 * Server identity.  System property providing the globally unique identity for the application.  Useful for
-	 * identifying the specific instance of a cloud application that generated a particular message.
-	 */
-	public static final String SYS_PROP_EVENT_SERV_IDENTITY = "jvmxray.event.nullsecuritymanager.server.identity";
-	
-	/**
-	 * File containing server identity on local file system.
-	 */
-	public static final String CONF_PROP_SERV_IDENTITY_FILE="jvmxray.event.nullsecuritymanager.id.file";
-
-	/**
-	 * Directory property. JVMXRay base directory.
-	 */
-	public static final String CONF_PROP_EVENT_DIRECTORY = "jvmxray.event.server.directory";
-	
+	//  Server configuration properties and default values.
+	public static final String CONF_PROP_SERVER_IDENTITY_FILE ="jvmxray.agent.id.file";
+	public static final String CONF_PROP_SERVER_DIRECTORY = "jvmxray.server.directory";
+	public static final String SYS_PROP_SERVER_CONFIG_DEFAULT = "/jvmxrayserver.properties";
+	public static final String SYS_PROP_SERVER_TOPICNAME = "jvmxray.server.processor.jms.topicname";
+	public static final String SYS_PROP_SERVER_CONNECTION_FACTORY = "jvmxray.server.processor.jms.connectionfactoryname";
+	public static final String SYS_PROP_SERVER_BROKER_URL="jvmxray.server.processor.jms.broker.url";
+	public static final String SYS_PROP_SERVER_THREAD_POOL_MAX ="jvmxray.server.thread.pool.max";
+	public static final String SYS_PROP_SERVER_POOL_SLEEP="jvmxray.server.thread.pool.sleep";
 	public static final String CONF_PROP_WEBHOOK_EVENT_END_POINT = "jvmxray.webhook.event.endpoint";
+	public static final String CONF_PROP_EVENT_SERVER_DIRECTORY = "jvmxray.server.directory";
+	public static final String CONF_PROP_SERVER_HDFS_SERVER = "jvmxray.server.hdfs";
+	public static final String CONF_PROP_SERVER_HDFS_FILENAME = "jvmxray.server.hdfs.path.file.name";
+	public static final String CONF_PROP_SERVER_HDFS_FANOUT = "jvmxray.server.hdfs.path.file.fanout";
 
 	private LiteLogger ltlogger = LiteLogger.getLoggerinstance();
-
 	private static PropertyUtil pu;
-
 	private static Properties modprops = null;
 	
 	private PropertyUtil() {}
@@ -74,10 +67,10 @@ public class PropertyUtil {
 	}
 
 	// Saves cloud identity to the local filesystem.
-	public final void saveServerId( String id ) throws IOException {
+	public final void saveAgentId(String id ) throws IOException {
 		// Get the server identity file to use on local file system.
-		String basedir = modprops.getProperty(CONF_PROP_EVENT_DIRECTORY);
-		String idfile = modprops.getProperty(CONF_PROP_SERV_IDENTITY_FILE);
+		String basedir = modprops.getProperty(SYS_PROP_AGENT_BASE_DIR);
+		String idfile = modprops.getProperty(CONF_PROP_SERVER_IDENTITY_FILE);
 		File f = new File(basedir, idfile);
 		// If a file does not exist then create one.  If one exists, then skip and return.
 		// To force a new id creation simply delete a file, a new id will be created.
@@ -91,10 +84,10 @@ public class PropertyUtil {
 	}
 	
 	// Return the servers cloud identity from the local file system.
-	public final String getServerId() throws IOException {
+	public final String getAgentId() throws IOException {
 		// Get the server identity file to use on local file system.
-		String basedir = modprops.getProperty(CONF_PROP_EVENT_DIRECTORY);
-		String idfile = modprops.getProperty(CONF_PROP_SERV_IDENTITY_FILE);
+		String basedir = modprops.getProperty(SYS_PROP_AGENT_BASE_DIR);
+		String idfile = modprops.getProperty(CONF_PROP_SERVER_IDENTITY_FILE);
 		File f = new File(basedir, idfile);
 		// If a file does not exist then create one.  If one exists, then skip and return.
 		// To force a new id creation simply delete a file, a new id will be created.
@@ -129,7 +122,7 @@ public class PropertyUtil {
     	InputStream in = null;
     	try {
     		// NOTE: command line property, not from properties file.
-        	String surl = System.getProperty(SYS_PROP_CONFIG_URL, propertyfile);
+        	String surl = System.getProperty(SYS_PROP_AGENT_CONFIG_URL, propertyfile);
         	try {
 			//	ltlogger.debug("PropertyUtil.getJVMXRayProperties(): raw url="+surl);
 	        	URL url = new URL(surl);
