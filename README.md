@@ -2,21 +2,16 @@
 
 # Welcome to JVMXRay
 
-&nbsp; | &nbsp;
------------- | -------------
-![xrayduke](https://user-images.githubusercontent.com/8450615/88954072-af62ef00-d24e-11ea-95f9-734395481248.png) | JVMXRay is a technology for monitoring access to system resources within the Java Virtual Machine.  It’s designed with application security emphasis but some will also find it beneficial for software quality processes and diagnostics.
+![xrayduke](https://user-images.githubusercontent.com/8450615/88954072-af62ef00-d24e-11ea-95f9-734395481248.png) | JVMXRay is a technology for monitoring access to Java protected system resources like files, sockets, and more, used by your application.  It’s designed with an application security emphasis but there are benefits in other areas like, software diagnostics, usage tracking, and auditing.
+| ------------- |:-------------|
+<b>RECENT NEWS</b> | &nbsp;
+Jun 16, 2021  Architecture overhaul | Many improvements delivered.  Wiki update in progress to reflect improvmenets.
+Feb 10, 2021  Many improvements | See latest delivery notes and [updated project WIKI...](https://github.com/spoofzu/jvmxray/wiki)
 
 [More about Oracle Java Duke mascot...](https://wiki.openjdk.java.net/display/duke/Main)
 
-NEWS Feb 10, 2021: Many improvements. See latest delivery notes and
-[updated project WIKI...](https://github.com/spoofzu/jvmxray/wiki)
-
 ## Contact/Chat Group
-For regular conversation around the product and development you can find us on OWASP Slack server under the [#owasp-jvmxray](https://owasp.slack.com/archives/C01CEV19DMW) channel.  To join OWASP Slack server,
-
-Navigate to [OWASP Slack signup...](https://owasp-slack.herokuapp.com/)<br/>
-Register with your e-mail address.<br/>
-When in the Slack, find our channel in the channel list, or type: /join #owasp-jvmxray<br/>
+New chat information forthcoming.
 
 ## Benefits
 Following is a quick list of some of the more important benefits.
@@ -35,8 +30,7 @@ Don't see an adapter or filter that works for you and know how to code?  Roll up
 
 ```
 INFORMATION:
-Project under review for acceptance as an OWASP project. Please
-consider this early stage code. 
+Consider this early stage code. 
 Thar be dragons mate.  You were warned!
 ```
 
@@ -55,21 +49,22 @@ The following provides some basic information to download and compile JVMXRay so
 
 # Sample Output...
 
-The output from this technology can be presented in different ways.  What does the sample log output look like?  Output formats are flexible but following is small idea of what you can capture in a file.
+The output from this technology can be presented in different ways.  What does the sample log output look like?  Output formats are flexible the following is a sample of the type of information JVMXRay captures for you.
 
 ```
-CONSOLEADAPTOR 2020-02-24 14:13:28 PST PACKAGE_ACCESS,pkg=javax.crypto,stack=<disabled>
-CONSOLEADAPTOR 2020-02-24 14:13:28 PST PERMISSION,n=getProperty.keystore.type.compat, a=, cn=java.security.SecurityPermission,stack=<disabled>
-CONSOLEADAPTOR 2020-02-24 14:13:28 PST FILE_READ,f=/Library/Java/JavaVirtualMachines/jdk-11.0.1.jdk/Contents/Home/lib/security/cacerts,stack=<disabled>
-CONSOLEADAPTOR 2020-02-24 14:13:28 PST PERMISSION,n=suppressAccessChecks, a=, cn=java.lang.reflect.ReflectPermission,stack=<disabled>
-CONSOLEADAPTOR 2020-02-24 14:13:28 PST PERMISSION,n=getProtectionDomain, a=, cn=java.lang.RuntimePermission,stack=<disabled>
-CONSOLEADAPTOR 2020-02-24 14:13:28 PST SOCKET_CONNECT,h=192.30.255.112, p=443,stack=<disabled>
+-1,-1,1623791226603,main-1,EXIT,1bd99e2f195004a5-5cb63e19-179fd6e8882-8000,,100,,
+-1,-1,1623791226603,main-1,LINK,1bd99e2f195004a5-5cb63e19-179fd6e8882-8000,,mylib.dll,,
+-1,-1,1623791226619,main-1,FILE_READ_WITH_FILEDESCRIPTOR,1bd99e2f195004a5-5cb63e19-179fd6e8882-8000,,java.io.FileDescriptor@6be46e8f,,
+-1,-1,1623791226620,main-1,FILE_READ_WITH_CONTEXT,1bd99e2f195004a5-5cb63e19-179fd6e8882-8000,,redsecuritymanagertest3-11060405012461211247.tmp,java.security.AccessControlContext@363a949e,
+-1,-1,1623791226621,main-1,PERMISSION,1bd99e2f195004a5-5cb63e19-179fd6e8882-8000,,org.jvmxray.TestPermission,testpermissionname1,testaction1
+-1,-1,1623791226628,main-1,PERMISSION_WITH_CONTEXT,1bd99e2f195004a5-5cb63e19-179fd6e8882-8000,,testpermissionname1,testaction1,org.jvmxray.RedSecurityManagerTest@47f6473
+-1,-1,1623791226629,main-1,SOCKET_ACCEPT,1bd99e2f195004a5-5cb63e19-179fd6e8882-8000,,localhost,1234,
+-1,-1,1623791226631,main-1,FILE_DELETE,1bd99e2f195004a5-5cb63e19-179fd6e8882-8000,,redsecuritymanagertest6-5182052521633743041.tmp,,
+-1,-1,1623791226631,main-1,SOCKET_LISTEN,1bd99e2f195004a5-5cb63e19-179fd6e8882-8000,,123,,
 ```
 
 ## How it Works
 The Java Virtual Machine provides a robust security framework for controlling access to protected resources.  JVMXRay provides an implementation of the java.lang.SecurityManager component, called NullSecurityManager.  Ironically, the NullSecurityManager provides no policy enforcement but instead monitors activities to protected resources.  It's expected other cloud log processing tools, big data tools, or cloud secuirty tools will process these events into meaningful contextual information.
 
-## Project Leaders
-Milton Smith<br/>
-August Detlefsen<br/>
-John Melton
+## Project Leader(s)
+Milton Smith
