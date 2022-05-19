@@ -1,0 +1,6 @@
+/Users/milton/github/jvmxray/jvmxray-collector/src/main/java/org/jvmxray/collector/bin/jvmxrayserver.java
+/Users/milton/github/jvmxray/jvmxray-collector/src/main/java/org/jvmxray/util/HDFSUtil.java
+/Users/milton/github/jvmxray/jvmxray-collector/src/main/java/org/jvmxray/collector/cli/ICommandListener.java
+/Users/milton/github/jvmxray/jvmxray-collector/src/main/java/org/jvmxray/collector/jms/JVMXRayJMSServerThread.java
+/Users/milton/github/jvmxray/jvmxray-collector/src/main/java/org/jvmxray/collector/jms/JVMXRayThreadPoolExecutor.java
+/Users/milton/github/jvmxray/jvmxray-collector/src/main/java/org/jvmxray/collector/cli/CommandProcessor.java

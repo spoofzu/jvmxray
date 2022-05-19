@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/integration-tests/integration-tests.iml" filepath="$PROJECT_DIR$/integration-tests/integration-tests.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jvmxray.iml" filepath="$PROJECT_DIR$/jvmxray.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jvmxray-agent/jvmxray-agent.iml" filepath="$PROJECT_DIR$/jvmxray-agent/jvmxray-agent.iml" />
+      <module fileurl="file://$PROJECT_DIR$/jvmxray-collector/jvmxray-collector.iml" filepath="$PROJECT_DIR$/jvmxray-collector/jvmxray-collector.iml" />
+    </modules>
+  </component>
+</project>

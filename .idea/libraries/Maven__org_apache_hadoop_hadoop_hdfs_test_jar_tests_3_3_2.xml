@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: org.apache.hadoop:hadoop-hdfs:test-jar:tests:3.3.2">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/apache/hadoop/hadoop-hdfs/3.3.2/hadoop-hdfs-3.3.2-tests.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/org/apache/hadoop/hadoop-hdfs/3.3.2/hadoop-hdfs-3.3.2-test-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/apache/hadoop/hadoop-hdfs/3.3.2/hadoop-hdfs-3.3.2-test-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

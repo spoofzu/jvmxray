@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuite tests="27" failures="0" name="org.jvmxray.bin.AgentAPITest" time="0.379" errors="0" skipped="0">
+  <properties>
+    <property name="java.runtime.name" value="OpenJDK Runtime Environment"/>
+    <property name="java.vm.version" value="18.0.1+0"/>
+    <property name="sun.boot.library.path" value="/usr/local/Cellar/openjdk/18.0.1/libexec/openjdk.jdk/Contents/Home/lib"/>
+    <property name="maven.multiModuleProjectDirectory" value="/Users/milton/github/jvmxray"/>
+    <property name="java.vm.vendor" value="Homebrew"/>
+    <property name="java.vendor.url" value="https://github.com/Homebrew/homebrew-core/issues"/>
+    <property name="guice.disable.misplaced.annotation.check" value="true"/>
+    <property name="path.separator" value=":"/>
+    <property name="java.vm.name" value="OpenJDK 64-Bit Server VM"/>
+    <property name="user.country" value="US"/>
+    <property name="sun.java.launcher" value="SUN_STANDARD"/>
+    <property name="java.vm.specification.name" value="Java Virtual Machine Specification"/>
+    <property name="user.dir" value="/Users/milton/github/jvmxray"/>
+    <property name="java.vm.compressedOopsMode" value="Zero based"/>
+    <property name="java.runtime.version" value="18.0.1+0"/>
+    <property name="os.arch" value="x86_64"/>
+    <property name="java.io.tmpdir" value="/var/folders/zb/lw89d2ms76x75zfy_8btv4l40000gn/T/"/>
+    <property name="line.separator" value="
+"/>
+    <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
+    <property name="os.name" value="Mac OS X"/>
+    <property name="classworlds.conf" value="/usr/local/Cellar/maven/3.8.5/libexec/bin/m2.conf"/>
+    <property name="sun.jnu.encoding" value="UTF-8"/>
+    <property name="java.library.path" value="/Users/milton/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:."/>
+    <property name="maven.conf" value="/usr/local/Cellar/maven/3.8.5/libexec/conf"/>
+    <property name="jdk.debug" value="release"/>
+    <property name="java.class.version" value="62.0"/>
+    <property name="java.specification.name" value="Java Platform API Specification"/>
+    <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
+    <property name="os.version" value="12.3.1"/>
+    <property name="library.jansi.path" value="/usr/local/Cellar/maven/3.8.5/libexec/lib/jansi-native"/>
+    <property name="http.nonProxyHosts" value="local|*.local|169.254/16|*.169.254/16"/>
+    <property name="user.home" value="/Users/milton"/>
+    <property name="user.timezone" value="America/Los_Angeles"/>
+    <property name="file.encoding" value="UTF-8"/>
+    <property name="java.specification.version" value="18"/>
+    <property name="user.name" value="milton"/>
+    <property name="java.class.path" value="/usr/local/Cellar/maven/3.8.5/libexec/boot/plexus-classworlds-2.6.0.jar"/>
+    <property name="java.vm.specification.version" value="18"/>
+    <property name="sun.arch.data.model" value="64"/>
+    <property name="sun.java.command" value="org.codehaus.plexus.classworlds.launcher.Launcher install"/>
+    <property name="java.home" value="/usr/local/Cellar/openjdk/18.0.1/libexec/openjdk.jdk/Contents/Home"/>
+    <property name="apple.awt.application.name" value="Launcher"/>
+    <property name="user.language" value="en"/>
+    <property name="java.specification.vendor" value="Oracle Corporation"/>
+    <property name="java.vm.info" value="mixed mode, sharing"/>
+    <property name="java.version" value="18.0.1"/>
+    <property name="native.encoding" value="UTF-8"/>
+    <property name="java.vendor" value="Homebrew"/>
+    <property name="sun.stderr.encoding" value="UTF-8"/>
+    <property name="maven.home" value="/usr/local/Cellar/maven/3.8.5/libexec"/>
+    <property name="file.separator" value="/"/>
+    <property name="java.version.date" value="2022-04-19"/>
+    <property name="java.vendor.url.bug" value="https://github.com/Homebrew/homebrew-core/issues"/>
+    <property name="sun.io.unicode.encoding" value="UnicodeBig"/>
+    <property name="sun.cpu.endian" value="little"/>
+    <property name="java.vendor.version" value="Homebrew"/>
+    <property name="sun.stdout.encoding" value="UTF-8"/>
+    <property name="socksNonProxyHosts" value="local|*.local|169.254/16|*.169.254/16"/>
+    <property name="ftp.nonProxyHosts" value="local|*.local|169.254/16|*.169.254/16"/>
+  </properties>
+  <testcase classname="org.jvmxray.bin.AgentAPITest" name="checkMulticast0" time="0.359"/>
+  <testcase classname="org.jvmxray.bin.AgentAPITest" name="checkMulticast1" time="0"/>
+  <testcase classname="org.jvmxray.bin.AgentAPITest" name="checkPropertiesAccess" time="0"/>
+  <testcase classname="org.jvmxray.bin.AgentAPITest" name="checkAccess0" time="0.001"/>
+  <testcase classname="org.jvmxray.bin.AgentAPITest" name="checkAccess1" time="0"/>
+  <testcase classname="org.jvmxray.bin.AgentAPITest" name="checkSetFactory" time="0"/>
+  <testcase classname="org.jvmxray.bin.AgentAPITest" name="checkCreateClassLoader0" time="0.001"/>
+  <testcase classname="org.jvmxray.bin.AgentAPITest" name="checkExec0" time="0"/>
+  <testcase classname="org.jvmxray.bin.AgentAPITest" name="checkExit0" time="0"/>
+  <testcase classname="org.jvmxray.bin.AgentAPITest" name="checkLink0" time="0.001"/>
+  <testcase classname="org.jvmxray.bin.AgentAPITest" name="checkRead0" time="0.012"/>
+  <testcase classname="org.jvmxray.bin.AgentAPITest" name="checkRead1" time="0.001"/>
+  <testcase classname="org.jvmxray.bin.AgentAPITest" name="checkRead3" time="0"/>
+  <testcase classname="org.jvmxray.bin.AgentAPITest" name="checkPermission0" time="0.001"/>
+  <testcase classname="org.jvmxray.bin.AgentAPITest" name="checkPermission1" time="0"/>
+  <testcase classname="org.jvmxray.bin.AgentAPITest" name="checkAccept" time="0"/>
+  <testcase classname="org.jvmxray.bin.AgentAPITest" name="checkDelete" time="0.001"/>
+  <testcase classname="org.jvmxray.bin.AgentAPITest" name="checkListen" time="0"/>
+  <testcase classname="org.jvmxray.bin.AgentAPITest" name="checkWrite0" time="0"/>
+  <testcase classname="org.jvmxray.bin.AgentAPITest" name="checkWrite1" time="0"/>
+  <testcase classname="org.jvmxray.bin.AgentAPITest" name="checkPropertyAccess" time="0"/>
+  <testcase classname="org.jvmxray.bin.AgentAPITest" name="checkPrintJobAccess" time="0.001"/>
+  <testcase classname="org.jvmxray.bin.AgentAPITest" name="checkPackageAccess" time="0"/>
+  <testcase classname="org.jvmxray.bin.AgentAPITest" name="checkConnect0" time="0"/>
+  <testcase classname="org.jvmxray.bin.AgentAPITest" name="checkConnect1" time="0"/>
+  <testcase classname="org.jvmxray.bin.AgentAPITest" name="checkSecurityAccess" time="0.001"/>
+  <testcase classname="org.jvmxray.bin.AgentAPITest" name="checkPackageDefinition" time="0"/>
+</testsuite>

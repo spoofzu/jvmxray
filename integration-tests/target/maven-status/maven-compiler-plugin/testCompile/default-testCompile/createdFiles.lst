@@ -1,0 +1,3 @@
+org/jvmxray/bin/AgentAPITest.class
+org/jvmxray/TestPermission.class
+org/jvmxray/IntegrationTest.class

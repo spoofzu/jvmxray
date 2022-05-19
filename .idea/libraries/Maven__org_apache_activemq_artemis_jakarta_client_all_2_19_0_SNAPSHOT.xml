@@ -1,0 +1,13 @@
+<component name="libraryTable">
+  <library name="Maven: org.apache.activemq:artemis-jakarta-client-all:2.19.0-SNAPSHOT">
+    <CLASSES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/apache/activemq/artemis-jakarta-client-all/2.19.0-SNAPSHOT/artemis-jakarta-client-all-2.19.0-SNAPSHOT.jar!/" />
+    </CLASSES>
+    <JAVADOC>
+      <root url="jar://$MAVEN_REPOSITORY$/org/apache/activemq/artemis-jakarta-client-all/2.19.0-SNAPSHOT/artemis-jakarta-client-all-2.19.0-SNAPSHOT-javadoc.jar!/" />
+    </JAVADOC>
+    <SOURCES>
+      <root url="jar://$MAVEN_REPOSITORY$/org/apache/activemq/artemis-jakarta-client-all/2.19.0-SNAPSHOT/artemis-jakarta-client-all-2.19.0-SNAPSHOT-sources.jar!/" />
+    </SOURCES>
+  </library>
+</component>

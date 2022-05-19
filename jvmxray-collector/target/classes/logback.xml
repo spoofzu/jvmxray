@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="true" scanPeriod="30 seconds">
+
+	<!-- Console log -->
+	<appender name="STDOUT"
+		class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>%date{ISO8601} [%thread] %-5level [%file:%line] - %msg%n</pattern>
+		</encoder>
+	</appender>
+
+	<property name="HOME_LOG" value="logs/jvmxray.log" />
+
+	<appender name="FILE-ROLLING"
+		class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>${HOME_LOG}</file>
+		<rollingPolicy
+			class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+			<fileNamePattern>logs/archived/jvmxray.%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+			<!-- each archived file, size max 10MB -->
+			<maxFileSize>10MB</maxFileSize>
+			<!-- total size of all archive files, if total size > 20GB, it will delete 
+				old archived file -->
+			<totalSizeCap>20GB</totalSizeCap>
+			<!-- 60 days to keep -->
+			<maxHistory>60</maxHistory>
+		</rollingPolicy>
+		<encoder>
+			<pattern>%date{ISO8601} [%thread] %-5level [%file:%line] - %msg%n</pattern>
+		</encoder>
+	</appender>
+
+	<!-- Uncomment to, print shell/java properties on startup. Useful debugging 
+		configuration problems or improve record keeping. -->
+	<!-- <logger name="org.owasp.security.logging.util.SecurityUtil" level="INFO" 
+		additivity="false"> <appender-ref ref="STDOUT" /> </logger> -->
+
+	<!-- Uncomment to, print configuration properties resolved on startup. Useful 
+		debugging configuration problems. -->
+	<!-- <logger name="PropertyUtil" level="INFO" additivity="false">
+		<appender-ref ref="STDOUT" /> </logger> -->
+
+	<!-- Uncomment to, echo events sent to server on client console. Useful 
+		debugging configuration problems. -->
+	<logger name="org.jvmxray.driver.RedSecurityManager"
+		level="DEBUG" additivity="false">
+		<appender-ref ref="STDOUT" />
+	</logger>
+
+	<!-- Sink noisy logback framework messages -->
+	<logger name="ch.qos.logback" level="ERROR" additivity="false">
+		<appender-ref ref="STDOUT" />
+	</logger>
+
+	<!-- Root logger set to error by default. Has effect of turning off logging 
+		unless we enable logging in select features. -->
+	<root level="error">
+		<appender-ref ref="STDOUT" />
+		<appender-ref ref="FILE-ROLLING" />
+	</root>
+
+</configuration>
