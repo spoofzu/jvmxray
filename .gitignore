@@ -27,7 +27,8 @@ buildNumber.properties
 ##############################
 ## Gradle
 ##############################
-bin/
+## Bin commented out.  Removes bin folder.  -mps
+#bin/
 #build/
 .gradle
 .gradletasknamecache
@@ -48,7 +49,8 @@ out/
 ## Eclipse
 ##############################
 .settings/
-bin/
+## Bin commented out.  Removes bin folder.  -mps
+#bin/
 tmp/
 .metadata
 .classpath
