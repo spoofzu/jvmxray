@@ -2,11 +2,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <!-- Top-level Parent POM -->
-  <groupId>org.owasp</groupId>
+  <groupId>org.jvmxray</groupId>
   <artifactId>jvmxray</artifactId>
   <version>0.0.1</version>
   <packaging>pom</packaging>
-  <name>OWASP JVM XRay</name>
+  <name>jvmxray</name>
   <description>The OWASP JVMXRay is a technology for monitoring access to system resources within the Java Virtual Machine. It’s designed with application security emphasis but some will also find it beneficial for software quality processes and diagnostics.</description>
   <url>https://github.com/spoofzu/jvmxray/</url>
   <licenses>
@@ -18,9 +18,9 @@
   <developers>
     <developer>
       <name>Milton Smith</name>
-      <email>msmith@netsuite.com</email>
-      <organization>NetSuite, Inc.</organization>
-      <organizationUrl>https://www.netsuite.com/</organizationUrl>
+      <email>milton.smith.rr@gmail.com</email>
+      <organization>Self</organization>
+      <organizationUrl>https://www.miltonsmith.me/about/</organizationUrl>
     </developer>
   </developers>
   <modules>
