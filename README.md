@@ -56,7 +56,7 @@ The output from this technology can be presented in different ways.  What does t
 -1,-1,1623791226603,main-1,LINK,1bd99e2f195004a5-5cb63e19-179fd6e8882-8000,,mylib.dll,,
 -1,-1,1623791226619,main-1,FILE_READ_WITH_FILEDESCRIPTOR,1bd99e2f195004a5-5cb63e19-179fd6e8882-8000,,java.io.FileDescriptor@6be46e8f,,
 -1,-1,1623791226620,main-1,FILE_READ_WITH_CONTEXT,1bd99e2f195004a5-5cb63e19-179fd6e8882-8000,,redsecuritymanagertest3-11060405012461211247.tmp,java.security.AccessControlContext@363a949e,
--1,-1,1623791226621,main-1,PERMISSION,1bd99e2f195004a5-5cb63e19-179fd6e8882-8000,,org.jvmxray.TestPermission,testpermissionname1,testaction1
+-1,-1,1623791226621,main-1,PERMISSION,1bd99e2f195004a5-5cb63e19-179fd6e8882-8000,,TestPermission,testpermissionname1,testaction1
 -1,-1,1623791226628,main-1,PERMISSION_WITH_CONTEXT,1bd99e2f195004a5-5cb63e19-179fd6e8882-8000,,testpermissionname1,testaction1,org.jvmxray.RedSecurityManagerTest@47f6473
 -1,-1,1623791226629,main-1,SOCKET_ACCEPT,1bd99e2f195004a5-5cb63e19-179fd6e8882-8000,,localhost,1234,
 -1,-1,1623791226631,main-1,FILE_DELETE,1bd99e2f195004a5-5cb63e19-179fd6e8882-8000,,redsecuritymanagertest6-5182052521633743041.tmp,,

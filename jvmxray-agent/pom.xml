@@ -3,20 +3,25 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>org.owasp</groupId>
+        <groupId>org.jvmxray</groupId>
         <artifactId>jvmxray</artifactId>
         <version>0.0.1</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>jvmxray-agent</artifactId>
+    <version>0.0.1</version>
+    <properties>
+        <maven.compiler.source>1.9</maven.compiler.source>
+        <maven.compiler.target>1.9</maven.compiler.target>
+    </properties>
     <build>
         <plugins>
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.8.1</version>
                 <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
+                    <source>1.9</source>
+                    <target>1.9</target>
                 </configuration>
             </plugin>
             <plugin>
@@ -27,11 +32,13 @@
                     <descriptorRefs>
                         <descriptorRef>jar-with-dependencies</descriptorRef>
                     </descriptorRefs>
+                    <!--
                     <archive>
                         <manifest>
-                            <mainClass>org.owasp.jvmxray.adaptors.JVMXRayConsoleAdaptor</mainClass>
+                            <mainClass>org.jvmxray.adaptors.JVMXRayConsoleAdaptor</mainClass>
                         </manifest>
                     </archive>
+                    -->
                 </configuration>
                 <executions>
                     <execution>
@@ -46,46 +53,26 @@
     </build>
     <dependencies>
         <dependency>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <version>3.8.1</version>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
-            <version>4.12</version>
-            <scope>test</scope>
-        </dependency>
-        <!-- https://mvnrepository.com/artifact/org.xerial/sqlite-jdbc -->
-        <dependency>
-            <groupId>org.xerial</groupId>
-            <artifactId>sqlite-jdbc</artifactId>
-            <version>3.30.1</version>
-        </dependency>
-        <dependency>
-            <groupId>javax.servlet</groupId>
-            <artifactId>javax.servlet-api</artifactId>
-            <version>4.0.1</version>
-            <scope>provided</scope>
-        </dependency>
-        <!-- https://mvnrepository.com/artifact/ch.qos.logback/logback-classic -->
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-            <version>1.2.3</version>
+            <version>4.13.2</version>
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>1.7.25</version>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+            <version>RELEASE</version>
             <scope>compile</scope>
         </dependency>
         <dependency>
-            <groupId>org.apache.activemq</groupId>
-            <artifactId>artemis-jakarta-client-all</artifactId>
-            <version>2.19.0-SNAPSHOT</version>
-        </dependency>
-        <!-- https://mvnrepository.com/artifact/org.glassfish/javax.json -->
-        <dependency>
-            <groupId>org.glassfish</groupId>
-            <artifactId>javax.json</artifactId>
-            <version>1.1.4</version>
+            <groupId>com.googlecode.json-simple</groupId>
+            <artifactId>json-simple</artifactId>
+            <version>1.1.1</version>
         </dependency>
     </dependencies>
 </project>
