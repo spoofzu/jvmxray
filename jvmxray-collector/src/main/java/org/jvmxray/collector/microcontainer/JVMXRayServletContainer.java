@@ -17,7 +17,6 @@ import java.rmi.UnknownHostException;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import javax.servlet.ServletInputStream;
 
 /**
  * Specialized servlet micro-container for easy IDE project testing. It's not

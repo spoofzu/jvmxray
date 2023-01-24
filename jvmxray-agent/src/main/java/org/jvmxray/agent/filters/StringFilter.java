@@ -4,10 +4,8 @@ import java.util.EnumSet;
 import java.util.Enumeration;
 import java.util.Properties;
 
-import org.jetbrains.annotations.NotNull;
 import org.jvmxray.agent.event.EventDAO;
 import org.jvmxray.agent.event.IEvent;
-import org.jvmxray.agent.util.EventUtil;
 
 /**
  * Filter to handle the first argument of each event type as a String.
@@ -27,7 +25,7 @@ public class StringFilter implements IJVMXRayFilterRule {
 	private StackDebugLevel callstackopts;
 	private String rulename;
 	
-	public StringFilter(String rulename, EnumSet<IEvent.Events> supported, FilterActions defaultfilter, @NotNull Properties p, StackDebugLevel callstackopts) {
+	public StringFilter(String rulename, EnumSet<IEvent.Events> supported, FilterActions defaultfilter, Properties p, StackDebugLevel callstackopts) {
 		this.rulename = rulename;
 		this.events = supported;
 		this.defaultfilter = defaultfilter;

@@ -133,14 +133,14 @@ public class EventUtil {
                         clsPreferedClassloader = Class.forName(clsnm).getClassLoader();
                     }catch(ClassNotFoundException e) {}
                     if (clsPreferedClassloader != null) {
-                        clsloadernm = clsPreferedClassloader.getName();
+                        clsloadernm = clsPreferedClassloader.getClass().getName();
                     } else {
                         clsloadernm = "unspecified";
                         clsPreferedClassloader = ClassLoader.getSystemClassLoader();
                     }
                 } else {
                     clsPreferedClassloader = clSpecifiedClsLoader;
-                    clsloadernm = clsPreferedClassloader.getName();
+                    clsloadernm = clsPreferedClassloader.getClass().getName();
                 }
  //               resourcenm = eclass.getName().replace('.', '/') + ".class";
 //                loc = clsPreferedClassloader.getResource(resourcenm).toString();
