@@ -17,7 +17,6 @@ import java.rmi.UnknownHostException;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import javax.servlet.ServletInputStream;
 
 /**
  * Specialized servlet micro-container for easy IDE project testing. It's not
@@ -66,6 +65,7 @@ public class JVMXRayServletContainer {
      */
     public void startService() throws IOException {
         PropertyUtil pu = PropertyUtil.getInstance(PropertyUtil.SYS_PROP_SERVER_CONFIG_DEFAULT);
+        pu.refreshProperties();
         String sHost = pu.getStringProperty(PropertyUtil.SYS_PROP_SERVER_IP_HOST, "");
         if( sHost == null || sHost.equals("") ) {
             logger.warn("Invalid/missing server host name.  Using localhost as default.");
@@ -74,7 +74,7 @@ public class JVMXRayServletContainer {
         int iDefaultPort = 9123;
         int iPort = 9123;
         try {
-            iPort = pu.getIntProperty(PropertyUtil.SYS_PROP_SERVER_IP_PORT, iDefaultPort);
+            iPort = pu.getNumberProperty(PropertyUtil.SYS_PROP_SERVER_IP_PORT, iDefaultPort).intValue();
         }catch(NumberFormatException e) {
             logger.warn("Invalid server port.  Using default "+iDefaultPort+".  err="+e.getMessage()+" raw value="+
                     pu.getStringProperty(PropertyUtil.SYS_PROP_SERVER_IP_PORT));

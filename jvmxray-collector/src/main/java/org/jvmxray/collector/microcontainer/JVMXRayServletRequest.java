@@ -7,20 +7,13 @@ import java.net.Socket;
 import java.security.Principal;
 import java.util.*;
 
-import javax.servlet.AsyncContext;
-import javax.servlet.DispatcherType;
-import javax.servlet.RequestDispatcher;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.ServletInputStream;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-import javax.servlet.http.HttpUpgradeHandler;
-import javax.servlet.http.Part;
+import jakarta.servlet.*;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpUpgradeHandler;
+import jakarta.servlet.http.Part;
 
 import org.jvmxray.agent.exception.JVMXRayUnimplementedException;
 
@@ -177,11 +170,6 @@ public class JVMXRayServletRequest implements HttpServletRequest {
     }
 
     @Override
-    public String getRealPath(String path) {
-        throw new JVMXRayUnimplementedException("JVMXRayServletRequest.getRealPath(String): Not implemented.");
-    }
-
-    @Override
     public int getRemotePort() {
         throw new JVMXRayUnimplementedException("JVMXRayServletRequest.getRemotePort(): Not implemented.");
     }
@@ -235,6 +223,21 @@ public class JVMXRayServletRequest implements HttpServletRequest {
     @Override
     public DispatcherType getDispatcherType() {
         throw new JVMXRayUnimplementedException("JVMXRayServletRequest.getDispatcherType(): Not implemented.");
+    }
+
+    @Override
+    public String getRequestId() {
+        return null;
+    }
+
+    @Override
+    public String getProtocolRequestId() {
+        return null;
+    }
+
+    @Override
+    public ServletConnection getServletConnection() {
+        return null;
     }
 
     @Override
@@ -362,11 +365,6 @@ public class JVMXRayServletRequest implements HttpServletRequest {
     @Override
     public boolean isRequestedSessionIdFromURL() {
         throw new JVMXRayUnimplementedException("JVMXRayServletRequest.isRequestedSessionIdFromURL(): Not implemented.");
-    }
-
-    @Override
-    public boolean isRequestedSessionIdFromUrl() {
-        throw new JVMXRayUnimplementedException("JVMXRayServletRequest.isRequestedSessionIdFromUrl(): Not implemented.");
     }
 
     @Override

@@ -1,14 +1,13 @@
 package org.jvmxray.collector.microcontainer;
 
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Collection;
 import java.util.Locale;
 
-import javax.servlet.ServletOutputStream;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.jvmxray.agent.exception.JVMXRayUnimplementedException;
 
@@ -22,11 +21,9 @@ public class JVMXRayServletResponse implements HttpServletResponse {
 
     private PrintWriter writer;
     private int sc;
-    private StringWriter sw;
     private String content_type="text/html";
 
     public JVMXRayServletResponse( StringWriter sw ) {
-        this.sw = sw;
         this.writer = new PrintWriter(sw);
     }
 
@@ -41,12 +38,12 @@ public class JVMXRayServletResponse implements HttpServletResponse {
     }
 
     @Override
-    public ServletOutputStream getOutputStream() throws IOException {
+    public ServletOutputStream getOutputStream() {
         throw new JVMXRayUnimplementedException("JVMXRayServletResponse.getOutputStream(): Not implemented.");
     }
 
     @Override
-    public PrintWriter getWriter() throws IOException {
+    public PrintWriter getWriter(){
         return writer;
     }
 
@@ -81,7 +78,7 @@ public class JVMXRayServletResponse implements HttpServletResponse {
     }
 
     @Override
-    public void flushBuffer() throws IOException {
+    public void flushBuffer() {
         throw new JVMXRayUnimplementedException("JVMXRayServletResponse.flushBuffer(): Not implemented.");
     }
 
@@ -131,27 +128,17 @@ public class JVMXRayServletResponse implements HttpServletResponse {
     }
 
     @Override
-    public String encodeUrl(String url) {
-        throw new JVMXRayUnimplementedException("JVMXRayServletResponse.getCharacterEncoding(String): Not implemented.");
-    }
-
-    @Override
-    public String encodeRedirectUrl(String url) {
-        throw new JVMXRayUnimplementedException("JVMXRayServletResponse.encodeRedirectUrl(String): Not implemented.");
-    }
-
-    @Override
-    public void sendError(int sc, String msg) throws IOException {
+    public void sendError(int sc, String msg) {
         throw new JVMXRayUnimplementedException("JVMXRayServletResponse.sendError(int, String): Not implemented.");
     }
 
     @Override
-    public void sendError(int sc) throws IOException {
+    public void sendError(int sc) {
         throw new JVMXRayUnimplementedException("JVMXRayServletResponse.sendError(int): Not implemented.");
     }
 
     @Override
-    public void sendRedirect(String location) throws IOException {
+    public void sendRedirect(String location) {
         throw new JVMXRayUnimplementedException("JVMXRayServletResponse.sendRedirect(String): Not implemented.");
     }
 
@@ -188,11 +175,6 @@ public class JVMXRayServletResponse implements HttpServletResponse {
     @Override
     public void setStatus(int sc) {
         this.sc = sc;
-    }
-
-    @Override
-    public void setStatus(int sc, String sm) {
-        throw new JVMXRayUnimplementedException("JVMXRayServletResponse.setStatus(int, String): Not implemented.");
     }
 
     @Override

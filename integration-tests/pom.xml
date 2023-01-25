@@ -2,7 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>org.owasp</groupId>
+    <groupId>org.jvmxray</groupId>
     <artifactId>jvmxray</artifactId>
     <version>0.0.1</version>
     <relativePath>../pom.xml</relativePath>
@@ -14,23 +14,23 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>3.8.1</version>
         <configuration>
-          <source>1.8</source>
-          <target>1.8</target>
+          <source>1.9</source>
+          <target>1.9</target>
         </configuration>
       </plugin>
     </plugins>
   </build>
   <dependencies>
     <dependency>
-      <groupId>org.owasp</groupId>
+      <groupId>org.jvmxray</groupId>
       <artifactId>jvmxray-agent</artifactId>
       <version>LATEST</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.owasp</groupId>
+      <groupId>org.jvmxray</groupId>
       <artifactId>jvmxray-collector</artifactId>
-      <version>LATEST</version>
+      <version>0.0.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
