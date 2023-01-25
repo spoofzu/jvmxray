@@ -1062,6 +1062,7 @@ public class jvmxrayagent extends SecurityManager {
             // to load default properties from the classpath.
             try {
                 pu = PropertyUtil.getInstance(sBootStrapUrl, aid, category);
+                pu.refreshProperties();
             }catch(Exception e) {
                 statuslogger.logMessage("jvmxrayagent.initializeFromProperties(): Failed to load Agent properties from server.  Trying default properties.");
                 pu = PropertyUtil.getInstance(PropertyUtil.SYS_PROP_AGENT_CONFIG_DEFAULT);
@@ -1141,6 +1142,7 @@ public class jvmxrayagent extends SecurityManager {
                 rulelist.add(fr);
             }
         }finally {
+            // If we fail then we unlock.  No point in locking the web app if we can't init.
             setLocked(false);
         }
     }
