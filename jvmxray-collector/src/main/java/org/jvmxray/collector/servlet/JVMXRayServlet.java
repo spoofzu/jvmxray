@@ -8,20 +8,20 @@ import java.sql.SQLException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-import org.apache.commons.io.FileUtils;
 import org.jvmxray.agent.event.EventDAO;
 import org.jvmxray.agent.event.IEvent;
 import org.jvmxray.agent.exception.JVMXRayDBException;
 import org.jvmxray.collector.util.DBUtil;
 import org.jvmxray.agent.util.JSONUtil;
 import org.jvmxray.agent.util.PropertyUtil;
+import org.jvmxray.agent.util.FileUtil;
 
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletInputStream;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletInputStream;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.jvmxray.agent.exception.JVMXRayUnimplementedException;
 import org.slf4j.Logger;
@@ -251,13 +251,14 @@ public class JVMXRayServlet extends HttpServlet {
         // {server-base}/agent-config/default/default.properties so that
         // all agents can download a default set of properties.
         // Admins must create other properties as desired.
+        FileUtil fu = FileUtil.getInstance();
         File dst  = new File(agent_config_default_dir, "default.properties");
         if( !dst.exists() ) {
             try {
                // URL dp = ClassLoader.getSystemResource(PropertyUtil.SYS_PROP_AGENT_CONFIG_DEFAULT);
                 URL dp = PropertyUtil.class.getResource(PropertyUtil.SYS_PROP_AGENT_CONFIG_DEFAULT);
                 File src = new File(dp.toURI());
-                FileUtils.copyFile(src, dst);
+                fu.cp(src, dst);
                 logger.info("Default agent properties installed.  src="+src+" dst="+dst);
             } catch(Exception e) {
                 logger.warn("Problem creating default agent properties.  Check server configuration.",e);
