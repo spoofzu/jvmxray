@@ -99,74 +99,51 @@ public class EventUtil {
         StackTraceDAO nextDAO = null;
         int iSz = ste.length;
         boolean bCreateHead = true;
+        // TODO No limit on number of stackframes.  Need to consider setting a practical limit.
         for (int i = 0; i < iSz; i++) {
             StackTraceElement element = ste[i];
             Class eclass = null;
             try {
+                // Attempt to load each class in the stack frame.
                 eclass = Class.forName(element.getClassName());
             } catch (ClassNotFoundException e) {
-                eclass = Object.class;
-                System.err.println("Err: Unable to load class.  class="+element.getClassName());
+                // Some classes appearing in the stack frame may not be
+                //   reachable with the standard classloader.
             }
-            // Do this for LIMITED, SOURCEPATH, and FULL.
+            // Do this for all stacktracing levels: LIMITED, SOURCEPATH, and FULL/
             String clsloadernm = "";
             String clsnm = element.getClassName();
-            String methnm = "";
+            String methnm = element.getMethodName();
             int linenum = 0;
-            String resourcenm = "";
-            String loc = "";
-            String modulenm = "";
-            String modulevr = "";
+            //String resourcenm = "";
+            String loc = "unavailable";
+            String modulenm = element.getModuleName();
+            String modulevr = element.getModuleVersion();
             boolean isnative = false;
             String ds = "unavailable";
-            String filenm = "unavailable";
-            if (opts == StackDebugLevel.SOURCEPATH || opts == StackDebugLevel.LIMITED || opts == StackDebugLevel.FULL ) {
-                // Get source file
-                filenm = element.getFileName();
-                // Set system classloader as prefered by default.
-                ClassLoader clsPreferedClassloader = ClassLoader.getSystemClassLoader();
-                ClassLoader clSpecifiedClsLoader = eclass.getClassLoader();
-                // If the classloader is unspecified get the classname and find
-                // the loader and resolve it's name.
-                if (clSpecifiedClsLoader == null) {
-                    try {
-                        clsPreferedClassloader = Class.forName(clsnm).getClassLoader();
-                    }catch(ClassNotFoundException e) {}
-                    if (clsPreferedClassloader != null) {
-                        clsloadernm = clsPreferedClassloader.getClass().getName();
-                    } else {
-                        clsloadernm = "unspecified";
-                        clsPreferedClassloader = ClassLoader.getSystemClassLoader();
-                    }
-                } else {
-                    clsPreferedClassloader = clSpecifiedClsLoader;
-                    clsloadernm = clsPreferedClassloader.getClass().getName();
-                }
- //               resourcenm = eclass.getName().replace('.', '/') + ".class";
-//                loc = clsPreferedClassloader.getResource(resourcenm).toString();
-                ProtectionDomain pf = eclass.getProtectionDomain();
-                if( pf != null ) {
-                    CodeSource cs = pf.getCodeSource();
-                    if( cs != null ) {
-                        URL tl = cs.getLocation();
-                        if( tl != null ) {
-                            loc = tl.toString();
-                        } else {
-                            loc = "unspecified";
-                        }
-                    } else {
-                        loc = "unspecified";
-                    }
-                } else {
-                    loc = "unspecified";
-                }
-            }
-            if ( opts == StackDebugLevel.LIMITED || opts == StackDebugLevel.FULL ) {
-                methnm = ( element.getMethodName() == null ) ? "unavailable" : element.getMethodName();
+            String filenm = element.getFileName();
+            // Settings of SOURCEPATH and FULL get a litte more stackframe data.
+            if( opts == StackDebugLevel.SOURCEPATH ||  opts == StackDebugLevel.FULL  ) {
+                clsloadernm = ( element.getClassLoaderName() == null ) ? "primordial" : element.getClassLoaderName();
                 linenum = element.getLineNumber();
+                // If we have access to class/classloader get the location class
+                //  was loaded from (jar,directory,etc).
+                if( eclass!= null ) {
+                    ProtectionDomain pf = eclass.getProtectionDomain();
+                    if (pf != null) {
+                        // TODO Future, CodeSource also includes other meta related to code signing
+                        CodeSource cs = pf.getCodeSource();
+                        if (cs != null) {
+                            URL tl = cs.getLocation();
+                            if (tl != null) {
+                                loc = tl.toString();
+                            }
+                        }
+                    }
+                }
             }
-            // Include all information for FULL
-            if (opts == StackDebugLevel.FULL ) {
+            // Setting of FULL includes all stackframe meta.
+            if ( opts == StackDebugLevel.FULL ) {
                 isnative = element.isNativeMethod();
                 ds = ( element.toString() == null ) ? "unavailable" : element.toString();
             }

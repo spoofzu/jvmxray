@@ -987,7 +987,7 @@ public class jvmxrayagent extends SecurityManager {
                 fireEventProcessors(eDAO);
             } else {
                 //TODO Remove after debugging.  Careful about enabling this, many disgarded events.
-                //statuslogger.logMessage("jvmxrayagent.processEvent(): event disgarded="+eDAO);
+                // statuslogger.logMessage("jvmxrayagent.processEvent(): event disgarded="+eDAO);
             }
             // Log any unhandled exceptions and continue (if possible).
         } catch(Throwable t) {
@@ -1070,9 +1070,9 @@ public class jvmxrayagent extends SecurityManager {
             }
             String targetpropfile = pu.getStringProperty("jvmxray.property.target");
             targetpropfile = ( targetpropfile==null) ? "Unassigned target" : targetpropfile;
-            statuslogger.logMessage("Agent properties loaded from, jvmxray.property.target="+targetpropfile);
+            statuslogger.logMessage("Agent properties target tag, jvmxray.property.target="+targetpropfile);
             //TODO: Set a practical limit.
-            for (int i2 = 1; i2 < 500; i2++) {
+            for (int i2 = 1; i2 < 501; i2++) {
                 String key = "jvmxray.agent.event.processor.classname" + i2;
                 String cclass = pu.getStringProperty(key);
                 if (cclass == null) {
@@ -1095,7 +1095,7 @@ public class jvmxrayagent extends SecurityManager {
             }
 
             //TODO: Set a practical limit.
-            for (int i1 = 1; i1 < 500; i1++) {
+            for (int i1 = 1; i1 < 501; i1++) {
                 // Common settings for all filters.
                 String rulename = "jvmxray.agent.filter" + i1;
                 String fclass = pu.getStringProperty(rulename + ".class");

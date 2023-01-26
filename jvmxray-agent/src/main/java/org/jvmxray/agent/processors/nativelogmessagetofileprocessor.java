@@ -7,6 +7,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 
+//TODO Needs some improvement to log in new dir structure.  See SimpleLocalLogger.
 public class nativelogmessagetofileprocessor extends BaseTask {
 
     private PrintWriter pw = null;

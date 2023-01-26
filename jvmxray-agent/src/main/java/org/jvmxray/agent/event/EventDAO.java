@@ -193,6 +193,7 @@ public class EventDAO implements IEvent {
             buff.append(", ");
             buff.append("desc=" + tstr1.getDesc());
             tstr1 = tstr1.getNextStackTrace();
+            buff.append(EOL);
             idx++;
             INDENT += OINDENT;
         }

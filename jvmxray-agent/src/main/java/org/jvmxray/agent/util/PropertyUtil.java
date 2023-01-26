@@ -15,6 +15,7 @@ import org.jvmxray.agent.exception.JVMXRayRuntimeException;
 public class PropertyUtil extends TimerTask {
 
 	// Agent/server properties
+	public static final String SYS_PROP_AGENT_IDENTITY_FILE = "jvmxray.agent.id.file";  // -D option
 	public static final String SYS_PROP_CONFIG_URL = "jvmxray.configuration.url";
 	public static final String SYS_PROP_PROPERTY_TARGET = "jvmxray.property.target";
 	public static final String SYS_PROP_PROPERTY_REFRESH = "jvmxray.property.refresh";
@@ -24,7 +25,6 @@ public class PropertyUtil extends TimerTask {
 	public static final String SYS_PROP_REST_WEBHOOK_CONFIG = "jvmxray.rest.webhook.config";
 
 	//  Agent configuration properties and default values.
-	public static final String SYS_PROP_AGENT_IDENTITY_FILE = "jvmxray.agent.id.file";
 	public static final String SYS_PROP_AGENT_CONFIG_DEFAULT = "/jvmxrayagent.properties";
 	public static final String SYS_PROP_AGENT_EVENT_LOGFILE_DEFAULT = "jvmxrayevent.log";
 	public static final String SYS_PROP_AGENT_BASE_DIR = "jvmxray.agent.base.directory";
@@ -79,7 +79,11 @@ public class PropertyUtil extends TimerTask {
 	 */
 	@Override
 	public void run() {
-		refreshProperties();
+		try {
+			refreshProperties();
+		}catch(Exception e) {
+			e.printStackTrace();
+		}
 	}
 
 	/**
@@ -167,7 +171,7 @@ public class PropertyUtil extends TimerTask {
 	 * Updated via Timer/TimerTask.  Called once in main thread
 	 * upon initialization and thereafter only via the Timer.
 	 */
-	public synchronized void refreshProperties() {
+	public synchronized void refreshProperties() throws Exception {
 		// Config properties in seconds.
 		long currenttime = System.currentTimeMillis()/1000;
 		Properties tmpprops = null;
@@ -209,7 +213,7 @@ public class PropertyUtil extends TimerTask {
 							}catch(IOException e1) {
 								// Can't load properties from anywhere.  Not much we can do
 								//   return to caller and wait another Timer interval.  Eeek.
-								System.err.println("PropertyUtil.refreshProperties(): Unable to load agent properties.");
+								System.err.println("PropertyUtil.refreshProperties(): Unable to load agent properties. msg="+e.getMessage());
 								return;
 							}
 						}
@@ -252,7 +256,8 @@ public class PropertyUtil extends TimerTask {
 					} catch (ConnectException e1) {
 						System.err.println("PropertyUtil.refreshProperties(): Unable to load agent properties from server.  Loading defaults.  Check config or delete property cache.");
 						try {
-							tmpprops = loadProperties(source);
+							// Load agent props from local resource (jar) as a last resort.
+							tmpprops = loadProperties(SYS_PROP_AGENT_CONFIG_DEFAULT);
 						} catch (IOException e) {
 							System.err.println("PropertyUtil.refreshProperties(): Can't load properties from server or defaults.  No configuration loaded.  Check config or delete property cache.");
 							timestamp = -1;

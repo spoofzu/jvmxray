@@ -63,7 +63,7 @@ public class JVMXRayServletContainer {
      * @throws UnknownHostException Thrown on host resolver problem.  Check host as specified by
      * PropertyUtil.SYS_PROP_SERVER_IP_HOST.
      */
-    public void startService() throws IOException {
+    public void startService() throws Exception {
         PropertyUtil pu = PropertyUtil.getInstance(PropertyUtil.SYS_PROP_SERVER_CONFIG_DEFAULT);
         pu.refreshProperties();
         String sHost = pu.getStringProperty(PropertyUtil.SYS_PROP_SERVER_IP_HOST, "");
