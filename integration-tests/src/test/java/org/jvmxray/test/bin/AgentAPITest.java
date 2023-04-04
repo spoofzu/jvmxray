@@ -3,9 +3,9 @@ package org.jvmxray.test.bin;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
+import org.jvmxray.agent.driver.jvmxraysecuritymanager;
 import org.jvmxray.test.IntegrationTest;
 import org.jvmxray.test.TestPermission;
-import org.jvmxray.agent.driver.jvmxrayagent;
 
 import java.io.File;
 import java.io.FileDescriptor;
@@ -24,7 +24,7 @@ import java.security.Permission;
 @Category(IntegrationTest.class)
 public class AgentAPITest {
 
-    private static jvmxrayagent sm = null;
+    private static jvmxraysecuritymanager sm = null;
     private Permission perm = new TestPermission();
     private static volatile boolean bFlagged = false;
 
@@ -33,10 +33,8 @@ public class AgentAPITest {
         try {
             // Ensure we only get executed once.
             if(bFlagged) return;
-            // ** RETAINED FOR ARCHIVAL PURPOSES BUT DON'T RECOMMEND USING.  -Milton
-            //System.setProperty("jvmxrayserver.configuration","http://localhost:9123/api/event/");
             System.out.println("AgentAPITest: Begin initialization.");
-            sm = new jvmxrayagent();
+            sm = new jvmxraysecuritymanager();
         } catch (Exception e) {
             System.out.println("AgentAPITest: Initialization failed.");
             e.printStackTrace();
@@ -46,8 +44,7 @@ public class AgentAPITest {
         }
     }
 
-    // CLI entry point.  Run from the command line, optional.
-    //
+    // Java application entry point.
     public static final void main(String[] argc) {
         AgentAPITest agent = null;
         try {
@@ -80,7 +77,6 @@ public class AgentAPITest {
             agent.checkPackageDefinition();
             agent.checkSetFactory();
             agent.checkSecurityAccess();
-            agent.shutDown();
             // Wait 4-sec, time for queue events to be processed
             int max_wait = 4000;
             long ot = System.currentTimeMillis();
@@ -94,20 +90,8 @@ public class AgentAPITest {
             System.out.println("AgentAPITest: Finished.");
         }catch(Throwable t1) {
             System.out.println("AgentAPITest.main(): Unexpected error.  msg="+t1.getMessage());
-            t1.printStackTrace();
-            try {
-                if (agent != null) {
-                    agent.shutDown();
-                }
-            } catch (Throwable t2) {
-                t2.printStackTrace();
-            }
         }
 
-    }
-
-    public void shutDown() {
-        sm.shutDown();
     }
 
     @Test

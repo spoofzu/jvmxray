@@ -1,7 +1,5 @@
 package org.jvmxray.agent.util;
 
-import org.jvmxray.agent.exception.JVMXRayRuntimeException;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
@@ -35,23 +33,20 @@ public class AgentIdentityUtil  {
      * @throws IOException
      */
     public static synchronized AgentIdentityUtil getInstance(File source) throws IOException {
-        AgentIdentityUtil result = null;
-        if( ai == null ) {
+        if (ai == null) {
             ai = new AgentIdentityUtil();
             ai.source = source;
-            if( source.exists() ) {
+            if (source.exists()) {
                 Reader reader = Files.newBufferedReader(source.toPath());
                 ai.properties.load(reader);
             } else {
                 // Identity file does exist.  Create one with initial defaults.
                 String vmid = new VMID().toString();
-                ai.properties.put("aid",formatVMID(vmid));
-                ai.properties.put("cat",CATEGORY_DEFAULT);
-                ai.properties.put("bootstrapurl","http://localhost:9123/api/config/");
+                ai.setStringProperty("aid", formatVMID(vmid));
+                ai.setStringProperty("cat", CATEGORY_DEFAULT);
             }
         }
-        result = ai;
-        return result;
+        return ai;
     }
 
     /**
@@ -129,74 +124,6 @@ public class AgentIdentityUtil  {
         properties.store(writer, "JVMXRay Unique Agent Identity");
         writer.close();
     }
-
-//    // Saves agent cloud identity to the local filesystem.
-//    public final void saveAgentId(File file, String id) throws IOException {
-//        // Get the server identity file to use on local file system.
-////        PropertyUtil pu = PropertyUtil.getInstance(PropertyUtil.SYS_PROP_AGENT_CONFIG_DEFAULT);
-////        String basedir = pu.getStringProperty(PropertyUtil.SYS_PROP_AGENT_BASE_DIR);
-////        String idfile = pu.getStringProperty(PropertyUtil.SYS_PROP_AGENT_IDENTITY_FILE);
-////        String basedir = "/Users/milton/";
-////        String idfile = "jvmxrayinstanceid.properties";
-//       // File f = new File(basedir, idfile);
-//        // If a file does not exist then create one.  If one exists, then skip and return.
-//        // To force a new id creation simply delete a file, a new id will be created.
-//        if( file.exists() ) return;
-//        Properties np = new Properties();
-//        Writer propWriter = Files.newBufferedWriter(file.toPath());
-//        np.put( "id", id );
-//        np.put( "cat", CATEGORY_DEFAULT );
-//        np.store(propWriter, "JVMXRay Unique Agent Identity");
-//        propWriter.close();
-//    }
-
-//    // Returns agent cloud identity from the local file system.
-//    public final String getAgentId(File file) throws IOException {
-//        // Get the server identity file to use on local file system.
-////        PropertyUtil pu = PropertyUtil.getInstance(PropertyUtil.SYS_PROP_AGENT_CONFIG_DEFAULT);
-////        String basedir = pu.getStringProperty(PropertyUtil.SYS_PROP_AGENT_BASE_DIR);
-////        String idfile = pu.getStringProperty(PropertyUtil.SYS_PROP_AGENT_IDENTITY_FILE);
-////        String basedir = "/Users/milton/";
-////        String idfile = "jvmxrayinstanceid.properties";
-// //       File f = new File(basedir, idfile);
-//        // If a file does not exist then create one.  If one exists, then skip and return.
-//        // To force a new id creation simply delete a file, a new id will be created.
-//        String id = "";
-//        Properties np = new Properties();
-//        if( file.exists() ) {
-//            Reader propReader = Files.newBufferedReader(file.toPath());
-//            np.load(propReader);
-//            id = np.getProperty("id");
-//            propReader.close();
-//        } else {
-//            throw new IOException( "Agent identity is unavailable.  file="+file.toString() );
-//        }
-//        return id;
-//    }
-
-//    // Returns agent cloud category from the local file system.
-//    public final String getCategory(File file) throws IOException {
-//        // Get the server identity file to use on local file system.
-////        PropertyUtil pu = PropertyUtil.getInstance(PropertyUtil.SYS_PROP_AGENT_CONFIG_DEFAULT);
-////        String basedir = pu.getStringProperty(PropertyUtil.SYS_PROP_AGENT_BASE_DIR);
-////        String idfile = pu.getStringProperty(PropertyUtil.SYS_PROP_AGENT_IDENTITY_FILE);
-////        String basedir = "/Users/milton/";
-////        String idfile = "jvmxrayinstanceid.properties";
-////        File f = new File(basedir, idfile);
-//        // If a file does not exist then create one.  If one exists, then skip and return.
-//        // To force a new id creation simply delete a file, a new id will be created.
-//        String cat = "";
-//        Properties np = new Properties();
-//        if( file.exists() ) {
-//            Reader propReader = Files.newBufferedReader(file.toPath());
-//            np.load(propReader);
-//            cat = np.getProperty("cat");
-//            propReader.close();
-//        } else {
-//            throw new IOException( "Agent category is unavailable.  file="+file.toString() );
-//        }
-//        return cat;
-//    }
 
     /**
      * Reformat VMID's
