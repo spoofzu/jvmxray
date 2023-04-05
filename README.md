@@ -1,4 +1,3 @@
-[![Build Status](https://travis-ci.org/spoofzu/jvmxray.svg?branch=master)](https://travis-ci.org/spoofzu/jvmxray)
 
 # Welcome to JVMXRay
 
