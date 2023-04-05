@@ -4,6 +4,7 @@
 ![xrayduke](https://user-images.githubusercontent.com/8450615/88954072-af62ef00-d24e-11ea-95f9-734395481248.png) | JVMXRay is a technology for monitoring access to Java protected system resources like files, sockets, and more, used by your application.  It’s designed with an application security emphasis but there are benefits in other areas like, software diagnostics, usage tracking, and auditing.
 | ------------- |:-------------|
 <b>RECENT NEWS</b> | &nbsp;
+Apr 5, 2023 Architectural overhaul | The system has been simplified to a few components, 1) Injector that delivers a payload to a process based on PID, 2) Java agent designed to deliver code used for monitoring, 3) monitoring code payload.  Some initial wiki improvements have been applied with more to come.
 Jun 16, 2021  Architecture overhaul | Many improvements delivered.  Wiki update in progress to reflect improvmenets.
 Feb 10, 2021  Many improvements | See latest delivery notes and [updated project WIKI...](https://github.com/spoofzu/jvmxray/wiki)
 
@@ -63,7 +64,7 @@ The output from this technology can be presented in different ways.  What does t
 ```
 
 ## How it Works
-The Java Virtual Machine provides a robust security framework for controlling access to protected resources.  JVMXRay provides an implementation of the java.lang.SecurityManager component, called NullSecurityManager.  Ironically, the NullSecurityManager provides no policy enforcement but instead monitors activities to protected resources.  It's expected other cloud log processing tools, big data tools, or cloud secuirty tools will process these events into meaningful contextual information.
+The Java Virtual Machine provides a robust security framework for controlling access to protected resources.  JVMXRay provides an implementation of the java.lang.SecurityManager component, called jvmxraysecuritymanager.  Ironically, jvmxraysecuritymanager provides no policy enforcement but instead monitors activities to protected resources.  When the security manager is called the metadata is put into an event format and logged using SLF4J logger.  SLF4J is a lightweight logging facade that allows JVMXRay to use a variety of logging frameworks.  It's expected machine learning and log management technologies will provide additional depth and insight into these security events as the JVMXRay matures.
 
 ## Project Leader(s)
 Milton Smith
