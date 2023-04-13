@@ -1,15 +1,49 @@
 package org.jvmxray.agent.driver;
 
+import org.jvmxray.agent.log.SimpleLogging;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
 import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
 import java.lang.instrument.ClassFileTransformer;
 import java.security.ProtectionDomain;
 
+
 /**
- * Agent payload to injected into processes by jvmxrayinjector.
+ * JVMXRay agent that runs in a target to load a securitymanager
+ * dynamically.  Keep in mind, although the securitymanager is
+ * injected dynmaically the classpath must contain the logging
+ * libraries you plan to use or alterantively you can use
+ * the logging framework provided by your server (if one is
+ * installed in the classpath by default).  If no logging frameworks
+ * are included on the target you can use the jar with
+ * dependencies created by the agent build which includes slf4j
+ * bindings for logback by default.
  * @author Milton Smith
  */
 public class jvmxrayagent  {
+
+    private SimpleLogging simplelogger;
+
+    public jvmxrayagent(String agentArgs, Instrumentation inst) throws Exception {
+        System.out.println("jvmxrayagent: Agent initialization arguments, agentArgs="+agentArgs);
+        initSimpleLogging(agentArgs);
+        // Register shutdownhook.  Stop tasks on service shutdown (CTRL-c, etc).
+        Thread sdHook = new Thread( ()->{
+            shutDown();
+        });
+        Runtime.getRuntime().addShutdownHook(sdHook);
+        agentInitialize(agentArgs,inst);
+        simplelogger.log("jvmxrayagent: Agent successfully deployed on target.");
+        loadSecurityManager(agentArgs);
+    }
+
+    public void shutDown() {
+        // Shutdown gracefully
+        simplelogger.log("jvmxrayagent: JVM shutdown detected. Finishing up.");
+    }
 
     /**
      * Called by Java when injecting agent statically via command line switch.
@@ -19,7 +53,7 @@ public class jvmxrayagent  {
      */
     public static void premain(String agentArgs, Instrumentation inst) throws Exception {
         System.out.println("jvmxrayagent: premain() initialized.");
-        initialize(agentArgs,inst);
+        new jvmxrayagent(agentArgs, inst);
     }
 
     /**
@@ -30,7 +64,7 @@ public class jvmxrayagent  {
      */
     public static void agentmain(String agentArgs, Instrumentation inst) throws Exception {
         System.out.println("jvmxrayagent: agentmain() initialized.");
-        initialize(agentArgs,inst);
+        new jvmxrayagent(agentArgs, inst);
     }
 
     /**
@@ -38,8 +72,8 @@ public class jvmxrayagent  {
      * @param agentArgs Passed by JVM.
      * @param inst Passed by JVM.
      */
-    private static void initialize(String agentArgs, Instrumentation inst) {
-        // NOTE: At the moment, the jvmxrayagent does not use Transformers; however,
+    private void agentInitialize(String agentArgs, Instrumentation inst) {
+        // NOTE: At the moment, jvmxrayagent does not use Transformers; however,
         //       a null transformer is required for the agent to load successfully.
         try {
             inst.addTransformer(new ClassFileTransformer() {
@@ -51,82 +85,46 @@ public class jvmxrayagent  {
                     return null;
                 }
             });
-            loadSecurityManager(agentArgs);
         }catch(Throwable t) {
             t.printStackTrace();
         }
+    }
+
+    private void initSimpleLogging(String agentArgs) throws Exception {
+        if (agentArgs == null || agentArgs.length() < 0) {
+            throw new Exception("jvmxrayagent: Bad or missing agentArgs.  agentArgs=" + agentArgs);
+        }
+        String[] splitArgs = agentArgs.trim().split("=");
+        if (splitArgs.length != 2) {
+            throw new Exception("jvmxrayagent: Bad agentArgs format. Must be parameter=value.  agentArgs=" + agentArgs);
+        }
+        // Init simple logger.
+        File logpath = new File(splitArgs[1], "logs");
+        File debuglog = new File(logpath,"jvmxrayagentdebug.txt");
+        simplelogger = SimpleLogging.getInstance();
+        simplelogger.defineLog(debuglog, true);
+        simplelogger.log("jvmxrayagent: Agent memory resident on target with simple logging.  agentArgs=" + agentArgs);
+        // Detect which logging framework in use on client.
+        Logger logger = LoggerFactory.getLogger(jvmxrayagent.class);
+        String loggerClassName = logger.getClass().getName();
+        simplelogger.log("jvmxrayagent: Logging framework on target.  loggerClassName="+loggerClassName);
     }
 
     /**
      * This code loads the jvmxraysecuritymanager and the prefered logging platform
      * the jvmxraysecuritymanager should use.
      */
-    private static void loadSecurityManager(String agentArgs) {
-        // If user provides logging framework we use it otherwise default to logback.
-        String agentLoggingFramework = "log4j2";  // logback or log4j2(default)
-        String[] split = agentArgs.split("=");
-        if (split!=null) {
-            if( split.length > 1 ) {
-                agentLoggingFramework = split[1];
-            }
-        }
+    private void loadSecurityManager(String agentArgs) throws Exception {
+        // Implement securitymanager mojo
         SecurityManager currentSM = System.getSecurityManager();
-        if (currentSM == null || currentSM instanceof jvmxraysecuritymanager ) {
-            final String log4j2cfile = "log42.xml";
-            final String logbackcfile = "logback.xml";
-            final String log4jxmlconfig   = "/Users/milton/jvmxray-agent/"+log4j2cfile;
-            final String logbackxmlconfig = "/Users/milton/jvmxray-agent/"+logbackcfile;
-
-            // Inject the securitymanager.
+        // Allow to inject jvmxray over itself or no security manager in use.
+        if (currentSM == null || currentSM instanceof jvmxraysecuritymanager) {
             System.setSecurityManager(new jvmxraysecuritymanager());
-
-            // Log current framework in use on target diagnostic purposes.
-            String configMsg = "";
-            String fileName = "";
-            String clzPath = "";
-            String logbackconf = System.getProperty("logback.configurationFile");
-            String log4j2conf = System.getProperty("log4j.configurationFile");
-            if( logbackconf != null ) {
-                configMsg = "jvmxrayagent: preexistconfig ing config, sys:logback.configurationFile=";
-                clzPath = "jvmxrayagent: logback config loaded from classpath="+jvmxraysecuritymanager.class.getResource("/"+logbackcfile).toString();
-                fileName = logbackconf;
-            } else {
-                configMsg = "jvmxrayagent: no preexisting logback configuration. sys:logback.configurationFile=null";
-                fileName = "";
-                clzPath = "";
-            }
-            System.out.println(configMsg+fileName);
-            System.out.println(clzPath);
-            if( log4j2conf != null ) {
-                configMsg = "jvmxrayagent: preexisting config, sys:log4j.configurationFile=";
-                clzPath = "jvmxrayagent: log4j2 config loaded from classpath="+jvmxraysecuritymanager.class.getResource("/"+log4j2cfile).toString();
-                fileName = log4j2conf;
-            } else {
-                configMsg = "jvmxrayagent: no preexisting log4j2 configuration. sys:log4j.configurationFile=null";
-                fileName = "";
-                clzPath = "";
-            }
-            System.out.println(configMsg+fileName);
-            System.out.println(clzPath);
-
-            // Set slf4j logging preference implementation on the securitymanager.
-            if( agentLoggingFramework!= "logback" ) {
-                // Load logback configuration file
-                System.setProperty("logback.configurationFile",logbackxmlconfig);
-                System.out.println("jvmxraysecuritymanager logging configuration set to logback. logback.configurationFile="+logbackxmlconfig);
-            } else if( agentLoggingFramework!= "log4j2") {
-                // Load log4j2 configuration file
-                System.setProperty("log4j.configurationFile",log4jxmlconfig);
-                System.out.println("jvmxraysecuritymanager logging configuration set to log4j2. log4j.configurationFile="+log4jxmlconfig);
-            } else {
-                // No logging agent logging specified.  Use default client config, if available.
-                System.out.println("jvmxrayagent: no preexisting log4j2 configuration.  Using application default logging.");
-            }
-        } else if (currentSM instanceof java.lang.SecurityManager) {
-            System.out.println("jvmxrayagent: process already implements a securitymanager.  Not compatible with JVMXRay.  Impl="+currentSM.getClass().getName());
         } else {
-            throw new IllegalStateException("Error: unable load jvmxray security manager.  Security manager already installed.  type= " + currentSM.getClass().getName());
+            String msg = "jvmxrayagent: Security manager is already installed.  JVMXRay incompatible.  currentSM="+currentSM.getClass().getName();
+            simplelogger.log(msg);
+            throw new Exception(msg);
         }
+        simplelogger.log("jvmxrayagent: Securitymanager memory resident on target.  securitymanager="+jvmxraysecuritymanager.class.getName());
     }
-
 }

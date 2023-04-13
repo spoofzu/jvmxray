@@ -10,15 +10,22 @@ package org.jvmxray.agent.util;
  * @author Milton Smith
  */
 public class IdWebServer {
-    public static String supportedWebServerType(String rawCmdLine) {
-        String[] cmdarray = rawCmdLine.split(" ");
-        String cmd = cmdarray[0];
-        cmd = cmd.trim().toLowerCase();
-        String trimCmdLine = rawCmdLine.trim().toLowerCase();
+
+    public static boolean isJavaProcess(String rawCmd) {
+        String[] cmdarray = rawCmd.split(" ");
+        if( cmdarray == null && cmdarray.length<2 ) {
+            return false;
+        }
+        String cmd = cmdarray[0].trim().toLowerCase();
+        return cmd.contains("java");
+    }
+
+    public static String getSupportedWebServerType(String rawCmd) {
+        String trimCmdLine = rawCmd.trim().toLowerCase();
         // Element zero must contain the java executable.
-        if( cmd.contains("java")) {
+        if( isJavaProcess(rawCmd) ) {
             if( trimCmdLine.contains("catalina")) {
-                System.out.println("catalina found=["+rawCmdLine+"]");
+                System.out.println("catalina found=["+rawCmd+"]");
                 return "catalina";
             }
             if( trimCmdLine.contains("spring-boot")) {
@@ -26,8 +33,8 @@ public class IdWebServer {
                 if(trimCmdLine.contains("-dmaven.home")) {
                     return null;
                 }
-                System.out.println("spring-boot found=["+rawCmdLine+"]");
-                return "spring-boot";
+                System.out.println("spring-boot found=["+rawCmd+"]");
+                return "spring-boot(experimental)";
             }
         }
         return null;

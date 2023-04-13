@@ -34,6 +34,9 @@ public class jvmxraysecuritymanager extends SecurityManager {
     private static final String fileSeparator = File.separator;
     // AgentIdentityUtil instance
     private AgentIdentityUtil AU = null;
+    // Log message version.
+    private static final String VERSION_TAG = "version";
+    private static final String VERSION_ID = "0.1";
 
     // Stack meta enum
     private enum StackDebugLevel {
@@ -42,14 +45,12 @@ public class jvmxraysecuritymanager extends SecurityManager {
         LIMITED,
         FULL
     }
-    // Limit the depth of stack frames.
-    private static final int MAX_STACK_DEPTH = 80;
-    // Event id
-    private long eventid = 0;
+    // Limit the depth of stack frames.  Truncate at 100.
+    private static final int MAX_STACK_DEPTH = 100;
 
     // Early initializaiton.
     static {
-        // Ensures the security framework receives a full compliment of security events.
+        // Ensures the security framework receives security events.
         Policy.setPolicy(new Policy() {
             @Override
             public PermissionCollection getPermissions(CodeSource codesource) {
@@ -65,7 +66,6 @@ public class jvmxraysecuritymanager extends SecurityManager {
      */
     public jvmxraysecuritymanager() {
         try {
-            // Initialization
             init();
         }catch(Throwable t){
             clslogger.error("Uncaught initialization error. msg="+t.getMessage(),t);
@@ -140,18 +140,20 @@ public class jvmxraysecuritymanager extends SecurityManager {
         // NOTE: No calls to super.method() w/o testing. Sometimes generates exceptions.
         if( isIgnoringEvents() ) return;
         setIgnoringEvents(true);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid++))) {
+        // Tag events metadata version identifier.
+        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
             Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.accesssecurity");
+            String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
             String EVENTTP  = "ACCESS_SECURITY";  // Event type
             String P1       = target;             // p1, optional meta
             String P2       = "";
             String P3       = "";
-            logger.warn("{},{},{},{},{},{}", EVENTTP, aid, cat, P1, P2, P3);
+            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-                logStackTrace( logger, ste );
+                logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
             }
             // MDC value "key" is automatically cleared when the try block is exited
         }finally{
@@ -170,21 +172,22 @@ public class jvmxraysecuritymanager extends SecurityManager {
         // NOTE: No calls to super.method() w/o testing. Sometimes generates exceptions.
         if (isIgnoringEvents()) return;
         setIgnoringEvents(true);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid++))) {
+        // Tag events metadata version identifier.
+        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
             Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.accessthread");
+            String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
             String EVENTTP  = "ACCESS_THREAD";  // Event type
-            String P1       = t.getName();        // p1, optional meta
+            String P1       = t.getName();      // p1, optional meta
             String P2       = "";
             String P3       = "";
-            logger.warn("{},{},{},{},{},{}", EVENTTP, aid, cat, P1, P2, P3);
+            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-                logStackTrace( logger, ste );
+                logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
             }
-        } // MDC value "key" is automatically cleared when the try block is exited
-        finally {
+        } finally {
             setIgnoringEvents(false);
         }
     }
@@ -200,21 +203,22 @@ public class jvmxraysecuritymanager extends SecurityManager {
         // NOTE: No calls to super.method() w/o testing. Sometimes generates exceptions.
         if (isIgnoringEvents()) return;
         setIgnoringEvents(true);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid++))) {
+        // Tag events metadata version identifier.
+        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
             Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.accessthreadgroup");
+            String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
-            String EVENTTP = "ACCESS_THREADGROUP"; // Event type
+            String EVENTTP = "ACCESS_THREADGROUP";      // Event type
             String P1       = tg.getName();             // p1, optional meta
             String P2       = "";
             String P3       = "";
-            logger.warn( "{},{},{},{},{},{}", EVENTTP, aid, cat, P1, P2, P3);
+            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-                logStackTrace( logger, ste );
+                logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
             }
-        } // MDC value "key" is automatically cleared when the try block is exited
-        finally {
+        } finally {
             setIgnoringEvents(false);
         }
     }
@@ -228,21 +232,22 @@ public class jvmxraysecuritymanager extends SecurityManager {
         // NOTE: No calls to super.method() w/o testing. Sometimes generates exceptions.
         if (isIgnoringEvents()) return;
         setIgnoringEvents(true);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid++))) {
+        // Tag events metadata version identifier.
+        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
             Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.classloadercreate");
+            String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
             String EVENTTP = "CLASSLOADER_CREATE"; // Event type
             String P1       = "";
             String P2       = "";
             String P3       = "";
-            logger.warn("{},{},{},{},{},{}", EVENTTP, aid, cat, P1, P2, P3);
+            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-                logStackTrace( logger, ste );
+                logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
             }
-        } // MDC value "key" is automatically cleared when the try block is exited
-        finally {
+        } finally {
             setIgnoringEvents(false);
         }
     }
@@ -257,21 +262,22 @@ public class jvmxraysecuritymanager extends SecurityManager {
         // NOTE: No calls to super.method() w/o testing. Sometimes generates exceptions.
         if (isIgnoringEvents()) return;
         setIgnoringEvents(true);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid++))) {
+        // Tag events metadata version identifier.
+        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
             Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.exit");
+            String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
             String EVENTTP = "EXIT";               // Event type
             String P1 = Long.toString(status);     // p1, optional meta
             String P2 = "";
             String P3 = "";
-            logger.warn("{},{},{},{},{},{}", EVENTTP, aid, cat, P1, P2, P3);
+            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-                logStackTrace( logger, ste );
+                logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
             }
-        } // MDC value "key" is automatically cleared when the try block is exited
-        finally {
+        } finally {
             setIgnoringEvents(false);
         }
     }
@@ -285,18 +291,20 @@ public class jvmxraysecuritymanager extends SecurityManager {
         // NOTE: No calls to super.method() w/o testing. Sometimes generates exceptions.
         if (isIgnoringEvents()) return;
         setIgnoringEvents(true);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid++))) {
+        // Tag events metadata version identifier.
+        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
             Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.factory");
+            String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
             String EVENTTP = "FACTORY";               // Event type
             String P1 = "";
             String P2 = "";
             String P3 = "";
-            logger.warn("{},{},{},{},{},{}", EVENTTP, aid, cat, P1, P2, P3);
+            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-                logStackTrace( logger, ste );
+                logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
             }
         } finally {
             setIgnoringEvents(false);
@@ -313,21 +321,22 @@ public class jvmxraysecuritymanager extends SecurityManager {
         // NOTE: No calls to super.method() w/o testing. Sometimes generates exceptions.
         if (isIgnoringEvents()) return;
         setIgnoringEvents(true);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid++))) {
+        // Tag events metadata version identifier.
+        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
             Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.filedelete");
+            String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
             String EVENTTP = "FILE_DELETE"; // Event type
             String P1 = file;               // p1, optional meta
             String P2 = "";
             String P3 = "";
-            logger.warn("{},{},{},{},{},{}", EVENTTP, aid, cat, P1, P2, P3);
+            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-                logStackTrace( logger, ste );
+                logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
             }
-        } // MDC value "key" is automatically cleared when the try block is exited
-        finally {
+        } finally {
             setIgnoringEvents(false);
         }
     }
@@ -342,21 +351,22 @@ public class jvmxraysecuritymanager extends SecurityManager {
         // NOTE: No calls to super.method() w/o testing. Sometimes generates exceptions.
         if (isIgnoringEvents()) return;
         setIgnoringEvents(true);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid++))) {
+        // Tag events metadata version identifier.
+        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
             Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.fileexecute");
+            String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
             String EVENTTP = "FILE_EXECUTE"; // Event type
             String P1 = cmd;                 // p1, optional meta
             String P2 = "";
             String P3 = "";
-            logger.warn("{},{},{},{},{},{}", EVENTTP, aid, cat, P1, P2, P3);
+            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-                logStackTrace( logger, ste );
+                logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
             }
-        } // MDC value "key" is automatically cleared when the try block is exited
-        finally {
+        } finally {
             setIgnoringEvents(false);
         }
     }
@@ -371,21 +381,22 @@ public class jvmxraysecuritymanager extends SecurityManager {
         // NOTE: No calls to super.method() w/o testing. Sometimes generates exceptions.
         if( isIgnoringEvents() ) return;
         setIgnoringEvents(true);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid++))) {
+        // Tag events metadata version identifier.
+        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
             Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.fileread");
+            String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
             String EVENTTP = "FILE_READ"; // Event type
             String P1 = file;             // p1, optional meta
             String P2 = "";
             String P3 = "";
-            logger.warn("{},{},{},{},{},{}", EVENTTP, aid, cat, P1, P2, P3);
+            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-                logStackTrace( logger, ste );
+                logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
             }
-        } // MDC value "key" is automatically cleared when the try block is exited
-        finally {
+        } finally {
             setIgnoringEvents(false);
         }
     }
@@ -401,21 +412,22 @@ public class jvmxraysecuritymanager extends SecurityManager {
         // NOTE: No calls to super.method() w/o testing. Sometimes generates exceptions.
         if( isIgnoringEvents() ) return;
         setIgnoringEvents(true);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid++))) {
+        // Tag events metadata version identifier.
+        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
             Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.filereadwithcontext");
+            String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
             String EVENTTP  = "FILE_READ_WITH_CONTEXT"; // Event type
             String P1       = file;                     // p1, optional meta
             String P2       = context.toString();       // p2, optional meta
             String P3       = "";
-            logger.warn("{},{},{},{},{},{}",EVENTTP,aid,cat,P1,P2,P3);
+            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-                logStackTrace( logger, ste );
+                logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
             }
-        } // MDC value "key" is automatically cleared when the try block is exited
-        finally{
+        } finally {
             setIgnoringEvents(false);
         }
     }
@@ -430,19 +442,22 @@ public class jvmxraysecuritymanager extends SecurityManager {
         // NOTE: No calls to super.method() w/o testing. Sometimes generates exceptions.
         if (isIgnoringEvents()) return;
         setIgnoringEvents(true);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid++))) {
+        // Tag events metadata version identifier.
+        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
             Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.filereadwithfiledescriptor");
+            String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
             String EVENTTP = "FILE_READ_WITH_FILEDESCRIPTOR"; // Event type
             String P1 = fd.toString(); // p1, optional meta
             String P2 = "";
             String P3 = "";
-            logger.warn("{},{},{},{},{},{}", EVENTTP, aid, cat, P1, P2, P3);
-            if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
+            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            if (logger.isDebugEnabled() || logger.isInfoEnabled()) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-                logStackTrace( logger, ste );
+                logStackTrace(logger, EVENTTP, eventid, aid, cat, ste);
             }
+        } finally {
             setIgnoringEvents(false);
         }
     }
@@ -457,18 +472,20 @@ public class jvmxraysecuritymanager extends SecurityManager {
         // NOTE: No calls to super.method() w/o testing. Sometimes generates exceptions.
         if( isIgnoringEvents() ) return;
         setIgnoringEvents(true);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid++))) {
+        // Tag events metadata version identifier.
+        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
             Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.filewrite");
+            String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
             String EVENTTP  = "FILE_WRITE";          // Event type
             String P1       = file;                  // p1, optional meta
             String P2       = "";
             String P3       = "";
-            logger.warn("{},{},{},{},{},{}",EVENTTP,aid,cat,P1,P2,P3);
+            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-                logStackTrace( logger, ste );
+                logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
             }
         } finally {
             setIgnoringEvents(false);
@@ -485,21 +502,22 @@ public class jvmxraysecuritymanager extends SecurityManager {
         // NOTE: No calls to super.method() w/o testing. Sometimes generates exceptions.
         if (isIgnoringEvents()) return;
         setIgnoringEvents(true);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid++))) {
+        // Tag events metadata version identifier.
+        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
             Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.filewritewithfiledescriptor");
+            String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
             String EVENTTP = "FILE_WRITE_WITH_FILEDESCRIPTOR"; // Event type
             String P1 = fd.toString();                         // p1, optional meta
             String P2 = "";
             String P3 = "";
-            logger.warn( "{},{},{},{},{},{}", EVENTTP, aid, cat, P1, P2, P3);
+            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-                logStackTrace( logger, ste );
+                logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
             }
-        } // MDC value "key" is automatically cleared when the try block is exited
-        finally {
+        } finally {
             setIgnoringEvents(false);
         }
     }
@@ -514,18 +532,20 @@ public class jvmxraysecuritymanager extends SecurityManager {
         // NOTE: No calls to super.method() w/o testing. Sometimes generates exceptions.
         if( isIgnoringEvents() ) return;
         setIgnoringEvents(true);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid++))) {
+        // Tag events metadata version identifier.
+        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
             Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.link");
+            String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
             String EVENTTP  = "LINK";              // Event type
             String P1 = lib;                       // p1, optional meta
             String P2 = "";
             String P3 = "";
-            logger.warn("{},{},{},{},{},{}", EVENTTP, aid, cat, P1, P2, P3);
+            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-                logStackTrace( logger, ste );
+                logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
             }
         }finally{
             setIgnoringEvents(false);
@@ -542,21 +562,22 @@ public class jvmxraysecuritymanager extends SecurityManager {
         // NOTE: No calls to super.method() w/o testing. Sometimes generates exceptions.
         if (isIgnoringEvents()) return;
         setIgnoringEvents(true);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid++))) {
+        // Tag events metadata version identifier.
+        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
             Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.packageaccess");
+            String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
             String EVENTTP  = "PACKAGE_ACCESS";                // Event type
             String P1 = pkg;                                   // p1, optional meta
             String P2 = "";
             String P3 = "";
-            logger.warn("{},{},{},{},{},{}", EVENTTP, aid, cat, P1, P2, P3);
+            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-                logStackTrace( logger, ste );
+                logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
             }
-        } // MDC value "key" is automatically cleared when the try block is exited
-        finally {
+        } finally {
             setIgnoringEvents(false);
         }
     }
@@ -571,18 +592,20 @@ public class jvmxraysecuritymanager extends SecurityManager {
         // NOTE: No calls to super.method() w/o testing. Sometimes generates exceptions.
         if (isIgnoringEvents()) return;
         setIgnoringEvents(true);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid++))) {
+        // Tag events metadata version identifier.
+        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
             Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.packagedefine");
+            String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
             String EVENTTP  = "PACKAGE_DEFINE";                 // Event type
             String P1       = pkg;                              // p1, optional meta
             String P2       = "";
             String P3       = "";
-            logger.warn("{},{},{},{},{},{}", EVENTTP, aid, cat, P1, P2, P3);
+            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-                logStackTrace( logger, ste );
+                logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
             }
         } finally {
             setIgnoringEvents(false);
@@ -594,18 +617,20 @@ public class jvmxraysecuritymanager extends SecurityManager {
         // NOTE: No calls to super.method() w/o testing. Sometimes generates exceptions.
         if (isIgnoringEvents()) return;
         setIgnoringEvents(true);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid++))) {
+        // Tag events metadata version identifier.
+        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
             Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.permission");
+            String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
             String EVENTTP  = "PERMISSION";                     // Event type
             String P1       = perm.getName();                   // p1, optional meta
             String P2       = perm.getActions();                // p2, optional meta
             String P3       = perm.getClass().getName();        // p3, optional meta
-            logger.warn("{},{},{},{},{},{}", EVENTTP, aid, cat, P1, P2, P3);
+            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-                logStackTrace( logger, ste );
+                logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
             }
         } finally {
             setIgnoringEvents(false);
@@ -623,18 +648,20 @@ public class jvmxraysecuritymanager extends SecurityManager {
         // NOTE: No calls to super.method() w/o testing. Sometimes generates exceptions.
         if( isIgnoringEvents() ) return;
         setIgnoringEvents(true);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid++))) {
+        // Tag events metadata version identifier.
+        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
             Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.permissionwithcontext");
+            String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
             String EVENTTP  = "PERMISSION_WITH_CONTEXT";        // Event type
             String P1       = perm.getName();                   // p1, optional meta
             String P2       = perm.getActions();                // p2, optional meta
             String P3       = context.toString();               // p3, optional meta
-            logger.warn("{},{},{},{},{},{}", EVENTTP, aid, cat, P1, P2, P3);
+            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-                logStackTrace( logger, ste );
+                logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
             }
         } finally {
             setIgnoringEvents(false);
@@ -650,18 +677,20 @@ public class jvmxraysecuritymanager extends SecurityManager {
         // NOTE: No calls to super.method() w/o testing. Sometimes generates exceptions.
         if( isIgnoringEvents() ) return;
         setIgnoringEvents(true);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid++))) {
+        // Tag events metadata version identifier.
+        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
             Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.print");
+            String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
             String EVENTTP  = "PRINT";              // Event type
             String P1       = "";
             String P2       = "";
             String P3       = "";
-            logger.warn("{},{},{},{},{},{}", EVENTTP, aid, cat, P1, P2, P3);
+            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-                logStackTrace( logger, ste );
+                logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
             }
         } finally {
             setIgnoringEvents(false);
@@ -677,18 +706,20 @@ public class jvmxraysecuritymanager extends SecurityManager {
         // NOTE: No calls to super.method() w/o testing. Sometimes generates exceptions.
         if (isIgnoringEvents()) return;
         setIgnoringEvents(true);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid++))) {
+        // Tag events metadata version identifier.
+        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
             Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.propertiesany");
+            String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
             String EVENTTP = "PROPERTIES_ANY";         // Event type
             String P1 = "";
             String P2 = "";
             String P3 = "";
-            logger.warn("{},{},{},{},{},{}", EVENTTP, aid, cat, P1, P2, P3);
+            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-                logStackTrace( logger, ste );
+                logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
             }
         } finally {
             setIgnoringEvents(false);
@@ -705,18 +736,20 @@ public class jvmxraysecuritymanager extends SecurityManager {
         // NOTE: No calls to super.method() w/o testing. Sometimes generates exceptions.
         if (isIgnoringEvents()) return;
         setIgnoringEvents(true);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid++))) {
+        // Tag events metadata version identifier.
+        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
             Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.properertiesnamed");
+            String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
             String EVENTTP = "PROPERTIES_NAMED"; // Event type
             String P1 = key; // p1, optional meta
             String P2 = "";
             String P3 = "";
-            logger.warn("{},{},{},{},{},{}", EVENTTP, aid, cat, P1, P2, P3);
+            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-                logStackTrace( logger, ste );
+                logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
             }
         } finally {
             setIgnoringEvents(false);
@@ -734,18 +767,20 @@ public class jvmxraysecuritymanager extends SecurityManager {
         // NOTE: No calls to super.method() w/o testing. Sometimes generates exceptions.
         if (isIgnoringEvents()) return;
         setIgnoringEvents(true);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid++))) {
+        // Tag events metadata version identifier.
+        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
             Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.socketaccept");
+            String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
             String EVENTTP = "SOCKET_ACCEPT"; // Event type
             String P1 = host;                   // p1, optional meta
             String P2 = Integer.toString(port); // p2, optional meta
             String P3 = "";                     // p3, optional meta
-            logger.warn("{},{},{},{},{},{}", EVENTTP, aid, cat, P1, P2, P3);
+            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-                logStackTrace( logger, ste );
+                logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
             }
         } finally {
             setIgnoringEvents(false);
@@ -763,18 +798,20 @@ public class jvmxraysecuritymanager extends SecurityManager {
         // NOTE: No calls to super.method() w/o testing. Sometimes generates exceptions.
         if (isIgnoringEvents()) return;
         setIgnoringEvents(true);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid++))) {
+        // Tag events metadata version identifier.
+        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
             Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.socketconnect");
+            String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
             String EVENTTP  = "SOCKET_CONNECT";        // Event type
             String P1       = host;                    // p1, optional meta
             String P2       = Integer.toString(port);  // p2, optional meta
             String P3       = "";                      // p3, optional meta
-            logger.warn("{},{},{},{},{},{}", EVENTTP, aid, cat, P1, P2, P3);
+            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-                logStackTrace( logger, ste );
+                logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
             }
         } finally {
             setIgnoringEvents(false);
@@ -793,18 +830,20 @@ public class jvmxraysecuritymanager extends SecurityManager {
         // NOTE: No calls to super.method() w/o testing. Sometimes generates exceptions.
         if (isIgnoringEvents()) return;
         setIgnoringEvents(true);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid++))) {
+        // Tag events metadata version identifier.
+        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
             Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.socketconnectwithcontext");
+            String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
             String EVENTTP  = "SOCKET_CONNECT_WITH_CONTEXT";    // Event type
             String P1       = host;                             // p1, optional meta
             String P2       = Integer.toString(port);           // p2, optional meta
             String P3       = context.toString();               // p3, optional meta
-            logger.warn("{},{},{},{},{},{}", EVENTTP, aid, cat, P1, P2, P3);
+            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-                logStackTrace( logger, ste );
+                logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
             }
         } finally {
             setIgnoringEvents(false);
@@ -821,18 +860,20 @@ public class jvmxraysecuritymanager extends SecurityManager {
         // NOTE: No calls to super.method() w/o testing. Sometimes generates exceptions.
         if (isIgnoringEvents()) return;
         setIgnoringEvents(true);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid++))) {
+        // Tag events metadata version identifier.
+        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
             Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.socketlisten");
+            String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
             String EVENTTP  = "SOCKET_LISTEN";        // Event type
             String P1       = Integer.toString(port); // p1, optional meta
             String P2       = "";                     // p2, optional meta
             String P3       = "";                     // p3, optional meta
-            logger.warn("{},{},{},{},{},{}", EVENTTP, aid, cat, P1, P2, P3);
+            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-                logStackTrace( logger, ste );
+                logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
             }
         } finally {
             setIgnoringEvents(false);
@@ -849,18 +890,20 @@ public class jvmxraysecuritymanager extends SecurityManager {
         // NOTE: No calls to super.method() w/o testing. Sometimes generates exceptions.
         if( isIgnoringEvents() ) return;
         setIgnoringEvents(true);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid++))) {
+        // Tag events metadata version identifier.
+        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
             Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.socketmulticast");
+            String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
             String EVENTTP  = "SOCKET_MULTICAST";           // Event type
             String P1       = maddr.getCanonicalHostName(); // p1, optional meta
             String P2       = maddr.getHostAddress();       // p2, optional meta
             String P3       = "";
-            logger.warn("{},{},{},{},{},{}", EVENTTP, aid, cat, P1, P2, P3);
+            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-                logStackTrace( logger, ste );
+                logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
             }
         } finally {
             setIgnoringEvents(false);
@@ -879,18 +922,20 @@ public class jvmxraysecuritymanager extends SecurityManager {
         // NOTE: No calls to super.method() w/o testing. Sometimes generates exceptions.
         if( isIgnoringEvents() ) return;
         setIgnoringEvents(true);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid++))) {
+        // Tag events metadata version identifier.
+        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
             Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.socketmulticastwithttl");
+            String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
             String EVENTTP  = "SOCKET_MULTICAST_WITH_TTL";    // Event type
             String P1       = maddr.getCanonicalHostName();   // p1, optional meta
             String P2       = maddr.getHostAddress();         // p2, optional meta
             String P3       = String.valueOf(ttl);            // p3, optional meta
-            logger.warn("{},{},{},{},{},{}", EVENTTP, aid, cat, P1, P2, P3);
+            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
-                logStackTrace( logger, ste );
+                logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
             }
         } finally{
             setIgnoringEvents(false);
@@ -935,7 +980,21 @@ public class jvmxraysecuritymanager extends SecurityManager {
         return isIgnoringEvents;
     }
 
-    public Eventmeta[] createStackTraceArray(Logger logger, StackTraceElement[] ste) {
+    public String getClassLocation(String className) throws ClassNotFoundException {
+        if ( className == null ) {
+            return "null classname";
+        }
+        Class<?> clazz = Class.forName(className);
+        CodeSource cs = clazz.getProtectionDomain().getCodeSource();
+        if (cs == null ) {
+            return "codesource null";
+        }
+        URL location = cs.getLocation();
+
+        return location != null ? location.getPath() : "getlocation null";
+    }
+
+    private Eventmeta[] createStackTraceArray(Logger logger, StackTraceElement[] ste) {
         List<Eventmeta> eventmetaList = new ArrayList<>();
         boolean truncated = false;
         int iSz = ste.length;
@@ -945,37 +1004,27 @@ public class jvmxraysecuritymanager extends SecurityManager {
         }
         for (int i = 0; i < iSz; i++) {
             StackTraceElement element = ste[i];
-            String clsloadernm = "unassigned";
+            Class eclass = null;
+            String clsloadernm = (element.getClassLoaderName() == null) ? "primordial" : element.getClassLoaderName();
             String clsnm = element.getClassName();
             String methnm = "unassigned";
             int linenum = 0;
             String loc = "unassigned";
-            String modulenm = "";
-            String modulevr = "";
+            String modulenm = "not available";
+            String modulevr = "not available";
             boolean isnative = false;
             String ds = "unassigned";
             String filenm = element.getFileName();
-            Class eclass = null;
-            if (logger.isInfoEnabled()) {
-                clsloadernm = (element.getClassLoaderName() == null) ? "primordial" : element.getClassLoaderName();
-                if (eclass != null) {
-                    ProtectionDomain pf = eclass.getProtectionDomain();
-                    if (pf != null) {
-                        CodeSource cs = pf.getCodeSource();
-                        if (cs != null) {
-                            URL tl = cs.getLocation();
-                            if (tl != null) {
-                                loc = tl.toString();
-                            }
-                        }
-                    }
-                }
-            }
+
+            try {
+                loc = getClassLocation(clsnm);
+            }catch(ClassNotFoundException e ) {}
+
             if (logger.isDebugEnabled()) {
                 isnative = element.isNativeMethod();
                 methnm = element.getMethodName();
-                modulenm = element.getModuleName();
-                modulevr = element.getModuleVersion();
+                modulenm = (element.getModuleName()!=null) ? element.getModuleName() : "not available";
+                modulevr = (element.getModuleVersion()!=null) ? element.getModuleVersion() : "not available";
                 linenum = element.getLineNumber();
                 ds = (element.toString() == null) ? "unavailable" : element.toString();
             }
@@ -991,39 +1040,44 @@ public class jvmxraysecuritymanager extends SecurityManager {
         return eventmetaList.toArray(new Eventmeta[0]);
     }
 
-    private void logStackTrace( Logger logger, StackTraceElement[] ste ) {
-        Eventmeta[] eventmetaarray = createStackTraceArray(logger, ste);
-        try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable("eventid", Long.toString(eventid-1))) {
-            IntStream.range(0, eventmetaarray.length).forEach(i -> {
-                try (MDC.MDCCloseable mdcCloseable2 = MDC.putCloseable("slvl", Integer.toString(i))) {
-                    if( logger.isDebugEnabled() ) {
-                        logger.debug("{},{},{},{},{},{},{},{},{}",
-                                eventmetaarray[i].getClsloadernm(),
-                                eventmetaarray[i].getClsnm(),
-                                eventmetaarray[i].getMethnm(),
-                                eventmetaarray[i].getModulenm(),
-                                eventmetaarray[i].getModulevr(),
-                                eventmetaarray[i].getLinenum(),
-                                eventmetaarray[i].getFilenm(),
-                                eventmetaarray[i].getLoc(),
-                                eventmetaarray[i].isIsnative()
-                        );
-                    } else if (logger.isInfoEnabled() ) {
-                        logger.info("{},{},{},{},{},{},{},{},{}",
-                                eventmetaarray[i].getClsloadernm(),
-                                eventmetaarray[i].getClsnm(),
-                                eventmetaarray[i].getMethnm(),
-                                eventmetaarray[i].getModulenm(),
-                                eventmetaarray[i].getModulevr(),
-                                eventmetaarray[i].getLinenum(),
-                                eventmetaarray[i].getFilenm(),
-                                eventmetaarray[i].getLoc(),
-                                eventmetaarray[i].isIsnative()
-                        );
-                    }
-                }
-            });
-        } // MDC value "key" is automatically cleared when the try block is exited
+    /**
+     * Logs a stackframe associated with an event as a series of log messages where each message
+     * tagged with the parent events event id and the depth of each frame is indicated by a
+     * positve int.
+     * indicated with
+     * @param logger
+     * @param EVENTTP
+     * @param eventId
+     * @param aid
+     * @param category
+     * @param ste
+     */
+    private void logStackTrace(Logger logger, String EVENTTP, String eventId, String aid, String category, StackTraceElement[] ste) {
+        Eventmeta[] eventMetaArray = createStackTraceArray(logger, ste);
+        IntStream.range(0, eventMetaArray.length).forEach(i -> {
+            // Note: createStackTraceArray() controls the depth of meta provided.
+            String logMessage = String.format("STACKFRM | %d | %s | %s | %s| %s | %s | %s | %s | %s | %s | %s | %d | %s | %b",
+                    i,
+                    EVENTTP,
+                    eventId,
+                    aid,
+                    category,
+                    eventMetaArray[i].getClsLoaderNm(),
+                    eventMetaArray[i].getClsNm(),
+                    eventMetaArray[i].getMethNm(),
+                    eventMetaArray[i].getModuleNm(),
+                    eventMetaArray[i].getModuleVr(),
+                    eventMetaArray[i].getFileNm(),
+                    eventMetaArray[i].getLineNum(),
+                    eventMetaArray[i].getLoc(),
+                    eventMetaArray[i].isIsNative()
+            );
+            if (logger.isDebugEnabled()) {
+                logger.debug(logMessage);
+            } else if (logger.isInfoEnabled()) {
+                logger.info(logMessage);
+            }
+        });
     }
 
 
