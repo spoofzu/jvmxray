@@ -138,4 +138,8 @@ public class AgentIdentityUtil  {
         return result;
     }
 
+    public static final String getVMID() {
+        return formatVMID(new VMID().toString());
+    }
+
 }

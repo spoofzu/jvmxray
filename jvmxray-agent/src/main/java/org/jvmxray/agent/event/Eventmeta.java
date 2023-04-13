@@ -30,23 +30,23 @@ public class Eventmeta {
         this.ds = ds;
     }
 
-    public String getClsloadernm() {
+    public String getClsLoaderNm() {
         return clsloadernm;
     }
 
-    public String getFilenm() {
+    public String getFileNm() {
         return filenm;
     }
 
-    public String getClsnm() {
+    public String getClsNm() {
         return clsnm;
     }
 
-    public String getMethnm() {
+    public String getMethNm() {
         return methnm;
     }
 
-    public int getLinenum() {
+    public int getLineNum() {
         return linenum;
     }
 
@@ -54,15 +54,15 @@ public class Eventmeta {
         return loc;
     }
 
-    public String getModulenm() {
+    public String getModuleNm() {
         return modulenm;
     }
 
-    public String getModulevr() {
+    public String getModuleVr() {
         return modulevr;
     }
 
-    public boolean isIsnative() {
+    public boolean isIsNative() {
         return isnative;
     }
 

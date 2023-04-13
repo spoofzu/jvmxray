@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration monitorInterval="30">
+
+	<!-- TODO: UPDATE WITH YOUR DESIRED SETTINGS. -->
+	<Properties>
+		<Property name="LOG_HOME">/Users/milton/jvmxray-agent/logs</Property>
+		<Property name="MSG_PREAMBLE_SM">%d{YYYY.MM.dd 'at' HH:mm:ss z} | %logger{1} | %X | %5level | %msg%n</Property>
+		<Property name="MSG_PREAMBLE_LG">%d{YYYY.MM.dd 'at' HH:mm:ss.SSS z} | %logger | %X | %5level | %msg%n</Property>
+		<Property name="MSG_PREAMBLE_MACHINE">%d{ISO8601} | %logger | %X | %5level | %msg%n</Property>
+	</Properties>
+
+	<Appenders>
+		<!-- CONSOLE DESTINATION -->
+		<Console name="consoledest" target="SYSTEM_OUT">
+			<PatternLayout pattern="${MSG_PREAMBLE_SM}" />
+		</Console>
+		<!-- ROLLINGFILE DESTINATION, USEFUL IN DEBUGGING WHEN YOU NEED MORE INFO THAN CONSOLE PROVIDES. -->
+		<RollingFile name="rollingfiledest" fileName="${LOG_HOME}/jvmxrayagent-events.txt"
+					 filePattern="${LOG_HOME}/bkup/jvmxray-agent-%d{yyyy-MM-dd-HH-mm-ss-SSS}-%i.log.gz">
+			<PatternLayout pattern="${MSG_PREAMBLE_LG}" />
+			<Policies>
+				<SizeBasedTriggeringPolicy size="50 MB" />
+			</Policies>
+			<DefaultRolloverStrategy max="10" />
+		</RollingFile>
+	</Appenders>
+
+	<Loggers>
+		<!-- NAMESPACE FOR EVENTS HANDLING. -->
+		<Logger name="org.jvmxray.agent.driver.jvmxraysecuritymanager.events" level="warn" additivity="false">
+			<AppenderRef ref="consoledest" />
+			<AppenderRef ref="rollingfiledest" />
+		</Logger>
+		<!-- FILE_EXECUTE - If devs executing shell cmd's we want to see max details. -->
+		<Logger name="org.jvmxray.agent.driver.jvmxraysecuritymanager.events.fileexecute" level="debug"/>
+		<!-- SUPRESS NOISY PERMISSIONS FOR TESTING PURPOSES. -->
+		<Logger name="org.jvmxray.agent.driver.jvmxraysecuritymanager.events.permission" additivity="false" level="OFF"/>
+		<Logger name="org.jvmxray.agent.driver.jvmxraysecuritymanager.events.permissionwithcontext" additivity="false" level="OFF"/>
+		<!-- ROOT NAMESPACE FOR ANYTHING UNDEFINED.-->
+		<Root level="info">
+			<AppenderRef ref="consoledest" />
+			<AppenderRef ref="rollingfiledest" />
+		</Root>
+	</Loggers>
+
+
+</Configuration>
