@@ -3,6 +3,7 @@ package org.jvmxray.agent.driver;
 import org.jvmxray.agent.event.Eventmeta;
 import org.jvmxray.agent.util.AgentIdentityUtil;
 
+import org.jvmxray.logging.contrib.LogPair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -150,7 +151,15 @@ public class jvmxraysecuritymanager extends SecurityManager {
             String P1       = target;             // p1, optional meta
             String P2       = "";
             String P3       = "";
-            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            logger.warn("{} {} {} {} {} {} {}",
+                    LogPair.value("EVENTTP", EVENTTP),
+                    LogPair.value("EVENTID", eventid),
+                    LogPair.value("AID", aid),
+                    LogPair.value("CATEGORY", cat),
+                    LogPair.value("P1", P1),
+                    LogPair.value("P2", P2),
+                    LogPair.value("P3", P3)
+            );
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
                 logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
@@ -182,7 +191,15 @@ public class jvmxraysecuritymanager extends SecurityManager {
             String P1       = t.getName();      // p1, optional meta
             String P2       = "";
             String P3       = "";
-            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            logger.warn("{} {} {} {} {} {} {}",
+                    LogPair.value("EVENTTP", EVENTTP),
+                    LogPair.value("EVENTID", eventid),
+                    LogPair.value("AID", aid),
+                    LogPair.value("CATEGORY", cat),
+                    LogPair.value("P1", P1),
+                    LogPair.value("P2", P2),
+                    LogPair.value("P3", P3)
+            );
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
                 logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
@@ -213,7 +230,15 @@ public class jvmxraysecuritymanager extends SecurityManager {
             String P1       = tg.getName();             // p1, optional meta
             String P2       = "";
             String P3       = "";
-            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            logger.warn("{} {} {} {} {} {} {}",
+                    LogPair.value("EVENTTP", EVENTTP),
+                    LogPair.value("EVENTID", eventid),
+                    LogPair.value("AID", aid),
+                    LogPair.value("CATEGORY", cat),
+                    LogPair.value("P1", P1),
+                    LogPair.value("P2", P2),
+                    LogPair.value("P3", P3)
+            );
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
                 logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
@@ -242,7 +267,15 @@ public class jvmxraysecuritymanager extends SecurityManager {
             String P1       = "";
             String P2       = "";
             String P3       = "";
-            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            logger.warn("{} {} {} {} {} {} {}",
+                    LogPair.value("EVENTTP", EVENTTP),
+                    LogPair.value("EVENTID", eventid),
+                    LogPair.value("AID", aid),
+                    LogPair.value("CATEGORY", cat),
+                    LogPair.value("P1", P1),
+                    LogPair.value("P2", P2),
+                    LogPair.value("P3", P3)
+            );
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
                 logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
@@ -272,7 +305,15 @@ public class jvmxraysecuritymanager extends SecurityManager {
             String P1 = Long.toString(status);     // p1, optional meta
             String P2 = "";
             String P3 = "";
-            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            logger.warn("{} {} {} {} {} {} {}",
+                    LogPair.value("EVENTTP", EVENTTP),
+                    LogPair.value("EVENTID", eventid),
+                    LogPair.value("AID", aid),
+                    LogPair.value("CATEGORY", cat),
+                    LogPair.value("P1", P1),
+                    LogPair.value("P2", P2),
+                    LogPair.value("P3", P3)
+            );
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
                 logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
@@ -301,7 +342,15 @@ public class jvmxraysecuritymanager extends SecurityManager {
             String P1 = "";
             String P2 = "";
             String P3 = "";
-            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            logger.warn("{} {} {} {} {} {} {}",
+                    LogPair.value("EVENTTP", EVENTTP),
+                    LogPair.value("EVENTID", eventid),
+                    LogPair.value("AID", aid),
+                    LogPair.value("CATEGORY", cat),
+                    LogPair.value("P1", P1),
+                    LogPair.value("P2", P2),
+                    LogPair.value("P3", P3)
+            );
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
                 logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
@@ -331,7 +380,15 @@ public class jvmxraysecuritymanager extends SecurityManager {
             String P1 = file;               // p1, optional meta
             String P2 = "";
             String P3 = "";
-            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            logger.warn("{} {} {} {} {} {} {}",
+                    LogPair.value("EVENTTP", EVENTTP),
+                    LogPair.value("EVENTID", eventid),
+                    LogPair.value("AID", aid),
+                    LogPair.value("CATEGORY", cat),
+                    LogPair.value("P1", P1),
+                    LogPair.value("P2", P2),
+                    LogPair.value("P3", P3)
+            );
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
                 logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
@@ -361,7 +418,15 @@ public class jvmxraysecuritymanager extends SecurityManager {
             String P1 = cmd;                 // p1, optional meta
             String P2 = "";
             String P3 = "";
-            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            logger.warn("{} {} {} {} {} {} {}",
+                    LogPair.value("EVENTTP", EVENTTP),
+                    LogPair.value("EVENTID", eventid),
+                    LogPair.value("AID", aid),
+                    LogPair.value("CATEGORY", cat),
+                    LogPair.value("P1", P1),
+                    LogPair.value("P2", P2),
+                    LogPair.value("P3", P3)
+            );
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
                 logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
@@ -391,7 +456,15 @@ public class jvmxraysecuritymanager extends SecurityManager {
             String P1 = file;             // p1, optional meta
             String P2 = "";
             String P3 = "";
-            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            logger.warn("{} {} {} {} {} {} {}",
+                    LogPair.value("EVENTTP", EVENTTP),
+                    LogPair.value("EVENTID", eventid),
+                    LogPair.value("AID", aid),
+                    LogPair.value("CATEGORY", cat),
+                    LogPair.value("P1", P1),
+                    LogPair.value("P2", P2),
+                    LogPair.value("P3", P3)
+            );
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
                 logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
@@ -422,7 +495,15 @@ public class jvmxraysecuritymanager extends SecurityManager {
             String P1       = file;                     // p1, optional meta
             String P2       = context.toString();       // p2, optional meta
             String P3       = "";
-            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            logger.warn("{} {} {} {} {} {} {}",
+                    LogPair.value("EVENTTP", EVENTTP),
+                    LogPair.value("EVENTID", eventid),
+                    LogPair.value("AID", aid),
+                    LogPair.value("CATEGORY", cat),
+                    LogPair.value("P1", P1),
+                    LogPair.value("P2", P2),
+                    LogPair.value("P3", P3)
+            );
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
                 logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
@@ -452,7 +533,15 @@ public class jvmxraysecuritymanager extends SecurityManager {
             String P1 = fd.toString(); // p1, optional meta
             String P2 = "";
             String P3 = "";
-            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            logger.warn("{} {} {} {} {} {} {}",
+                    LogPair.value("EVENTTP", EVENTTP),
+                    LogPair.value("EVENTID", eventid),
+                    LogPair.value("AID", aid),
+                    LogPair.value("CATEGORY", cat),
+                    LogPair.value("P1", P1),
+                    LogPair.value("P2", P2),
+                    LogPair.value("P3", P3)
+            );
             if (logger.isDebugEnabled() || logger.isInfoEnabled()) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
                 logStackTrace(logger, EVENTTP, eventid, aid, cat, ste);
@@ -482,7 +571,15 @@ public class jvmxraysecuritymanager extends SecurityManager {
             String P1       = file;                  // p1, optional meta
             String P2       = "";
             String P3       = "";
-            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            logger.warn("{} {} {} {} {} {} {}",
+                    LogPair.value("EVENTTP", EVENTTP),
+                    LogPair.value("EVENTID", eventid),
+                    LogPair.value("AID", aid),
+                    LogPair.value("CATEGORY", cat),
+                    LogPair.value("P1", P1),
+                    LogPair.value("P2", P2),
+                    LogPair.value("P3", P3)
+            );
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
                 logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
@@ -512,7 +609,15 @@ public class jvmxraysecuritymanager extends SecurityManager {
             String P1 = fd.toString();                         // p1, optional meta
             String P2 = "";
             String P3 = "";
-            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            logger.warn("{} {} {} {} {} {} {}",
+                    LogPair.value("EVENTTP", EVENTTP),
+                    LogPair.value("EVENTID", eventid),
+                    LogPair.value("AID", aid),
+                    LogPair.value("CATEGORY", cat),
+                    LogPair.value("P1", P1),
+                    LogPair.value("P2", P2),
+                    LogPair.value("P3", P3)
+            );
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
                 logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
@@ -542,7 +647,15 @@ public class jvmxraysecuritymanager extends SecurityManager {
             String P1 = lib;                       // p1, optional meta
             String P2 = "";
             String P3 = "";
-            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            logger.warn("{} {} {} {} {} {} {}",
+                    LogPair.value("EVENTTP", EVENTTP),
+                    LogPair.value("EVENTID", eventid),
+                    LogPair.value("AID", aid),
+                    LogPair.value("CATEGORY", cat),
+                    LogPair.value("P1", P1),
+                    LogPair.value("P2", P2),
+                    LogPair.value("P3", P3)
+            );
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
                 logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
@@ -572,7 +685,15 @@ public class jvmxraysecuritymanager extends SecurityManager {
             String P1 = pkg;                                   // p1, optional meta
             String P2 = "";
             String P3 = "";
-            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            logger.warn("{} {} {} {} {} {} {}",
+                    LogPair.value("EVENTTP", EVENTTP),
+                    LogPair.value("EVENTID", eventid),
+                    LogPair.value("AID", aid),
+                    LogPair.value("CATEGORY", cat),
+                    LogPair.value("P1", P1),
+                    LogPair.value("P2", P2),
+                    LogPair.value("P3", P3)
+            );
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
                 logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
@@ -602,7 +723,15 @@ public class jvmxraysecuritymanager extends SecurityManager {
             String P1       = pkg;                              // p1, optional meta
             String P2       = "";
             String P3       = "";
-            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            logger.warn("{} {} {} {} {} {} {}",
+                    LogPair.value("EVENTTP", EVENTTP),
+                    LogPair.value("EVENTID", eventid),
+                    LogPair.value("AID", aid),
+                    LogPair.value("CATEGORY", cat),
+                    LogPair.value("P1", P1),
+                    LogPair.value("P2", P2),
+                    LogPair.value("P3", P3)
+            );
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
                 logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
@@ -627,7 +756,15 @@ public class jvmxraysecuritymanager extends SecurityManager {
             String P1       = perm.getName();                   // p1, optional meta
             String P2       = perm.getActions();                // p2, optional meta
             String P3       = perm.getClass().getName();        // p3, optional meta
-            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            logger.warn("{} {} {} {} {} {} {}",
+                    LogPair.value("EVENTTP", EVENTTP),
+                    LogPair.value("EVENTID", eventid),
+                    LogPair.value("AID", aid),
+                    LogPair.value("CATEGORY", cat),
+                    LogPair.value("P1", P1),
+                    LogPair.value("P2", P2),
+                    LogPair.value("P3", P3)
+            );
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
                 logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
@@ -658,7 +795,15 @@ public class jvmxraysecuritymanager extends SecurityManager {
             String P1       = perm.getName();                   // p1, optional meta
             String P2       = perm.getActions();                // p2, optional meta
             String P3       = context.toString();               // p3, optional meta
-            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            logger.warn("{} {} {} {} {} {} {}",
+                    LogPair.value("EVENTTP", EVENTTP),
+                    LogPair.value("EVENTID", eventid),
+                    LogPair.value("AID", aid),
+                    LogPair.value("CATEGORY", cat),
+                    LogPair.value("P1", P1),
+                    LogPair.value("P2", P2),
+                    LogPair.value("P3", P3)
+            );
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
                 logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
@@ -687,7 +832,15 @@ public class jvmxraysecuritymanager extends SecurityManager {
             String P1       = "";
             String P2       = "";
             String P3       = "";
-            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            logger.warn("{} {} {} {} {} {} {}",
+                    LogPair.value("EVENTTP", EVENTTP),
+                    LogPair.value("EVENTID", eventid),
+                    LogPair.value("AID", aid),
+                    LogPair.value("CATEGORY", cat),
+                    LogPair.value("P1", P1),
+                    LogPair.value("P2", P2),
+                    LogPair.value("P3", P3)
+            );
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
                 logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
@@ -716,7 +869,15 @@ public class jvmxraysecuritymanager extends SecurityManager {
             String P1 = "";
             String P2 = "";
             String P3 = "";
-            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            logger.warn("{} {} {} {} {} {} {}",
+                    LogPair.value("EVENTTP", EVENTTP),
+                    LogPair.value("EVENTID", eventid),
+                    LogPair.value("AID", aid),
+                    LogPair.value("CATEGORY", cat),
+                    LogPair.value("P1", P1),
+                    LogPair.value("P2", P2),
+                    LogPair.value("P3", P3)
+            );
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
                 logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
@@ -746,7 +907,15 @@ public class jvmxraysecuritymanager extends SecurityManager {
             String P1 = key; // p1, optional meta
             String P2 = "";
             String P3 = "";
-            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            logger.warn("{} {} {} {} {} {} {}",
+                    LogPair.value("EVENTTP", EVENTTP),
+                    LogPair.value("EVENTID", eventid),
+                    LogPair.value("AID", aid),
+                    LogPair.value("CATEGORY", cat),
+                    LogPair.value("P1", P1),
+                    LogPair.value("P2", P2),
+                    LogPair.value("P3", P3)
+            );
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
                 logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
@@ -777,7 +946,15 @@ public class jvmxraysecuritymanager extends SecurityManager {
             String P1 = host;                   // p1, optional meta
             String P2 = Integer.toString(port); // p2, optional meta
             String P3 = "";                     // p3, optional meta
-            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            logger.warn("{} {} {} {} {} {} {}",
+                    LogPair.value("EVENTTP", EVENTTP),
+                    LogPair.value("EVENTID", eventid),
+                    LogPair.value("AID", aid),
+                    LogPair.value("CATEGORY", cat),
+                    LogPair.value("P1", P1),
+                    LogPair.value("P2", P2),
+                    LogPair.value("P3", P3)
+            );
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
                 logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
@@ -808,7 +985,15 @@ public class jvmxraysecuritymanager extends SecurityManager {
             String P1       = host;                    // p1, optional meta
             String P2       = Integer.toString(port);  // p2, optional meta
             String P3       = "";                      // p3, optional meta
-            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            logger.warn("{} {} {} {} {} {} {}",
+                    LogPair.value("EVENTTP", EVENTTP),
+                    LogPair.value("EVENTID", eventid),
+                    LogPair.value("AID", aid),
+                    LogPair.value("CATEGORY", cat),
+                    LogPair.value("P1", P1),
+                    LogPair.value("P2", P2),
+                    LogPair.value("P3", P3)
+            );
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
                 logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
@@ -840,7 +1025,15 @@ public class jvmxraysecuritymanager extends SecurityManager {
             String P1       = host;                             // p1, optional meta
             String P2       = Integer.toString(port);           // p2, optional meta
             String P3       = context.toString();               // p3, optional meta
-            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            logger.warn("{} {} {} {} {} {} {}",
+                    LogPair.value("EVENTTP", EVENTTP),
+                    LogPair.value("EVENTID", eventid),
+                    LogPair.value("AID", aid),
+                    LogPair.value("CATEGORY", cat),
+                    LogPair.value("P1", P1),
+                    LogPair.value("P2", P2),
+                    LogPair.value("P3", P3)
+            );
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
                 logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
@@ -870,7 +1063,15 @@ public class jvmxraysecuritymanager extends SecurityManager {
             String P1       = Integer.toString(port); // p1, optional meta
             String P2       = "";                     // p2, optional meta
             String P3       = "";                     // p3, optional meta
-            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            logger.warn("{} {} {} {} {} {} {}",
+                    LogPair.value("EVENTTP", EVENTTP),
+                    LogPair.value("EVENTID", eventid),
+                    LogPair.value("AID", aid),
+                    LogPair.value("CATEGORY", cat),
+                    LogPair.value("P1", P1),
+                    LogPair.value("P2", P2),
+                    LogPair.value("P3", P3)
+            );
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
                 logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
@@ -900,7 +1101,15 @@ public class jvmxraysecuritymanager extends SecurityManager {
             String P1       = maddr.getCanonicalHostName(); // p1, optional meta
             String P2       = maddr.getHostAddress();       // p2, optional meta
             String P3       = "";
-            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            logger.warn("{} {} {} {} {} {} {}",
+                    LogPair.value("EVENTTP", EVENTTP),
+                    LogPair.value("EVENTID", eventid),
+                    LogPair.value("AID", aid),
+                    LogPair.value("CATEGORY", cat),
+                    LogPair.value("P1", P1),
+                    LogPair.value("P2", P2),
+                    LogPair.value("P3", P3)
+            );
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
                 logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
@@ -932,7 +1141,15 @@ public class jvmxraysecuritymanager extends SecurityManager {
             String P1       = maddr.getCanonicalHostName();   // p1, optional meta
             String P2       = maddr.getHostAddress();         // p2, optional meta
             String P3       = String.valueOf(ttl);            // p3, optional meta
-            logger.warn("{} | {} | {} | {} | {} | {} | {}", EVENTTP, eventid, aid, cat, P1, P2, P3);
+            logger.warn("{} {} {} {} {} {} {}",
+                    LogPair.value("EVENTTP", EVENTTP),
+                    LogPair.value("EVENTID", eventid),
+                    LogPair.value("AID", aid),
+                    LogPair.value("CATEGORY", cat),
+                    LogPair.value("P1", P1),
+                    LogPair.value("P2", P2),
+                    LogPair.value("P3", P3)
+            );
             if( logger.isDebugEnabled() || logger.isInfoEnabled() ) {
                 StackTraceElement[] ste = Thread.currentThread().getStackTrace();
                 logStackTrace( logger, EVENTTP, eventid, aid, cat, ste );
@@ -1056,26 +1273,38 @@ public class jvmxraysecuritymanager extends SecurityManager {
         Eventmeta[] eventMetaArray = createStackTraceArray(logger, ste);
         IntStream.range(0, eventMetaArray.length).forEach(i -> {
             // Note: createStackTraceArray() controls the depth of meta provided.
-            String logMessage = String.format("STACKFRM | %d | %s | %s | %s| %s | %s | %s | %s | %s | %s | %s | %d | %s | %b",
-                    i,
-                    EVENTTP,
-                    eventId,
-                    aid,
-                    category,
-                    eventMetaArray[i].getClsLoaderNm(),
-                    eventMetaArray[i].getClsNm(),
-                    eventMetaArray[i].getMethNm(),
-                    eventMetaArray[i].getModuleNm(),
-                    eventMetaArray[i].getModuleVr(),
-                    eventMetaArray[i].getFileNm(),
-                    eventMetaArray[i].getLineNum(),
-                    eventMetaArray[i].getLoc(),
-                    eventMetaArray[i].isIsNative()
-            );
             if (logger.isDebugEnabled()) {
-                logger.debug(logMessage);
+                logger.warn("STACKFRM {} {} {} {} {} {} {} {} {} {} {} {} {} {}",
+                        LogPair.value("EVENTTP", EVENTTP),
+                        LogPair.value("EVENTID", eventId),
+                        LogPair.value("AID", aid),
+                        LogPair.value("CATEGORY", category),
+                        LogPair.value("CLZ_LDR", eventMetaArray[i].getClsLoaderNm()),
+                        LogPair.value("CLZ_CN", eventMetaArray[i].getClsNm()),
+                        LogPair.value("CLZ_METHNM", eventMetaArray[i].getMethNm()),
+                        LogPair.value("CLZ_MODNM", eventMetaArray[i].getModuleNm()),
+                        LogPair.value("CLZ_MODVR", eventMetaArray[i].getModuleVr()),
+                        LogPair.value("CLZ_FILENM", eventMetaArray[i].getFileNm()),
+                        LogPair.value("CLZ_LINENO", Integer.toString(eventMetaArray[i].getLineNum())),
+                        LogPair.value("CLZ_LOCATION", eventMetaArray[i].getLoc()),
+                        LogPair.value("CLZ_NATIVE", Boolean.toString(eventMetaArray[i].isIsNative()))
+                );
             } else if (logger.isInfoEnabled()) {
-                logger.info(logMessage);
+                logger.info("STACKFRM {} {} {} {} {} {} {} {} {} {} {} {} {} {}",
+                        LogPair.value("EVENTTP", EVENTTP),
+                        LogPair.value("EVENTID", eventId),
+                        LogPair.value("AID", aid),
+                        LogPair.value("CATEGORY", category),
+                        LogPair.value("CLZ_LDR", eventMetaArray[i].getClsLoaderNm()),
+                        LogPair.value("CLZ_CN", eventMetaArray[i].getClsNm()),
+                        LogPair.value("CLZ_METHNM", eventMetaArray[i].getMethNm()),
+                        LogPair.value("CLZ_MODNM", eventMetaArray[i].getModuleNm()),
+                        LogPair.value("CLZ_MODVR", eventMetaArray[i].getModuleVr()),
+                        LogPair.value("CLZ_FILENM", eventMetaArray[i].getFileNm()),
+                        LogPair.value("CLZ_LINENO", Integer.toString(eventMetaArray[i].getLineNum())),
+                        LogPair.value("CLZ_LOCATION", eventMetaArray[i].getLoc()),
+                        LogPair.value("CLZ_NATIVE", Boolean.toString(eventMetaArray[i].isIsNative()))
+                );
             }
         });
     }
