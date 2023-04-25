@@ -143,7 +143,7 @@ public class jvmxraysecuritymanager extends SecurityManager {
         setIgnoringEvents(true);
         // Tag events metadata version identifier.
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
-            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.accesssecurity");
+            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.access.accesssecurity");
             String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
@@ -183,7 +183,7 @@ public class jvmxraysecuritymanager extends SecurityManager {
         setIgnoringEvents(true);
         // Tag events metadata version identifier.
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
-            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.accessthread");
+            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.access.accessthread");
             String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
@@ -222,7 +222,7 @@ public class jvmxraysecuritymanager extends SecurityManager {
         setIgnoringEvents(true);
         // Tag events metadata version identifier.
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
-            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.accessthreadgroup");
+            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.access.accessthreadgroup");
             String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
@@ -259,7 +259,7 @@ public class jvmxraysecuritymanager extends SecurityManager {
         setIgnoringEvents(true);
         // Tag events metadata version identifier.
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
-            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.classloadercreate");
+            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.clz.classloadercreate");
             String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
@@ -297,7 +297,7 @@ public class jvmxraysecuritymanager extends SecurityManager {
         setIgnoringEvents(true);
         // Tag events metadata version identifier.
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
-            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.exit");
+            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.system.exit");
             String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
@@ -372,7 +372,7 @@ public class jvmxraysecuritymanager extends SecurityManager {
         setIgnoringEvents(true);
         // Tag events metadata version identifier.
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
-            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.filedelete");
+            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.io.filedelete");
             String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
@@ -410,7 +410,7 @@ public class jvmxraysecuritymanager extends SecurityManager {
         setIgnoringEvents(true);
         // Tag events metadata version identifier.
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
-            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.fileexecute");
+            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.system.fileexecute");
             String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
@@ -448,7 +448,7 @@ public class jvmxraysecuritymanager extends SecurityManager {
         setIgnoringEvents(true);
         // Tag events metadata version identifier.
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
-            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.fileread");
+            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.io.fileread");
             String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
@@ -487,7 +487,7 @@ public class jvmxraysecuritymanager extends SecurityManager {
         setIgnoringEvents(true);
         // Tag events metadata version identifier.
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
-            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.filereadwithcontext");
+            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.io.filereadwithcontext");
             String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
@@ -525,7 +525,7 @@ public class jvmxraysecuritymanager extends SecurityManager {
         setIgnoringEvents(true);
         // Tag events metadata version identifier.
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
-            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.filereadwithfiledescriptor");
+            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.io.filereadwithfiledescriptor");
             String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
@@ -563,7 +563,7 @@ public class jvmxraysecuritymanager extends SecurityManager {
         setIgnoringEvents(true);
         // Tag events metadata version identifier.
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
-            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.filewrite");
+            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.io.filewrite");
             String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
@@ -601,7 +601,7 @@ public class jvmxraysecuritymanager extends SecurityManager {
         setIgnoringEvents(true);
         // Tag events metadata version identifier.
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
-            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.filewritewithfiledescriptor");
+            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.io.filewritewithfiledescriptor");
             String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
@@ -639,7 +639,7 @@ public class jvmxraysecuritymanager extends SecurityManager {
         setIgnoringEvents(true);
         // Tag events metadata version identifier.
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
-            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.link");
+            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.system.link");
             String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
@@ -677,7 +677,7 @@ public class jvmxraysecuritymanager extends SecurityManager {
         setIgnoringEvents(true);
         // Tag events metadata version identifier.
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
-            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.packageaccess");
+            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.clz.packageaccess");
             String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
@@ -715,7 +715,7 @@ public class jvmxraysecuritymanager extends SecurityManager {
         setIgnoringEvents(true);
         // Tag events metadata version identifier.
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
-            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.packagedefine");
+            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.clz.packagedefine");
             String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
@@ -748,7 +748,7 @@ public class jvmxraysecuritymanager extends SecurityManager {
         setIgnoringEvents(true);
         // Tag events metadata version identifier.
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
-            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.permission");
+            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.grant.permission");
             String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
@@ -787,7 +787,7 @@ public class jvmxraysecuritymanager extends SecurityManager {
         setIgnoringEvents(true);
         // Tag events metadata version identifier.
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
-            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.permissionwithcontext");
+            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.grant.permissionwithcontext");
             String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
@@ -824,7 +824,7 @@ public class jvmxraysecuritymanager extends SecurityManager {
         setIgnoringEvents(true);
         // Tag events metadata version identifier.
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
-            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.print");
+            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.system.print");
             String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
@@ -861,7 +861,7 @@ public class jvmxraysecuritymanager extends SecurityManager {
         setIgnoringEvents(true);
         // Tag events metadata version identifier.
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
-            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.propertiesany");
+            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.system.propertiesany");
             String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
@@ -899,7 +899,7 @@ public class jvmxraysecuritymanager extends SecurityManager {
         setIgnoringEvents(true);
         // Tag events metadata version identifier.
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
-            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.properertiesnamed");
+            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.system.properertiesnamed");
             String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
@@ -938,7 +938,7 @@ public class jvmxraysecuritymanager extends SecurityManager {
         setIgnoringEvents(true);
         // Tag events metadata version identifier.
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
-            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.socketaccept");
+            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.sox.socketaccept");
             String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
@@ -977,7 +977,7 @@ public class jvmxraysecuritymanager extends SecurityManager {
         setIgnoringEvents(true);
         // Tag events metadata version identifier.
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
-            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.socketconnect");
+            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.sox.socketconnect");
             String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
@@ -1017,7 +1017,7 @@ public class jvmxraysecuritymanager extends SecurityManager {
         setIgnoringEvents(true);
         // Tag events metadata version identifier.
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
-            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.socketconnectwithcontext");
+            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.sox.socketconnectwithcontext");
             String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
@@ -1055,7 +1055,7 @@ public class jvmxraysecuritymanager extends SecurityManager {
         setIgnoringEvents(true);
         // Tag events metadata version identifier.
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
-            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.socketlisten");
+            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.sox.socketlisten");
             String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
@@ -1093,7 +1093,7 @@ public class jvmxraysecuritymanager extends SecurityManager {
         setIgnoringEvents(true);
         // Tag events metadata version identifier.
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
-            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.socketmulticast");
+            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.sox.socketmulticast");
             String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
@@ -1133,7 +1133,7 @@ public class jvmxraysecuritymanager extends SecurityManager {
         setIgnoringEvents(true);
         // Tag events metadata version identifier.
         try (MDC.MDCCloseable mdcCloseable = MDC.putCloseable(VERSION_TAG, VERSION_ID)) {
-            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.socketmulticastwithttl");
+            Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.driver.jvmxraysecuritymanager.events.sox.socketmulticastwithttl");
             String eventid = AU.getVMID();
             String aid = AU.getStringProperty(AgentIdentityUtil.PROPERTY_AID);
             String cat = AU.getStringProperty(AgentIdentityUtil.PROPERTY_CATEGORY);
