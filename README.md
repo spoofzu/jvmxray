@@ -4,6 +4,7 @@
 ![xrayduke](https://user-images.githubusercontent.com/8450615/88954072-af62ef00-d24e-11ea-95f9-734395481248.png) | JVMXRay is a technology for monitoring access to Java protected system resources like files, sockets, and more, used by your application.  It’s designed with an application security emphasis but there are benefits in other areas like, software diagnostics, usage tracking, and auditing.
 | ------------- |:-------------|
 <b>RECENT NEWS</b> | &nbsp;
+Apr 28, 2023 Documentation updated | Improved documentation for new architecture.
 Apr 5, 2023 Architectural overhaul | The system has been simplified to a few components, 1) Injector that delivers a payload to a process based on PID, 2) Java agent designed to deliver code used for monitoring, 3) monitoring code payload.  Some initial wiki improvements have been applied with more to come.
 Jun 16, 2021  Architecture overhaul | Many improvements delivered.  Wiki update in progress to reflect improvmenets.
 Feb 10, 2021  Many improvements | See latest delivery notes and [updated project WIKI...](https://github.com/spoofzu/jvmxray/wiki)
