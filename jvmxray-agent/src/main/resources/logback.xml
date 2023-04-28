@@ -55,12 +55,7 @@
         <appender-ref ref="csvdest" />
     </logger>
 
-    <!-- COMMENTED FOR PRESENT.
-    <logger name="org.jvmxray.agent.driver.jvmxraysecuritymanager.events.permission" additivity="false" level="OFF" />
-    <logger name="org.jvmxray.agent.driver.jvmxraysecuritymanager.events.permissionwithcontext" additivity="false" level="OFF" />
-    -->
-
-    <root level="INFO">
+    <root level="WARN">
         <appender-ref ref="consoledest" />
         <appender-ref ref="csvdest" />
     </root>

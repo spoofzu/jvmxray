@@ -1274,7 +1274,8 @@ public class jvmxraysecuritymanager extends SecurityManager {
         IntStream.range(0, eventMetaArray.length).forEach(i -> {
             // Note: createStackTraceArray() controls the depth of meta provided.
             if (logger.isDebugEnabled()) {
-                logger.warn("STACKFRM {} {} {} {} {} {} {} {} {} {} {} {} {} {}",
+                logger.debug("STACKFRM {} {} {} {} {} {} {} {} {} {} {} {} {} {}",
+                        LogPair.value("LVL", Integer.toString(i)),
                         LogPair.value("EVENTTP", EVENTTP),
                         LogPair.value("EVENTID", eventId),
                         LogPair.value("AID", aid),
@@ -1291,6 +1292,7 @@ public class jvmxraysecuritymanager extends SecurityManager {
                 );
             } else if (logger.isInfoEnabled()) {
                 logger.info("STACKFRM {} {} {} {} {} {} {} {} {} {} {} {} {} {}",
+                        LogPair.value("LVL", Integer.toString(i)),
                         LogPair.value("EVENTTP", EVENTTP),
                         LogPair.value("EVENTID", eventId),
                         LogPair.value("AID", aid),
