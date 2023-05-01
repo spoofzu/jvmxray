@@ -9,7 +9,7 @@ Apr 5, 2023 Architectural overhaul | The system has been simplified to a few com
 Jun 16, 2021  Architecture overhaul | Many improvements delivered.  Wiki update in progress to reflect improvmenets.
 Feb 10, 2021  Many improvements | See latest delivery notes and [updated project WIKI...](https://github.com/spoofzu/jvmxray/wiki)
 
-[Oracle's Java Duke mascot...](https://wiki.openjdk.java.net/display/duke/Main)
+[Duke: Oracle's Java mascot...](https://wiki.openjdk.java.net/display/duke/Main)
 
 ## Many Benefits
 Following is a quick list of some of the more important benefits.
