@@ -14,17 +14,17 @@ Feb 10, 2021  Many improvements | See latest delivery notes and [updated project
 ## Many Benefits
 Following is a quick list of some of the more important benefits.
 
-### :rocket: Monitor & identify protected resources
-Track different types of events of interest related to sockets, files, process execution, software supply chains, and more.  When an event of interest occurs, process it as you wish.  At the moment, adaptors for the system console (e.g., System.out), logback, and Java Logging, are available with others in process. 
+### :rocket: Monitor & identify application access to protected resources
+Do you know what your application is doing?  Monitor events of interest related to sockets, files, process execution, software supply chains, and more.  When a security event occurs, process it as you wish. 
+
+### :rocket: Improve insights into your software supply chain
+JVMXRay doesn't require access to your applications source code to work like typical security scanning tools.  This means you can use JVMXRay to monitor 3rd party open source libraries.
 
 ### :rocket: Extreme flexiblity & versitily
-JVMXRay supports frameworks like log4j2, logback, Java Util logging, you have great flexilty which events are captured and where they are logged.  You can integrate security events with your current centralized logging solution or handle them separately.  Security event destinations are anywhere your logging framework Appenders allow like: Cassandra, RDBMs via JDBC, rolling text files, Flume, Kafka, JMS, NoSQL DBs like Mongo/CouchDB, SMTP email messges, *NIX syslogs, and your own custom solutions via HTTP, socket appenders, etc.  These are not JVMXRay features but are features of popular logging frameworks used by JVMXRay.
+JVMXRay supports frameworks like log4j2, logback, Java Util logging, you have flexilty about events types captured, how, and where they are logged.  Use your present centralized logging solution or handle security events distinctly.  Security event destinations are anywhere your logging framework Appenders allow like: Cassandra, RDBMs via JDBC, rolling text files, Flume, Kafka, JMS, NoSQL DBs like Mongo/CouchDB, SMTP email messges, *NIX syslogs, and your own custom solutions via HTTP, socket appenders, etc.  These are not JVMXRay features but are features of popular logging frameworks and leveraged by JVMXRay for security events.  No reason to reinvent the wheel.
 
-### :rocket: No code changes required, extensible, and open
-JVMXRay does not require changes to your application source code to work.  The monitoring tool is injected into a running JVM and security events begin logging.  100% Java code so it runs anywhere your Java apps run.
-
-### :rocket: Low barrier of entry
-JVMXRay is easy to setup since it uses your current logging frameworks configuration.  Know how to setup a log4j2 or logback configuration file?  Your ready to start!
+### :rocket: Low entry barrier: no code changes required, extensible, and open
+JVMXRay is easy to setup since it uses your current logging frameworks configuration.  Know how to setup a log4j2 or logback configuration file?  Your ready to start!100% Java code so it runs anywhere your Java apps run.
 
 ```
 INFORMATION:
