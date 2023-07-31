@@ -24,9 +24,11 @@
     </developer>
   </developers>
   <modules>
-    <module>jvmxray-agent</module>
-    <module>jvmxray-demo</module>
-    <module>integration-tests</module>
+    <module>mod-agent</module>
+    <module>mod-servlet</module>
+    <module>mod-appenders</module>
+    <module>mod-unittest</module>
+    <module>mod-server</module>
   </modules>
   <properties>
     <maven.compiler.source>19</maven.compiler.source>
