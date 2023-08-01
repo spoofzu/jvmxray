@@ -16,20 +16,11 @@
     <!--
     <appender name="cassandra" class="org.jvmxray.appender.logback.JVMXRayCassandraAppender">
         <node>ip or host</node>
-        <port>9042</port>
-        <datacenter>datacenterx</datacenter>
-        <user>cassandra</user>
-        <password>cassandra</password>
+        <port>port number</port>
+        <datacenter>datacenter1</datacenter>
+        <user>dbuser</user>
+        <password>dbpass</password>
     </appender>
-    -->
-
-    <!-- Receive security events from remote servers -->
-    <!-- todo: update listening port for your server's socket receiver. -->
-    <!-- BUG, logback 1.4.x bug. SocketReceiver configuration broken  https://jira.qos.ch/browse/LOGBACK-1743 -->
-    <!--
-    <receiver class="ch.qos.logback.classic.net.server.ServerSocketReceiver">
-        <port>9876</port>
-    </receiver>
     -->
 
     <!-- Send only JMVXRay events to the Cassandra appender.  Other events are rejected. -->
@@ -40,7 +31,7 @@
     </logger>
     -->
 
-    <root level="WARN">
+    <root level="INFO">
         <appender-ref ref="console" />
     </root>
 
