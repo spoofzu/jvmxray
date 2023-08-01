@@ -102,22 +102,23 @@ public abstract class JVMXRayAppenderBase extends AppenderBase<ILoggingEvent> {
         _intializeAppender(event);
 
         // Check version of serialized agent event metadata.
-        //TODO: consider checking version only once per agent session instead of each event in future improvements.
-        Map mdc = event.getMDCPropertyMap();
-        Object obj = mdc.containsKey(VERSION_TAG) ? mdc.get(VERSION_TAG) : null;
-        if (obj == null) {
-            addError("JVMXRay agent error: no version provided in agent MDC.  err="+VERSION_TAG+" is missing.");
-            return;
-        }
-        String ver = (obj instanceof String ) ? (String)obj : null;
-        if( ver == null ) {
-            addError("JVMXRay agent error: wrong version type.  err="+obj.getClass().getName());
-            return;
-        }
-        if( !ver.startsWith(VERSION_ID) ) {
-            addError( "JVMXRay agent error: unexecpted metadata version.  ver="+ver);
-            return;
-        }
+        // TODO: consider checking version only once per agent session instead of each event in future improvements.
+        // TODO: MDC not sent via SocketAppender.  Investigate or workaround by moving version to the msg field.
+//        Map mdc = event.getMDCPropertyMap();
+//        Object obj = mdc.containsKey(VERSION_TAG) ? mdc.get(VERSION_TAG) : null;
+//        if (obj == null) {
+//            addError("JVMXRay agent error: no version provided in agent MDC.  err="+VERSION_TAG+" is missing.");
+//            return;
+//        }
+//        String ver = (obj instanceof String ) ? (String)obj : null;
+//        if( ver == null ) {
+//            addError("JVMXRay agent error: wrong version type.  err="+obj.getClass().getName());
+//            return;
+//        }
+//        if( !ver.startsWith(VERSION_ID) ) {
+//            addError( "JVMXRay agent error: unexecpted metadata version.  ver="+ver);
+//            return;
+//        }
 
         String rawmsg = event.getFormattedMessage();
         Level lvl = event.getLevel();
