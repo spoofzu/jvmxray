@@ -3,17 +3,17 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>JVMXRayDemo</title>
+    <title>JVMXRayGraphQLServer</title>
 </head>
 <body>
-<h1><%= "JVMXRay Demo" %>
+<h1><%= "JVMXRayGraphQLServer" %>
 </h1>
 This demo provides a method to demostrate a few insecure web practices that trigger various events within JVMXRay.
 <p/>
 <a href="/">[REFRESH]</a>
 <p/>
 <b>File CRUD Operations</b><br/>
-<a href="/helloservlet/api/readfile">Read File</a><br/>
+<a href="/mod_apiserver_war_exploded/graphql/">Read File</a><br/>
 <a href="/helloservlet/api/writefile">Write File</a><br/>
 <a href="/helloservlet/api/deletefile">Delete File</a><br/>
 <p/>

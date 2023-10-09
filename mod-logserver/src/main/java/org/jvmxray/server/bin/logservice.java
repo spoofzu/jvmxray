@@ -7,22 +7,22 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * JVMXRay server stub.  Small Java wrapper to initialize a logback server to accept
+ * JVMXRay logservice stub.  Small Java wrapper to initialize a logback logservice to accept
  * logging events from agents and persist them to centralized storage for later
  * processing/reporting.
  * @author Milton Smith
  */
-public class server {
+public class logservice {
 
     private static final String OPT_PORT_SHORT = "p";
     private static final String OPT_PORT_LONG = "port";
     private int iPort = 9876;
 
     // slf4j logger.
-    private static Logger logger = LoggerFactory.getLogger("org.jvmxray.server.bin.server");
+    private static Logger logger = LoggerFactory.getLogger("org.jvmxray.logservice.bin.logservice");
 
     private void init(LoggerContext lc, int port) {
-        logger.info("JVMXRay server, initializing.");
+        logger.info("JVMXRay logservice, initializing.");
         // Register shutdownhook.  Stop tasks on service shutdown (CTRL-c, etc).
         Thread sdHook = new Thread( ()->{
             shutDown();
@@ -30,7 +30,7 @@ public class server {
         Runtime.getRuntime().addShutdownHook(sdHook);
         SimpleSocketServer server = new SimpleSocketServer(lc, port);
         server.start();
-        logger.info("JVMXRay server, running.");
+        logger.info("JVMXRay logservice, running.");
     }
 
     private void nopLoop() throws InterruptedException {
@@ -59,7 +59,7 @@ public class server {
     public static void main(String[] args) {
         // Loiter while logging framework receives/processes security events.
         try {
-            server obj = new server();
+            logservice obj = new logservice();
 
             // Define command line options and parameters.
             Options options = new Options();
@@ -81,7 +81,7 @@ public class server {
             obj.nopLoop();
 
         } catch(Throwable t) {
-            logger.error("Uncaught exception, server exiting.  msg="+t.getMessage(),t);
+            logger.error("Uncaught exception, logservice exiting.  msg="+t.getMessage(),t);
             System.exit(10);
         }
     }

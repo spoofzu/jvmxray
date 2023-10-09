@@ -9,7 +9,7 @@
         <version>0.0.1</version>
     </parent>
 
-    <artifactId>mod-server</artifactId>
+    <artifactId>mod-logserver</artifactId>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>

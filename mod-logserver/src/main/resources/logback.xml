@@ -12,7 +12,7 @@
     </appender>
 
     <!-- Uncomment/configure for Cassandra testing -->
-    <!-- todo: update for your cassndara server -->
+    <!-- todo: update for your cassndara logservice -->
     <!--
     <appender name="cassandra" class="org.jvmxray.appender.logback.JVMXRayCassandraAppender">
         <node>ip or host</node>
