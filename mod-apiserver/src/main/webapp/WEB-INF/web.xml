@@ -5,15 +5,15 @@
          version="5.0">
 
     <servlet>
-        <servlet-name>helloservlet</servlet-name>
+        <servlet-name>JVMXRayGraphQLServer</servlet-name>
         <servlet-class>
-            org.jvmxray.jvmxraydemo.HelloServlet
+            org.jvmxray.graphql.app.JVMXRayGraphQLServer
         </servlet-class>
         <load-on-startup>1</load-on-startup>
     </servlet>
     <servlet-mapping>
-        <servlet-name>helloservlet</servlet-name>
-        <url-pattern>/helloservlet/api/*</url-pattern>
+        <servlet-name>JVMXRayGraphQLServer</servlet-name>
+        <url-pattern>/graphql/*</url-pattern>
     </servlet-mapping>
 
 </web-app>

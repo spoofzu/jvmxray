@@ -1,0 +1,47 @@
+scalar Long
+
+type Event {
+    eventid: ID!
+    ts: Long
+    eventtp: String
+    loglevel: String
+    loggernamespace: String
+    aid: String
+    cat: String
+    p1: String
+    p2: String
+    p3: String
+}
+
+type EventMeta {
+    eventid: ID!
+    level: Int!
+    clzldr: String
+    clzcn: String
+    clzmethnm: String
+    clzmodnm: String
+    clzmodvr: String
+    clzfilenm: String
+    clzlineno: Int
+    clzlocation: String
+    clznative: String
+}
+
+type Query {
+    eventByEventid(eventid: ID!): Event
+    eventsByEventtp(eventtp: String!, fromIndex: Long!, endIndex: Long!): [Event!]!
+    eventsByLoggernamespace(loggernamespace: String!, fromIndex: Long!, endIndex: Long!): [Event!]!
+    eventsByCategory(cat: String!, fromIndex: Long!, endIndex: Long!): [Event!]!
+    eventsByP1(p1: String!, fromIndex: Long!, endIndex: Long!): [Event!]!
+    eventsByP2(p1: String!, fromIndex: Long!, endIndex: Long!): [Event!]!
+    eventsByP3(p1: String!, fromIndex: Long!, endIndex: Long!): [Event!]!
+    eventMetaByEventidandLevel(eventid: ID!, level: Int!): EventMeta
+    eventsMetaByEventid(eventid: ID!): [EventMeta!]!
+    eventsMetaByClzldr(clzldr: String!, fromIndex: Long!, endIndex: Long!): [EventMeta!]!
+    eventsMetaByClzcn(clzcn: String!, fromIndex: Long!, endIndex: Long!): [EventMeta!]!
+    eventsMetaByClzmethnm(clzmethnm: String!, fromIndex: Long!, endIndex: Long!): [EventMeta!]!
+    eventsMetaByClzmodnm(clzmodnm: String!, fromIndex: Long!, endIndex: Long!): [EventMeta!]!
+    eventsMetaByClzmodvr(clzmodvr: String!, fromIndex: Long!, endIndex: Long!): [EventMeta!]!
+    eventsMetaByClzfilenm(clzfilenm: String!, fromIndex: Long!, endIndex: Long!): [EventMeta!]!
+    eventsMetaByClzlocation(clzlocation: String!, fromIndex: Long!, endIndex: Long!): [EventMeta!]!
+}

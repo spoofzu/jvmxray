@@ -25,10 +25,10 @@
   </developers>
   <modules>
     <module>mod-agent</module>
-    <module>mod-servlet</module>
+    <module>mod-apiserver</module>
     <module>mod-appenders</module>
     <module>mod-unittest</module>
-    <module>mod-server</module>
+    <module>mod-logserver</module>
   </modules>
   <properties>
     <maven.compiler.source>19</maven.compiler.source>
