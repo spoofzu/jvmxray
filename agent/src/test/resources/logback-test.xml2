@@ -1,0 +1,29 @@
+<configuration debug="false">
+
+    <property name="LOG_HOME" value="${jvmxray.logs}" />
+    <property name="MSG_FMT_SM" value="%d{YYYY.MM.dd 'at' HH:mm:ss z} | %logger{1} | %5level | %msg%n" />
+    <property name="MSG_FMT_LG" value="%d{YYYY.MM.dd 'at' HH:mm:ss z} | %thread | %logger | %5level | %msg%n" />
+    <property name="MSG_FMT_MACHINE" value="%d{yyyy-MM-dd'T'HH:mm:ss.SSS'Z', GMT},%thread,%X,%logger,%5level,%msg%n" />
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Log all events with some event meta. -->
+    <logger name="org.jvmxray.agent.events" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE" />
+    </logger>
+
+    <!-- Log exit event with full meta. -->
+    <logger name="org.jvmxray.agent.events.system.exit" level="TRACE" additivity="false">
+        <appender-ref ref="CONSOLE" />
+    </logger>
+
+    <!-- All other events -->
+    <root level="DEBUG">
+        <appender-ref ref="CONSOLE" />
+    </root>
+
+</configuration>
