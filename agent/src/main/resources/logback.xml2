@@ -1,0 +1,132 @@
+<configuration debug="false" scan="false" scanPeriod="1 minutes">
+
+    <!-- jvmxray.logs is set by jvmxray as, jvmxray.base+file.separator+"logs"+file.separator -->
+    <property name="LOG_HOME" value="${jvmxray.logs}" />
+    <property name="MSG_FMT_SM" value="%d{YYYY.MM.dd 'at' HH:mm:ss z} | %logger{1} | %5level | %msg%n" />
+    <property name="MSG_FMT_LG" value="%d{YYYY.MM.dd 'at' HH:mm:ss z} | %thread | %logger | %5level | %msg%n" />
+    <property name="MSG_FMT_MACHINE" value="%d{yyyy-MM-dd'T'HH:mm:ss.SSS'Z', GMT},%thread,%X,%logger,%5level,%msg%n" />
+
+    <!-- Unspecified messages go here.  -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- JVMXRay security events go here.  -->
+    <appender name="EVENTLOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}jvmxray-agent-events.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}jvmxray-agent-events-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>1MB</maxFileSize>
+            <maxHistory>5</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- JVMXRay platform messages go here.  These are messages directly from the platform, diagnostics, debugging, etc. -->
+    <appender name="PLATFORMLOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}jvmxray-agent-platform.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}jvmxray-agent-platform-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>1MB</maxFileSize>
+            <maxHistory>5</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Platform logs.  This is log messages from platform code, useful in debuging platform problems. -->
+    <logger name="org.jvmxray.platform" level="INFO" additivity="false">
+        <appender-ref ref="PLATFORMLOG" />
+    </logger>
+
+    <!-- Check Access Events -->
+    <!--
+        org.jvmxray.events.access.target
+        org.jvmxray.events.access.thread
+        org.jvmxray.events.access.threadgroup
+    -->
+    <logger name="org.jvmxray.events.access" level="DEBUG" additivity="false">
+        <appender-ref ref="EVENTLOG" />
+    </logger>
+
+    <!-- File CRUD Events -->
+    <!--
+        org.jvmxray.events.io.filedelete
+        org.jvmxray.events.io.fileread
+        org.jvmxray.events.io.filereadwithcontext
+        org.jvmxray.events.io.filereadwithfiledescriptor
+        org.jvmxray.events.io.filewrite
+        org.jvmxray.events.io.filewritewithfiledescriptor
+    -->
+    <logger name="org.jvmxray.events.io" level="DEBUG" additivity="false">
+        <appender-ref ref="EVENTLOG" />
+    </logger>
+    <!-- Supress file READ events. -->
+    <logger name="org.jvmxray.events.io.fileread" level="OFF"/>
+    <logger name="org.jvmxray.events.io.filereadwithcontext" level="OFF"/>
+    <logger name="org.jvmxray.events.io.filereadwithfiledescriptor" level="OFF"/>
+
+    <!-- Classloader & Package Events -->
+    <!--
+        org.jvmxray.events.class.classloadercreate
+        org.jvmxray.events.class.packageaccess
+        org.jvmxray.events.class.packagedefine
+        org.jvmxray.events.class.loaded
+    -->
+    <logger name="org.jvmxray.events.class" level="OFF" additivity="false">
+        <appender-ref ref="EVENTLOG" />
+    </logger>
+    <logger name="org.jvmxray.events.class.loaded" level="DEBUG" additivity="false">
+        <appender-ref ref="CLASSLOG" />
+    </logger>
+
+    <!-- Permission Check Events -->
+    <!--
+        org.jvmxray.events.permission.check
+        org.jvmxray.events.permission.checkwithcontext
+    -->
+    <logger name="org.jvmxray.events.permission" level="DEBUG" additivity="false">
+        <appender-ref ref="EVENTLOG" />
+    </logger>
+
+    <!-- System Events -->
+    <!--
+        org.jvmxray.events.system.exit
+        org.jvmxray.events.system.execute
+        org.jvmxray.events.system.link
+        org.jvmxray.events.system.print
+        org.jvmxray.events.system.propertiesany
+        org.jvmxray.events.system.properertiesnamed
+        org.jvmxray.events.system.factory
+    -->
+    <logger name="org.jvmxray.events.system" level="DEBUG" additivity="false">
+        <appender-ref ref="EVENTLOG" />
+    </logger>
+    <logger name="org.jvmxray.events.system.propertiesany" level="OFF" additivity="false">
+        <appender-ref ref="EVENTLOG" />
+    </logger>
+
+    <!-- Socket Events -->
+    <!--
+        org.jvmxray.events.socket.accept
+        org.jvmxray.events.socket.connect
+        org.jvmxray.events.socket.connectwithcontext
+        org.jvmxray.events.socket.listen
+        org.jvmxray.events.socket.multicast
+        org.jvmxray.events.socket.multicastwithttl
+    -->
+    <logger name="org.jvmxray.events.socket" level="DEBUG" additivity="false">
+        <appender-ref ref="EVENTLOG" />
+    </logger>
+
+    <!-- Any undefined events -->
+    <root level="ERROR">
+        <appender-ref ref="CONSOLE" />
+    </root>
+
+</configuration>
