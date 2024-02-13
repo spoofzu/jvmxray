@@ -14,6 +14,15 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.jvmxray</groupId>
+            <artifactId>shared</artifactId>
+            <version>0.0.1</version>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.datastax.oss</groupId>
             <artifactId>java-driver-core</artifactId>
             <version>4.13.0</version>
@@ -27,11 +36,6 @@
             <groupId>com.datastax.oss</groupId>
             <artifactId>java-driver-mapper-runtime</artifactId>
             <version>4.13.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.jvmxray</groupId>
-            <artifactId>shared</artifactId>
-            <version>0.0.1</version>
         </dependency>
     </dependencies>
 </project>

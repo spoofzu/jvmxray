@@ -19,6 +19,15 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.jvmxray</groupId>
+            <artifactId>shared</artifactId>
+            <version>0.0.1</version>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+        </dependency>
+        <dependency>
             <groupId>jakarta.servlet</groupId>
             <artifactId>jakarta.servlet-api</artifactId>
             <version>5.0.0</version>
@@ -69,11 +78,6 @@
             <groupId>com.graphql-java</groupId>
             <artifactId>graphql-java-extended-scalars</artifactId>
             <version>21.0</version>
-        </dependency>
-        <dependency>
-            <groupId>org.jvmxray</groupId>
-            <artifactId>shared</artifactId>
-            <version>0.0.1</version>
         </dependency>
     </dependencies>
 
