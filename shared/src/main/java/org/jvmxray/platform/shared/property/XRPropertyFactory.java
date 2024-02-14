@@ -115,7 +115,7 @@ public class XRPropertyFactory {
     public static synchronized XRAgentProperties getAgentProperties() throws Exception {
         if( agentProperties == null ) {
             if( jvmxrayBase == null || jvmxrayHome == null || jvmxrayLogHome == null ) {
-                throw new Exception("XRPropertyFactory must be initialzed prior to use.");
+                throw new Exception("XRPropertyFactory must be initialized prior to use.");
             }
             agentProperties = new XRAgentProperties(jvmxrayHome);
             agentProperties.init();

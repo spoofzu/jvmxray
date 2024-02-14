@@ -42,7 +42,7 @@ public class XREventLogger {
         }
         String aid = properties.getProperty(XREvent.APPLICATIONID);
         String cat = properties.getProperty(XREvent.CATEGORYID);
-        String eid = XRGUID.getID();
+        String eid = XRGUID.getID(); // ID of the event being logged, changes w/each event.
         Thread currentThread = Thread.currentThread();
         ClassLoader contextClzLoader = currentThread.getContextClassLoader();
         String classLoaderName = (contextClzLoader!=null) ? contextClzLoader.getName() : "unassigned";
