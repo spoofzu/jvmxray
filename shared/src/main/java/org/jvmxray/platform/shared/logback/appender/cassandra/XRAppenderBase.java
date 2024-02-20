@@ -116,14 +116,15 @@ public abstract class XRAppenderBase extends AppenderBase<ILoggingEvent> {
 
         // XRAppenderBase is only intended for use with JVMXRay log messages.
         //
-        if (!loggerName.startsWith("org.jvmxray.agent.events")) {
+        if (!loggerName.startsWith("org.jvmxray.events")) {
             addError("Bad configuration: XRAppenderBase is specialized for JVMXRay formatted events only. loggername=" + loggerName + " msg=" + rawMsg);
             return;
         }
 
         // Gather key/pair log message metadata from logbacks message.
         // For example, AID=xxx CAT=xxx DUMPSTACK=xxx
-        // Note: DUMPSTACK
+        // Note: Values are encoded using XRLogPairCodec which URLEncodes
+        //   data in event data contains reserved characters.
         String[] fmtpairs = rawMsg.split(" ");
         int sz = fmtpairs.length;
         for (int idx = 0; idx < sz; idx++) {
@@ -140,6 +141,10 @@ public abstract class XRAppenderBase extends AppenderBase<ILoggingEvent> {
         String p2 = map.get(XREvent.PARAM2);
         String p3 = map.get(XREvent.PARAM3);
         String dumpStack = map.get(XREvent.DUMPSTACK);
+        // Remove any jvmxray types from the map, which leaves only the user created
+        // types available to downstream custom appender designers.  APPLICATIONID,
+        // EVENTID, CATEGORYID, PARAM1, PARAM2, PARAM3, DUMPSTACK are made available
+        // via processEvent() API.
         map.remove(XREvent.APPLICATIONID);
         map.remove(XREvent.CATEGORYID);
         map.remove(XREvent.PARAM1);
@@ -163,10 +168,10 @@ public abstract class XRAppenderBase extends AppenderBase<ILoggingEvent> {
      * @param event Logback ILoggingEvent. Unmodified log message from logback logging framework.
      */
     protected void debug(ILoggingEvent event) {
-        _debug(event);
+        debug0(event);
     }
 
-    private void _debug(ILoggingEvent event) {
+    private void debug0(ILoggingEvent event) {
         Map mdc = event.getMDCPropertyMap();
         String rawmsg = event.getFormattedMessage();
         Level lvl = event.getLevel();

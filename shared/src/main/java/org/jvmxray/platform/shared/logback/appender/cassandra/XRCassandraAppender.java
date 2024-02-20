@@ -23,7 +23,8 @@ import java.util.Optional;
  * XRCassandraAppender logs JVMXRay events to a Cassandra database
  * for offline processing/reporting. Specifically for use with
  * JVMXRay and logback logging framework.<br/>
- * Note: not a generized Cassndra appender.
+ * Note: not a generalized Cassandra appender.
+ *
  * @see XRAppenderBase
  * @author Milton Smith
  */
@@ -188,7 +189,7 @@ public class XRCassandraAppender extends XRAppenderBase {
      * undefined.
      */
     private void initCassandra() {
-        // Build a custom configuration with authentication options
+        //TODO: A more improved authentication mechanism is best for prime-time.
         AuthProvider authProvider = new ProgrammaticPlainTextAuthProvider(getUser(), getPassword());
         setSession(connect(authProvider, getNode(),getPort(),getDatacenter()));
         createKeyspaceIfNotExists(session,KEYSPACE_NAME,KEYSPACE_REPLICATION_FACTOR);
