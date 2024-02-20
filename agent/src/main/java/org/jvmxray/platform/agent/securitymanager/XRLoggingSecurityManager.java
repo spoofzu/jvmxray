@@ -1,4 +1,4 @@
-package org.jvmxray.platform.agent.engine;
+package org.jvmxray.platform.agent.securitymanager;
 
 import org.jvmxray.platform.shared.event.XREventLogger;
 import org.slf4j.Logger;
@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 
 public class XRLoggingSecurityManager extends XRSecurityManagerBase {
 
-    private static final Logger logger = LoggerFactory.getLogger("org.jvmxray.platform.agent.engine.XRLoggingSecurityManager");
+    private static final Logger logger = LoggerFactory.getLogger("org.jvmxray.platform.agent.securitymanager.XRLoggingSecurityManager");
 
     public XRLoggingSecurityManager() {
         super();

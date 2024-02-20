@@ -1,8 +1,9 @@
 package org.jvmxray.platform.agent.unitest;
 
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.jvmxray.platform.agent.engine.XRLoggingSecurityManager;
+import org.jvmxray.platform.agent.securitymanager.XRLoggingSecurityManager;
 import org.jvmxray.platform.shared.property.XRPropertyFactory;
 
 import java.io.File;
@@ -21,6 +22,8 @@ import java.security.Permission;
  */
 public class APIUnitTest {
 
+    private static final String PROPERTYFILE_HEADER = "JVMXRay UnitTest Properties";
+    private static File tempDir;
     private static XRLoggingSecurityManager sm  = new XRLoggingSecurityManager();
     private Permission perm = new TestPermission("testpermission");
 
@@ -55,6 +58,7 @@ public class APIUnitTest {
             agentTest.checkPackageDefinition();
             agentTest.checkSetFactory();
             agentTest.checkSecurityAccess();
+            APIUnitTest.tearDownOnce();
         }catch(Exception e) {
             e.printStackTrace();
         }
@@ -62,8 +66,14 @@ public class APIUnitTest {
 
     @BeforeClass
     public static void setUpOnce() throws Exception {
-        // Init jvmxray.
+        // No need set jvmxray.base this unit test.  XRPropertyFactory.init() detects
+        // the unit test and logback logging is intialized directly via
+        // logback-test.xml2 and printed to the console.
         XRPropertyFactory.init();
+    }
+
+    @AfterClass
+    public static void tearDownOnce() throws Exception {
     }
 
     @Test

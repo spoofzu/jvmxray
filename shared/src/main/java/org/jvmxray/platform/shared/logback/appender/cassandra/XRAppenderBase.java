@@ -1,10 +1,10 @@
-package org.jvmxray.appender;
+package org.jvmxray.platform.shared.logback.appender.cassandra;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.AppenderBase;
 import org.jvmxray.platform.shared.event.XREvent;
-import org.jvmxray.platform.shared.logback.XRLogPairCodec;
+import org.jvmxray.platform.shared.logback.codec.XRLogPairCodec;
 
 import java.nio.charset.Charset;
 import java.util.HashMap;

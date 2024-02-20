@@ -1,7 +1,7 @@
 package org.jvmxray.platform.agent.bin;
 
 
-import org.jvmxray.platform.agent.engine.XRLoggingSecurityManager;
+import org.jvmxray.platform.agent.securitymanager.XRLoggingSecurityManager;
 import org.jvmxray.platform.shared.classloader.XRLoggingClassLoader;
 import org.jvmxray.platform.shared.property.XRPropertyFactory;
 

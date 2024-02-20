@@ -1,4 +1,4 @@
-package org.jvmxray.appender.unittest.manual.bin;
+package org.jvmxray.shared.unittest;
 
 public class CassandraTest {
 

@@ -1,4 +1,4 @@
-package org.jvmxray.platform.shared.logback;
+package org.jvmxray.platform.shared.logback.converter;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.classic.pattern.ClassicConverter;

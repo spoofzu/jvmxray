@@ -292,7 +292,7 @@ public class XRPrimaryPanel extends JPanel {
             properties.setProperty("height", String.valueOf(getTopLevelAncestor().getHeight()));
             properties.setProperty("width", String.valueOf(getTopLevelAncestor().getWidth()));
             properties.setProperty("payload", agentPayload.getText().trim());
-            properties.saveProperties("JVMXRay Injector Properties");
+            properties.saveProperties();
             logger.info("Application settings saved.");
         } catch (IOException e) {
             logger.error("Error saving screen location: %s",e.getMessage());
@@ -324,7 +324,7 @@ public class XRPrimaryPanel extends JPanel {
         agentPayload.setText(payload);
         // If properties created for first time, save them.
         if(injectorProperties.isModified()) {
-            injectorProperties.saveProperties("JVMXRay Injector Properties");
+            injectorProperties.saveProperties();
         }
         logger.info("Application settings restored.");
         return new XRScreenLocator(x,y,width,height);

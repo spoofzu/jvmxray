@@ -1,4 +1,4 @@
-package org.jvmxray.platform.shared.logback;
+package org.jvmxray.platform.shared.logback.codec;
 
 import java.net.URLDecoder;
 import java.net.URLEncoder;

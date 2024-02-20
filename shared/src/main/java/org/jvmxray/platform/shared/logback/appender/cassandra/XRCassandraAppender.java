@@ -1,4 +1,4 @@
-package org.jvmxray.appender;
+package org.jvmxray.platform.shared.logback.appender.cassandra;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import com.datastax.oss.driver.api.core.CqlSession;
@@ -12,7 +12,7 @@ import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
 import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder;
 import com.datastax.oss.driver.api.querybuilder.insert.RegularInsert;
-import org.jvmxray.platform.shared.logback.XRLogPairCodec;
+import org.jvmxray.platform.shared.logback.codec.XRLogPairCodec;
 
 import java.net.InetSocketAddress;
 import java.nio.charset.Charset;
