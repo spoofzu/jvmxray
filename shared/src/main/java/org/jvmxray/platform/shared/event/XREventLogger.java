@@ -52,20 +52,20 @@ public class XREventLogger {
         if( localLogger.isTraceEnabled() ) {
             StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
             localLogger.trace("{} {} {} {} {} {} {} {}",
-                    XRLogKeypair.value(XREvent.APPLICATIONID, aid),
-                    XRLogKeypair.value(XREvent.EVENTID, eid),
-                    XRLogKeypair.value(XREvent.CATEGORYID, cat),
+                    XRLogKeypair.value(XREvent.APPLICATIONID, XRLogPairCodec.encode(aid,Charset.forName("UTF-8"))),
+                    XRLogKeypair.value(XREvent.EVENTID, XRLogPairCodec.encode(eid,Charset.forName("UTF-8"))),
+                    XRLogKeypair.value(XREvent.CATEGORYID, XRLogPairCodec.encode(cat,Charset.forName("UTF-8"))),
                     XRLogKeypair.value(XREvent.PARAM1, XRLogPairCodec.encode(p1,Charset.forName("UTF-8"))),
                     XRLogKeypair.value(XREvent.PARAM2, XRLogPairCodec.encode(p2,Charset.forName("UTF-8"))),
                     XRLogKeypair.value(XREvent.PARAM3, XRLogPairCodec.encode(p3,Charset.forName("UTF-8"))),
                     XRLogKeypair.value(XREvent.CLASSLOADER, classLoaderName + ":" + classLoaderClassName),
-                    XRLogKeypair.value(XREvent.DUMPSTACK,formatStackTrace(stackTrace))
+                    XRLogKeypair.value(XREvent.DUMPSTACK, XRLogPairCodec.encode(formatStackTrace(stackTrace),Charset.forName("UTF-8")))
             );
         } else if( localLogger.isDebugEnabled() ) {
             localLogger.debug("{} {} {} {} {} {} {}",
-                    XRLogKeypair.value(XREvent.APPLICATIONID, aid),
-                    XRLogKeypair.value(XREvent.EVENTID, eid),
-                    XRLogKeypair.value(XREvent.CATEGORYID, cat),
+                    XRLogKeypair.value(XREvent.APPLICATIONID, XRLogPairCodec.encode(aid,Charset.forName("UTF-8"))),
+                    XRLogKeypair.value(XREvent.EVENTID, XRLogPairCodec.encode(eid,Charset.forName("UTF-8"))),
+                    XRLogKeypair.value(XREvent.CATEGORYID, XRLogPairCodec.encode(cat,Charset.forName("UTF-8"))),
                     XRLogKeypair.value(XREvent.PARAM1, XRLogPairCodec.encode(p1,Charset.forName("UTF-8"))),
                     XRLogKeypair.value(XREvent.PARAM2, XRLogPairCodec.encode(p2,Charset.forName("UTF-8"))),
                     XRLogKeypair.value(XREvent.PARAM3, XRLogPairCodec.encode(p3,Charset.forName("UTF-8"))),
@@ -73,9 +73,9 @@ public class XREventLogger {
             );
         } else {
             localLogger.debug("{} {} {} {} {} {}",
-                    XRLogKeypair.value(XREvent.APPLICATIONID, aid),
-                    XRLogKeypair.value(XREvent.EVENTID, eid),
-                    XRLogKeypair.value(XREvent.CATEGORYID, cat),
+                    XRLogKeypair.value(XREvent.APPLICATIONID, XRLogPairCodec.encode(aid,Charset.forName("UTF-8"))),
+                    XRLogKeypair.value(XREvent.EVENTID, XRLogPairCodec.encode(eid,Charset.forName("UTF-8"))),
+                    XRLogKeypair.value(XREvent.CATEGORYID, XRLogPairCodec.encode(cat,Charset.forName("UTF-8"))),
                     XRLogKeypair.value(XREvent.PARAM1, XRLogPairCodec.encode(p1,Charset.forName("UTF-8"))),
                     XRLogKeypair.value(XREvent.PARAM2, XRLogPairCodec.encode(p2,Charset.forName("UTF-8"))),
                     XRLogKeypair.value(XREvent.PARAM3, XRLogPairCodec.encode(p3,Charset.forName("UTF-8")))
