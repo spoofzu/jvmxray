@@ -1,7 +1,7 @@
 package org.jvmxray.platform.shared.event;
 
-import org.jvmxray.platform.shared.logback.XRAgentLogPair;
-import org.jvmxray.platform.shared.logback.XRLogPairCodec;
+import org.jvmxray.platform.shared.logback.codec.XRLogKeypair;
+import org.jvmxray.platform.shared.logback.codec.XRLogPairCodec;
 import org.jvmxray.platform.shared.property.XRAgentProperties;
 import org.jvmxray.platform.shared.property.XRPropertyFactory;
 import org.jvmxray.platform.shared.util.XRGUID;
@@ -52,33 +52,33 @@ public class XREventLogger {
         if( localLogger.isTraceEnabled() ) {
             StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
             localLogger.trace("{} {} {} {} {} {} {} {}",
-                    XRAgentLogPair.value(XREvent.APPLICATIONID, aid),
-                    XRAgentLogPair.value(XREvent.EVENTID, eid),
-                    XRAgentLogPair.value(XREvent.CATEGORYID, cat),
-                    XRAgentLogPair.value(XREvent.PARAM1, XRLogPairCodec.encode(p1,Charset.forName("UTF-8"))),
-                    XRAgentLogPair.value(XREvent.PARAM2, XRLogPairCodec.encode(p2,Charset.forName("UTF-8"))),
-                    XRAgentLogPair.value(XREvent.PARAM3, XRLogPairCodec.encode(p3,Charset.forName("UTF-8"))),
-                    XRAgentLogPair.value(XREvent.CLASSLOADER, classLoaderName + ":" + classLoaderClassName),
-                    XRAgentLogPair.value(XREvent.DUMPSTACK,formatStackTrace(stackTrace))
+                    XRLogKeypair.value(XREvent.APPLICATIONID, aid),
+                    XRLogKeypair.value(XREvent.EVENTID, eid),
+                    XRLogKeypair.value(XREvent.CATEGORYID, cat),
+                    XRLogKeypair.value(XREvent.PARAM1, XRLogPairCodec.encode(p1,Charset.forName("UTF-8"))),
+                    XRLogKeypair.value(XREvent.PARAM2, XRLogPairCodec.encode(p2,Charset.forName("UTF-8"))),
+                    XRLogKeypair.value(XREvent.PARAM3, XRLogPairCodec.encode(p3,Charset.forName("UTF-8"))),
+                    XRLogKeypair.value(XREvent.CLASSLOADER, classLoaderName + ":" + classLoaderClassName),
+                    XRLogKeypair.value(XREvent.DUMPSTACK,formatStackTrace(stackTrace))
             );
         } else if( localLogger.isDebugEnabled() ) {
             localLogger.debug("{} {} {} {} {} {} {}",
-                    XRAgentLogPair.value(XREvent.APPLICATIONID, aid),
-                    XRAgentLogPair.value(XREvent.EVENTID, eid),
-                    XRAgentLogPair.value(XREvent.CATEGORYID, cat),
-                    XRAgentLogPair.value(XREvent.PARAM1, XRLogPairCodec.encode(p1,Charset.forName("UTF-8"))),
-                    XRAgentLogPair.value(XREvent.PARAM2, XRLogPairCodec.encode(p2,Charset.forName("UTF-8"))),
-                    XRAgentLogPair.value(XREvent.PARAM3, XRLogPairCodec.encode(p3,Charset.forName("UTF-8"))),
-                    XRAgentLogPair.value(XREvent.CLASSLOADER, classLoaderName + ":" + classLoaderClassName)
+                    XRLogKeypair.value(XREvent.APPLICATIONID, aid),
+                    XRLogKeypair.value(XREvent.EVENTID, eid),
+                    XRLogKeypair.value(XREvent.CATEGORYID, cat),
+                    XRLogKeypair.value(XREvent.PARAM1, XRLogPairCodec.encode(p1,Charset.forName("UTF-8"))),
+                    XRLogKeypair.value(XREvent.PARAM2, XRLogPairCodec.encode(p2,Charset.forName("UTF-8"))),
+                    XRLogKeypair.value(XREvent.PARAM3, XRLogPairCodec.encode(p3,Charset.forName("UTF-8"))),
+                    XRLogKeypair.value(XREvent.CLASSLOADER, classLoaderName + ":" + classLoaderClassName)
             );
         } else {
             localLogger.debug("{} {} {} {} {} {}",
-                    XRAgentLogPair.value(XREvent.APPLICATIONID, aid),
-                    XRAgentLogPair.value(XREvent.EVENTID, eid),
-                    XRAgentLogPair.value(XREvent.CATEGORYID, cat),
-                    XRAgentLogPair.value(XREvent.PARAM1, XRLogPairCodec.encode(p1,Charset.forName("UTF-8"))),
-                    XRAgentLogPair.value(XREvent.PARAM2, XRLogPairCodec.encode(p2,Charset.forName("UTF-8"))),
-                    XRAgentLogPair.value(XREvent.PARAM3, XRLogPairCodec.encode(p3,Charset.forName("UTF-8")))
+                    XRLogKeypair.value(XREvent.APPLICATIONID, aid),
+                    XRLogKeypair.value(XREvent.EVENTID, eid),
+                    XRLogKeypair.value(XREvent.CATEGORYID, cat),
+                    XRLogKeypair.value(XREvent.PARAM1, XRLogPairCodec.encode(p1,Charset.forName("UTF-8"))),
+                    XRLogKeypair.value(XREvent.PARAM2, XRLogPairCodec.encode(p2,Charset.forName("UTF-8"))),
+                    XRLogKeypair.value(XREvent.PARAM3, XRLogPairCodec.encode(p3,Charset.forName("UTF-8")))
             );
         }
     }

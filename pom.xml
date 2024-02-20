@@ -26,7 +26,6 @@
   <modules>
     <module>shared</module>
     <module>agent</module>
-    <module>appender</module>
     <module>logserver</module>
     <module>graphqlserver</module>
   </modules>

@@ -1,13 +1,13 @@
-package org.jvmxray.platform.shared.logback;
+package org.jvmxray.platform.shared.logback.codec;
 
 /**
  * Utility for organizing key/pairs when logback logging.
  *
  * @author Milton Smith
  */
-public class XRAgentLogPair {
+public class XRLogKeypair {
 
-    private XRAgentLogPair() {}
+    private XRLogKeypair() {}
 
     /**
      * Create logback key/pair.

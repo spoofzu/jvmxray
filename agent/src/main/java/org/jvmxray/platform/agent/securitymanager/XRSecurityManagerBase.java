@@ -1,4 +1,4 @@
-package org.jvmxray.platform.agent.engine;
+package org.jvmxray.platform.agent.securitymanager;
 
 import java.io.FileDescriptor;
 import java.net.InetAddress;
@@ -95,7 +95,7 @@ public abstract class XRSecurityManagerBase extends SecurityManager {
      */
     @Override
     public void checkCreateClassLoader() {
-        String loggerName = "org.jvmxray.events.class.classloadercreate";
+        String loggerName = "org.jvmxray.events.classloader.create";
         handleEvent0(loggerName, "", "", "" );
     }
 
@@ -216,7 +216,7 @@ public abstract class XRSecurityManagerBase extends SecurityManager {
      */
     @Override
     public void checkPackageAccess(String pkg) {
-        String loggerName = "org.jvmxray.events.class.packageaccess";
+        String loggerName = "org.jvmxray.events.classloader.packageaccess";
         handleEvent0(loggerName, pkg, "", "" );
     }
 
@@ -227,7 +227,7 @@ public abstract class XRSecurityManagerBase extends SecurityManager {
      */
     @Override
     public void checkPackageDefinition(String pkg) {
-        String loggerName = "org.jvmxray.events.class.packagedefine";
+        String loggerName = "org.jvmxray.events.classloader.packagedefine";
         handleEvent0(loggerName, pkg, "", "" );
     }
 

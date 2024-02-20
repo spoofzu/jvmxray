@@ -1,4 +1,4 @@
-package org.jvmxray.appender;
+package org.jvmxray.platform.shared.logback.codec;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.encoder.LayoutWrappingEncoder;

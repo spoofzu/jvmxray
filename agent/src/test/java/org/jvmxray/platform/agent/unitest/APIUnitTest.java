@@ -3,7 +3,7 @@ package org.jvmxray.platform.agent.unitest;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.jvmxray.platform.agent.engine.XRLoggingSecurityManager;
+import org.jvmxray.platform.agent.securitymanager.XRLoggingSecurityManager;
 import org.jvmxray.platform.shared.property.XRPropertyFactory;
 
 import java.io.File;

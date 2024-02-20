@@ -2,19 +2,37 @@
 #
 # **************************************************************************
 # EXECUTE JVMXRAY INJECTOR
-# Use the injector to insert the agent into the target process to monitor.
-# Once the agent is injected, the agent will start monitoring events.
+#
+# The injector is used to insert the Agent into the target process to
+#   monitor in near-realtime.  Once the agent is injected, monitoring will
+#   begin.
+#
+# Note: use of the injector is optional or helpful during
+#   development/debugging.  The usual method of deploying the agent into
+#   the target to monitor is via the --javaagent command line switch
+#   when starting the target.
+#
 # **************************************************************************
 #
-# UPDATE:  JVMXRAY_HOME is where you want xrays runtime properties, data, to live.
-export JVMXRAY_HOME="/Users/milton/jvmxray-agent/"
+# JVMXRAY_BASE is root of the 'jvmxray' folder. The path is used by
+#    all modules.  For example, your base path may look like the following,
+#    $JVMXRAY_BASE/
+#       +jvmxray/
+#          +agent/
+#             agent.properties
+#          +injector/
+#             injector.properties
+#          +logs/
+#             jvmxray-agent-events.log
+#             jvmxray-agent-platform.log
+#          logback.xml
 #
-# UPDATE: Uncomment to use your own logging configuration or leave commented to use
-#         the default include in the jar.
-#export LOGCONFIG="/Users/milton/jvmxray-agent/logconfig/"
+# The directory structure from jvmxray/.. and all the files are created by
+# jvmxray by default.
+export JVMXRAY_BASE="/Users/milton/"
 #
 # Uncomment to show debug gui or leave commented for unattended headless operation.
 export DEBUGGUI="--debugui"
 #
-java -cp "$LOGCONFIG:../jvmxray-agent/target/jvmxray-agent-0.0.1-jar-with-dependencies.jar" org.jvmxray.agent.driver.jvmxrayinjector \
- "$DEBUGGUI" --agentbasepath="$JVMXRAY_HOME" --agentpayload="../jvmxray-agent/target/jvmxray-agent-0.0.1-jar-with-dependencies.jar"
+java -cp "../agent/target/agent-0.0.1-jar-with-dependencies.jar" org.jvmxray.platform.agent.bin.jvmxrayinjector \
+ "$DEBUGGUI" --agentbasepath="$JVMXRAY_BASE" --agentpayload="../agent/target/agent-0.0.1-jar-with-dependencies.jar"
