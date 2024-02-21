@@ -116,7 +116,7 @@ public abstract class XRSecurityManagerBase extends SecurityManager {
      */
     @Override
     public void checkSetFactory() {
-        String loggerName = "org.jvmxray.agent.system.factory";
+        String loggerName = "org.jvmxray.events.system.factory";
         handleEvent0(loggerName, "", "", "" );
     }
 
