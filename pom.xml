@@ -27,7 +27,6 @@
     <module>shared</module>
     <module>agent</module>
     <module>logserver</module>
-    <module>graphqlserver</module>
   </modules>
   <properties>
     <maven.compiler.source>17</maven.compiler.source>
