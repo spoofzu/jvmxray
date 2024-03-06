@@ -47,7 +47,7 @@ public class XRPropertyBaseTest {
         System.setProperty("jvmxray.base",tempDir.getAbsolutePath());
         XRPropertyFactory.init();
         // Testup the properties test.
-        propertyTest = new XRUnitTestProperties(tempDir);
+        propertyTest = new XRUnitTestProperties(tempDir.toPath());
         propertyTest.init();
     }
 
@@ -101,7 +101,7 @@ public class XRPropertyBaseTest {
         String testValue = "saveTestValue";
         propertyTest.setProperty(testKey, testValue);
         propertyTest.saveProperties("JVMXRay UnitTest Properties");
-        XRUnitTestProperties reloadedProperties = new XRUnitTestProperties(tempDir);
+        XRUnitTestProperties reloadedProperties = new XRUnitTestProperties(tempDir.toPath());
         reloadedProperties.init();
         assertEquals(testValue, reloadedProperties.getProperty(testKey));
     }

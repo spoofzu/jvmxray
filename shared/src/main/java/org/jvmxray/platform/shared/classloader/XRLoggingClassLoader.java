@@ -3,6 +3,7 @@ package org.jvmxray.platform.shared.classloader;
 import org.jvmxray.platform.shared.event.XREventLogger;
 
 import java.net.URL;
+import java.net.URLClassLoader;
 
 /**
  * The logging classloader logs classes loaded to the
@@ -11,24 +12,33 @@ import java.net.URL;
  *
  * @author Milton Smith
  */
-public class XRLoggingClassLoader extends ClassLoader {
+public class XRLoggingClassLoader extends URLClassLoader {
 
     /**
      * Constructor
-     * @param parent Parent classloader for delegation.
+     * @param name class loader name; or null if not named
      */
-    public XRLoggingClassLoader(ClassLoader parent) {
-        super(parent);
+    public XRLoggingClassLoader(String name) {
+        this(name, new URL[]{});
     }
 
     /**
      * Constructor
-     * @param loaderName Human-readable classloader name.  Used when examing threads
-     *                   and logging durring troubleshooting.
+     * @param name class loader name; or null if not named
+     * @param urls array of URLs from which to load classes and resources
+     */
+    public XRLoggingClassLoader(String name, URL[] urls) {
+        this(name,urls,Thread.currentThread().getContextClassLoader());
+    }
+
+    /**
+     * Constructor
+     * @param name class loader name; or null if not named
+     * @param urls the URLs from which to load classes and resources
      * @param parent Parent classloader for delegation.
      */
-    public XRLoggingClassLoader(String loaderName, ClassLoader parent) {
-        super(loaderName, parent);
+    public XRLoggingClassLoader(String name, URL[] urls, ClassLoader parent) {
+        super(name,urls, parent);
     }
 
     /**
