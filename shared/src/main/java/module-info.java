@@ -21,4 +21,5 @@ module jvmxray.shared {
     exports org.jvmxray.platform.shared.logback.appender.cassandra;
     exports org.jvmxray.platform.shared.logback.codec;
     exports org.jvmxray.platform.shared.logback.converter;
+    exports org.jvmxray.platform.shared.service to jvmxray.agent, jvmxray.logserver;
 }

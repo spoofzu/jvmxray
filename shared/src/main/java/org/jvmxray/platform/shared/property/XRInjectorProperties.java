@@ -1,10 +1,10 @@
 package org.jvmxray.platform.shared.property;
 
-import java.io.File;
+import java.nio.file.Path;
 
-public class XRInjectorProperties extends XRPropertyBase {
+public class XRInjectorProperties extends XRPropertyBase implements XRIProperties {
 
-    public XRInjectorProperties(File jvmxrayHome) {
+    public XRInjectorProperties(Path jvmxrayHome) {
         super(jvmxrayHome, "injector", "injector.properties");
     }
 

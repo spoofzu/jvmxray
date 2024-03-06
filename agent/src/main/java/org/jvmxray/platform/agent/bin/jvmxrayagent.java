@@ -84,8 +84,7 @@ public class jvmxrayagent  {
             //
             XRPropertyFactory.init();
             //
-            ClassLoader originalClassLoader = Thread.currentThread().getContextClassLoader();
-            ClassLoader classLoader = new XRLoggingClassLoader("xray",originalClassLoader);
+            ClassLoader classLoader = new XRLoggingClassLoader("xray");
             Thread.currentThread().setContextClassLoader(classLoader);
             System.setSecurityManager(new XRLoggingSecurityManager());
         } else {

@@ -117,7 +117,7 @@ public class XRPropertyFactory {
             if( jvmxrayBase == null || jvmxrayHome == null || jvmxrayLogHome == null ) {
                 throw new Exception("XRPropertyFactory must be initialized prior to use.");
             }
-            agentProperties = new XRAgentProperties(jvmxrayHome);
+            agentProperties = new XRAgentProperties(jvmxrayHome.toPath());
             agentProperties.init();
             // If property file created, save a copy.
             if(agentProperties.isModified()) {
@@ -134,7 +134,7 @@ public class XRPropertyFactory {
             if( jvmxrayBase == null || jvmxrayHome == null || jvmxrayLogHome == null ) {
                 throw new Exception("XRPropertyFactory must be initialzed prior to use.");
             }
-            injectorProperties = new XRInjectorProperties(jvmxrayHome);
+            injectorProperties = new XRInjectorProperties(jvmxrayHome.toPath());
             injectorProperties.init();
             // If property file created, save a copy.
             if(injectorProperties.isModified()) {

@@ -5,6 +5,8 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -20,20 +22,25 @@ import java.util.Properties;
  *
  * @author Milton Smith
  */
-public abstract class XRPropertyBase implements XRIProperties {
+public abstract class XRPropertyBase {
 
     private static final int MAX_LINE_LENGTH_DEFAULT = 80; // Maximum multi-line default length.
 
-    private Properties properties = new Properties();
+    protected Properties properties = new Properties();
     private Properties propertiesOriginal = new Properties();
     private final List<String> fileContent = new ArrayList<>();
     private volatile boolean bModifiedProperties = false;
 
-    private File jvmxrayHome;
-    private File componentHome;
+    protected Path jvmxrayHome;
+    protected Path componentHome;
     private File propertyFile = null;
-    private String componentName;
-    private String propertyFileName;
+    protected String componentName;
+    protected String propertyFileName;
+
+    /**
+     * Default CTOR.  Subclasses must initialize.
+     */
+    public XRPropertyBase() {}
 
     /**
      * Representation of JVMXRay properties.
@@ -41,7 +48,7 @@ public abstract class XRPropertyBase implements XRIProperties {
      * @param componentName JVMXRay module name.  For example, <code>agent</code>.
      * @param propertyFileName Name of property propertyFileName.  For example, <code>jvmxmrayagent.properties</code>.
      */
-    public XRPropertyBase(File jvmxrayHome, String componentName, String propertyFileName) {
+    public XRPropertyBase(Path jvmxrayHome, String componentName, String propertyFileName) {
         this.jvmxrayHome = jvmxrayHome;
         this.componentName = componentName;
         this.propertyFileName = propertyFileName;
@@ -51,11 +58,10 @@ public abstract class XRPropertyBase implements XRIProperties {
      * Called to initialize properties prior to use.
      * @throws IOException Thrown on problems loading properties file.
      */
-    @Override
-    public synchronized void init() throws IOException {
-        this.componentHome = new File(jvmxrayHome,componentName);
-        componentHome.mkdirs();
-        propertyFile = new File(componentHome, propertyFileName);
+    public void init() throws IOException {
+        this.componentHome = Paths.get(jvmxrayHome.toFile().getAbsolutePath(),componentName);
+        Files.createDirectories(componentHome);
+        propertyFile = new File(componentHome.toFile(), propertyFileName);
         readPropertiesFile();
         propertiesOriginal.putAll(properties);
     }
@@ -65,8 +71,7 @@ public abstract class XRPropertyBase implements XRIProperties {
      * @param name Property name.
      * @return Property value.
      */
-    @Override
-    public synchronized String getProperty(String name) {
+    public String getProperty(String name) {
         String sValue = properties.getProperty(name);
         sValue = (sValue!=null) ? sValue.trim() : sValue;
         return sValue;
@@ -78,16 +83,14 @@ public abstract class XRPropertyBase implements XRIProperties {
      * @param defaultvalue Default value to assign.
      * @return Property value.
      */
-    @Override
-    public synchronized String getProperty(String name, String defaultvalue) {
+    public String getProperty(String name, String defaultvalue) {
         String sValue = properties.getProperty(name, defaultvalue);
         sValue = (sValue!=null) ? sValue.trim() : sValue;
         return sValue;
     }
 
 
-    @Override
-    public synchronized void setProperty(String name, String value) {
+    public void setProperty(String name, String value) {
         properties.setProperty(name,value);
     }
 
@@ -96,8 +99,7 @@ public abstract class XRPropertyBase implements XRIProperties {
      * @param name Property name.
      * @return Property value.
      */
-    @Override
-    public synchronized int getIntProperty(String name) throws NumberFormatException {
+    public int getIntProperty(String name) throws NumberFormatException {
         String sValue = properties.getProperty(name);
         sValue = (sValue!=null) ? sValue.trim() : sValue;
         int iValue = Integer.valueOf(sValue);
@@ -110,22 +112,19 @@ public abstract class XRPropertyBase implements XRIProperties {
      * @param defaultvalue Default value to assign.
      * @return Property value.
      */
-    @Override
-    public synchronized int getIntProperty(String name, int defaultvalue) throws NumberFormatException {
+    public int getIntProperty(String name, int defaultvalue) throws NumberFormatException {
         String sDefaultvalue = Integer.toString(defaultvalue);
         String sProp = properties.getProperty(name, sDefaultvalue);
         int value = Integer.valueOf(sProp);
         return value;
     }
 
-    @Override
-    public synchronized void setIntProperty(String name, int value) {
+    public void setIntProperty(String name, int value) {
         String sValue = Integer.toString(value);
         properties.setProperty(name,sValue);
     }
 
-    @Override
-    public synchronized long getLongProperty(String name) throws NumberFormatException {
+    public long getLongProperty(String name) throws NumberFormatException {
         String sValue = properties.getProperty(name);
         if (sValue != null) {
             return Long.parseLong(sValue.trim());
@@ -133,8 +132,7 @@ public abstract class XRPropertyBase implements XRIProperties {
         throw new NumberFormatException("Property for " + name + " is not set or not a valid long");
     }
 
-    @Override
-    public synchronized long getLongProperty(String name, long defaultValue) {
+    public long getLongProperty(String name, long defaultValue) {
         try {
             return getLongProperty(name);
         } catch (NumberFormatException ex) {
@@ -142,8 +140,7 @@ public abstract class XRPropertyBase implements XRIProperties {
         }
     }
 
-    @Override
-    public synchronized void setLongProperty(String name, long value) {
+    public void setLongProperty(String name, long value) {
         properties.setProperty(name, Long.toString(value));
     }
 
@@ -151,8 +148,7 @@ public abstract class XRPropertyBase implements XRIProperties {
      * Return property names.
      * @return Enumeration of property names.
      */
-    @Override
-    public synchronized Enumeration<String> getPropertyNames() {
+    public Enumeration<String> getPropertyNames() {
         return (Enumeration<String>)properties.propertyNames();
     }
 
@@ -194,11 +190,11 @@ public abstract class XRPropertyBase implements XRIProperties {
         }
     }
 
-    public synchronized void saveProperties() throws IOException {
+    public void saveProperties() throws IOException {
         writePropertiesWithTimestamp();
     }
 
-    public synchronized void saveProperties(String header) throws IOException {
+    public void saveProperties(String header) throws IOException {
         try (BufferedWriter writer = Files.newBufferedWriter(propertyFile.toPath())) {
             // Write the header and current timestamp
             if (header != null && !header.isEmpty()) {
@@ -290,12 +286,13 @@ public abstract class XRPropertyBase implements XRIProperties {
     }
 
     /**
-     * Flag indicating modified properties.
-     * @return true, returns true if any of the following are true, properties keypairs added, removed,
-     *   or properties file does not exist.  false, for everything else.
+     * Flag indicating modified properties.  Used to determine if properties
+     * must be saved.
+     * @return true, returns true if any of the following are true, property keypairs added,
+     *   keypairs removed, keypair values changed, or properties file does not exist.
+     *   false, all other conditions.
      */
-    @Override
-    public synchronized boolean isModified() {
+    public boolean isModified() {
         if( !propertyFile.exists() ) {
             bModifiedProperties = true;
         } else if  (propertiesOriginal.size() != properties.size()) {
