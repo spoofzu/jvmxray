@@ -26,6 +26,7 @@ import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.stream.Collectors;
 
 /**
  * Executable for injecting JVMXRay Agent dynamically into
@@ -332,7 +333,8 @@ public class jvmxrayinjector  {
             @Override
             public List<Object[]> getProcessInformation() {
                 List<Object[]> processInformation = new ArrayList<>();
-                List<ProcessHandle> processes = ProcessHandle.allProcesses().toList();
+                List<ProcessHandle> processes = ProcessHandle.allProcesses()
+                        .collect(Collectors.toList());
                 for (ProcessHandle process : processes) {
                     String commandLine = process.info().commandLine().orElse("");
                     if(XRIdentifyWebServer.isJavaProcess(commandLine)) {

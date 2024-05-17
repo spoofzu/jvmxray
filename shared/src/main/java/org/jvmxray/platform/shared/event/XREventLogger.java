@@ -42,6 +42,7 @@ public class XREventLogger {
         }
         String aid = properties.getProperty(XREvent.APPLICATIONID);
         String cat = properties.getProperty(XREvent.CATEGORYID);
+        Boolean urlEncode = properties.getBooleanProperty("URL.encode.logmessage");
         String eid = XRGUID.getID(); // ID of the event being logged, changes w/each event.
         Thread currentThread = Thread.currentThread();
         ClassLoader contextClzLoader = currentThread.getContextClassLoader();
@@ -52,35 +53,59 @@ public class XREventLogger {
         if( localLogger.isTraceEnabled() ) {
             StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
             localLogger.trace("{} {} {} {} {} {} {} {}",
-                    XRLogKeypair.value(XREvent.APPLICATIONID, XRLogPairCodec.encode(aid,Charset.forName("UTF-8"))),
-                    XRLogKeypair.value(XREvent.EVENTID, XRLogPairCodec.encode(eid,Charset.forName("UTF-8"))),
-                    XRLogKeypair.value(XREvent.CATEGORYID, XRLogPairCodec.encode(cat,Charset.forName("UTF-8"))),
-                    XRLogKeypair.value(XREvent.PARAM1, XRLogPairCodec.encode(p1,Charset.forName("UTF-8"))),
-                    XRLogKeypair.value(XREvent.PARAM2, XRLogPairCodec.encode(p2,Charset.forName("UTF-8"))),
-                    XRLogKeypair.value(XREvent.PARAM3, XRLogPairCodec.encode(p3,Charset.forName("UTF-8"))),
+                    XRLogKeypair.value(XREvent.APPLICATIONID, urlEncode ? XRLogPairCodec.encode(aid,Charset.forName("UTF-8")):aid),
+                    XRLogKeypair.value(XREvent.EVENTID, urlEncode ? XRLogPairCodec.encode(eid,Charset.forName("UTF-8")):eid),
+                    XRLogKeypair.value(XREvent.CATEGORYID, urlEncode ? XRLogPairCodec.encode(cat,Charset.forName("UTF-8")):cat),
+                    XRLogKeypair.value(XREvent.PARAM1, urlEncode ? XRLogPairCodec.encode(p1,Charset.forName("UTF-8")):p1),
+                    XRLogKeypair.value(XREvent.PARAM2, urlEncode ? XRLogPairCodec.encode(p2,Charset.forName("UTF-8")):p2),
+                    XRLogKeypair.value(XREvent.PARAM3, urlEncode ? XRLogPairCodec.encode(p3,Charset.forName("UTF-8")):p3),
                     XRLogKeypair.value(XREvent.CLASSLOADER, classLoaderName + ":" + classLoaderClassName),
-                    XRLogKeypair.value(XREvent.DUMPSTACK, XRLogPairCodec.encode(formatStackTrace(stackTrace),Charset.forName("UTF-8")))
+                    XRLogKeypair.value(XREvent.DUMPSTACK, urlEncode ? XRLogPairCodec.encode(formatStackTrace(stackTrace),Charset.forName("UTF-8")):formatStackTrace(stackTrace))
             );
         } else if( localLogger.isDebugEnabled() ) {
-            localLogger.debug("{} {} {} {} {} {} {}",
-                    XRLogKeypair.value(XREvent.APPLICATIONID, XRLogPairCodec.encode(aid,Charset.forName("UTF-8"))),
-                    XRLogKeypair.value(XREvent.EVENTID, XRLogPairCodec.encode(eid,Charset.forName("UTF-8"))),
-                    XRLogKeypair.value(XREvent.CATEGORYID, XRLogPairCodec.encode(cat,Charset.forName("UTF-8"))),
-                    XRLogKeypair.value(XREvent.PARAM1, XRLogPairCodec.encode(p1,Charset.forName("UTF-8"))),
-                    XRLogKeypair.value(XREvent.PARAM2, XRLogPairCodec.encode(p2,Charset.forName("UTF-8"))),
-                    XRLogKeypair.value(XREvent.PARAM3, XRLogPairCodec.encode(p3,Charset.forName("UTF-8"))),
-                    XRLogKeypair.value(XREvent.CLASSLOADER, classLoaderName + ":" + classLoaderClassName)
+            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+            localLogger.debug("{} {} {} {} {} {} {} {}",
+                    XRLogKeypair.value(XREvent.APPLICATIONID, urlEncode ? XRLogPairCodec.encode(aid,Charset.forName("UTF-8")):aid),
+                    XRLogKeypair.value(XREvent.EVENTID, urlEncode ? XRLogPairCodec.encode(eid,Charset.forName("UTF-8")):eid),
+                    XRLogKeypair.value(XREvent.CATEGORYID, urlEncode ? XRLogPairCodec.encode(cat,Charset.forName("UTF-8")):cat),
+                    XRLogKeypair.value(XREvent.PARAM1, urlEncode ? XRLogPairCodec.encode(p1,Charset.forName("UTF-8")):p1),
+                    XRLogKeypair.value(XREvent.PARAM2, urlEncode ? XRLogPairCodec.encode(p2,Charset.forName("UTF-8")):p2),
+                    XRLogKeypair.value(XREvent.PARAM3, urlEncode ? XRLogPairCodec.encode(p3,Charset.forName("UTF-8")):p3),
+                    XRLogKeypair.value(XREvent.CLASSLOADER, classLoaderName + ":" + classLoaderClassName),
+                    XRLogKeypair.value(XREvent.CALLER, urlEncode ? XRLogPairCodec.encode(callerFromStackTrace(stackTrace),Charset.forName("UTF-8")):callerFromStackTrace(stackTrace))
+
             );
         } else {
-            localLogger.debug("{} {} {} {} {} {}",
-                    XRLogKeypair.value(XREvent.APPLICATIONID, XRLogPairCodec.encode(aid,Charset.forName("UTF-8"))),
-                    XRLogKeypair.value(XREvent.EVENTID, XRLogPairCodec.encode(eid,Charset.forName("UTF-8"))),
-                    XRLogKeypair.value(XREvent.CATEGORYID, XRLogPairCodec.encode(cat,Charset.forName("UTF-8"))),
-                    XRLogKeypair.value(XREvent.PARAM1, XRLogPairCodec.encode(p1,Charset.forName("UTF-8"))),
-                    XRLogKeypair.value(XREvent.PARAM2, XRLogPairCodec.encode(p2,Charset.forName("UTF-8"))),
-                    XRLogKeypair.value(XREvent.PARAM3, XRLogPairCodec.encode(p3,Charset.forName("UTF-8")))
+            localLogger.info("{} {} {} {} {} {}",
+                    XRLogKeypair.value(XREvent.APPLICATIONID, urlEncode ? XRLogPairCodec.encode(aid,Charset.forName("UTF-8")):aid),
+                    XRLogKeypair.value(XREvent.EVENTID, urlEncode ? XRLogPairCodec.encode(eid,Charset.forName("UTF-8")):eid),
+                    XRLogKeypair.value(XREvent.CATEGORYID, urlEncode ? XRLogPairCodec.encode(cat,Charset.forName("UTF-8")):cat),
+                    XRLogKeypair.value(XREvent.PARAM1, urlEncode ? XRLogPairCodec.encode(p1,Charset.forName("UTF-8")):p1),
+                    XRLogKeypair.value(XREvent.PARAM2, urlEncode ? XRLogPairCodec.encode(p2,Charset.forName("UTF-8")):p2),
+                    XRLogKeypair.value(XREvent.PARAM3, urlEncode ? XRLogPairCodec.encode(p3,Charset.forName("UTF-8")):p3)
             );
         }
+    }
+
+    public static String callerFromStackTrace(StackTraceElement[] stackTrace) {
+        if (stackTrace == null || stackTrace.length == 0) {
+            return "unavailable";
+        }
+        StackTraceElement ste = stackTrace[stackTrace.length-1];
+        String location = getLocation(ste.getClassName());
+        String encodedFile = (ste.getFileName() != null) ? XRLogPairCodec.encode(ste.getFileName(), Charset.forName("UTF-8")) : "UnknownSrc";
+        StringBuilder sb = new StringBuilder();
+        sb.append(ste.getClassName())
+                .append(".")
+                .append(ste.getMethodName())
+                .append("(")
+                .append(location)
+                .append("[")
+                .append(encodedFile)
+                .append(":")
+                .append(ste.getLineNumber())
+                .append("])");
+        return sb.toString();
     }
 
     /**

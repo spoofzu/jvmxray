@@ -123,6 +123,7 @@ public class XRPropertyFactory {
             if(agentProperties.isModified()) {
                 agentProperties.setProperty("AID", XRGUID.getID());
                 agentProperties.setProperty("CAT", "unit-test");
+                agentProperties.setProperty("URL.encode.logmessage", "true");
                 agentProperties.saveProperties("JVMXRay Agent Properties");
             }
         }

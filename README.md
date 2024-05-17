@@ -1,6 +1,8 @@
 
 # Welcome to JVMXRay
 
+[![Black Hat Arsenal](https://raw.githubusercontent.com/toolswatch/badges/master/arsenal/usa/2020.svg?sanitize=true)](https://www.toolswatch.org/blackhat-arsenal-us-2020-archive/)
+
 |  |  |
 | --- | :--- |
 | ![xrayduke](https://user-images.githubusercontent.com/8450615/88954072-af62ef00-d24e-11ea-95f9-734395481248.png) | JVMXRay is a technology for monitoring access to protected system resources by your Java applications like files, sockets, classes, and more. It’s designed with an application security emphasis but there are benefits across other areas like, software diagnostics, usage tracking, and auditing. |
