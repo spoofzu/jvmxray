@@ -14,5 +14,6 @@ public interface XREvent {
     public static final String PARAM3 = "P3";
     public static final String CLASSLOADER = "CL";
     public static final String DUMPSTACK = "DUMPSTACK";
+    public static final String CALLER = "CALLER";
 
 }

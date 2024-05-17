@@ -11,18 +11,18 @@
         </encoder>
     </appender>
 
-    <!-- Log all events with some event meta. -->
-    <logger name="org.jvmxray.agent.events" level="DEBUG" additivity="false">
-        <appender-ref ref="CONSOLE" />
-    </logger>
-
     <!-- Log exit event with full meta. -->
-    <logger name="org.jvmxray.agent.events.system.exit" level="TRACE" additivity="false">
+    <logger name="org.jvmxray.events.system.exit" level="TRACE" additivity="false">
         <appender-ref ref="CONSOLE" />
     </logger>
 
-    <!-- All other events -->
-    <root level="DEBUG">
+    <!-- Log filewrite event with caller meta. -->
+    <logger name="org.jvmxray.events.io.filewrite" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE" />
+    </logger>
+
+    <!-- Log all events with limited meta. -->
+    <root level="INFO">
         <appender-ref ref="CONSOLE" />
     </root>
 

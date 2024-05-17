@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * A simple GUI for use with jvmxrayinjector during
@@ -237,7 +238,8 @@ public class XRPrimaryPanel extends JPanel {
         logger.info("info() clicked.  selectedRow=%s", selectedRow);
         if (selectedRow >= 0) {
             Long pid = (Long)tableModel.getValueAt(selectedRow, 1);
-            List<ProcessHandle> processes = ProcessHandle.allProcesses().toList();
+            List<ProcessHandle> processes = ProcessHandle.allProcesses()
+                    .collect(Collectors.toList());
             for (ProcessHandle process : processes) {
                 String commandLine = process.info().commandLine().orElse("");
                 if( process.pid() == pid.longValue() ) {

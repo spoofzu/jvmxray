@@ -90,9 +90,46 @@ public abstract class XRPropertyBase {
     }
 
 
+    /**
+     * Assign named property.
+     * @param name Property name.
+     * @param value Property value.
+     */
     public void setProperty(String name, String value) {
         properties.setProperty(name,value);
     }
+
+    /**
+     * Returns named boolean property.
+     * @param name Property name.
+     * @return Property value as boolean.
+     */
+    public boolean getBooleanProperty(String name) {
+        String sValue = properties.getProperty(name);
+        if (sValue != null) {
+            return Boolean.parseBoolean(sValue.trim());
+        }
+        throw new IllegalArgumentException("Property for " + name + " is not set or not a valid boolean");
+    }
+
+    /**
+     * Returns named boolean property with a default if none available.
+     * @param name Property name.
+     * @param defaultValue Default value to assign.
+     * @return Property value as boolean.
+     */
+    public boolean getBooleanProperty(String name, boolean defaultValue) {
+        String sValue = properties.getProperty(name);
+        if (sValue != null) {
+            return Boolean.parseBoolean(sValue.trim());
+        }
+        return defaultValue;
+    }
+
+    public void setBooleanProperty(String name, boolean value) {
+        properties.setProperty(name, Boolean.toString(value));
+    }
+
 
     /**
      * Return named property.
