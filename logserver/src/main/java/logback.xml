@@ -1,4 +1,4 @@
-<configuration debug="true">
+<configuration debug="true" scan="false" scanPeriod="1 minutes">
 
     <property name="LOG_HOME" value="/Users/milton/jvmxray-agent/logs" />
     <property name="MSG_FMT_SM" value="%d{YYYY.MM.dd 'at' HH:mm:ss z} | %logger{1} | %X | %5level | %msg%n" />
@@ -13,6 +13,7 @@
 
     <!-- Uncomment/configure for Cassandra testing -->
     <!-- todo: update for your cassndara logservice -->
+    <!-- Note: if your driver requires inline credentials ensure file permissions secure. -->
     <!--
     <appender name="cassandra" class="org.jvmxray.platform.appender.logback.XRCassandraAppender">
         <node>ip or host</node>

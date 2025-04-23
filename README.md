@@ -3,15 +3,16 @@
 
 [![Black Hat Arsenal](https://raw.githubusercontent.com/toolswatch/badges/master/arsenal/usa/2020.svg?sanitize=true)](https://www.toolswatch.org/blackhat-arsenal-us-2020-archive/)
 
-|  |  |
-| --- | :--- |
+|                                                                                                                  |                                                                                                                                                                                                                                                                                                       |
+|------------------------------------------------------------------------------------------------------------------|:------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | ![xrayduke](https://user-images.githubusercontent.com/8450615/88954072-af62ef00-d24e-11ea-95f9-734395481248.png) | JVMXRay is a technology for monitoring access to protected system resources by your Java applications like files, sockets, classes, and more. It’s designed with an application security emphasis but there are benefits across other areas like, software diagnostics, usage tracking, and auditing. |
-| **RECENT NEWS** | &nbsp; |
-| **Feb 20, 2024** Improved architecture. Site docs forthcoming. | Improved documentation for new architecture. |
-| **Apr 28, 2023** Documentation updated | Improved documentation for new architecture. |
-| **Apr 5, 2023** Architectural overhaul | The system has been simplified to a few components, 1) Injector that delivers a payload to a process based on PID, 2) Java agent designed to deliver code used for monitoring, 3) monitoring code payload. Some initial wiki improvements have been applied with more to come. |
-| **Jun 16, 2021** Architecture overhaul | Many improvements delivered. Wiki update in progress to reflect improvements. |
-| **Feb 10, 2021** Many improvements | See latest delivery notes and [updated project WIKI...](https://github.com/spoofzu/jvmxray/wiki) |
+| **RECENT NEWS**                                                                                                  | &nbsp;                                                                                                                                                                                                                                                                                                |
+| **Feb 20, 2024** Improved architecture. Site docs forthcoming.                                                   | Improved documentation for new architecture.                                                                                                                                                                                                                                                          |
+| **Apr 28, 2023** Documentation updated                                                                           | Improved documentation for new architecture.                                                                                                                                                                                                                                                          |
+| **Apr 5, 2023** Architectural overhaul                                                                           | The system has been simplified to a few components, 1) Injector that delivers a payload to a process based on PID, 2) Java agent designed to deliver code used for monitoring, 3) monitoring code payload. Some initial wiki improvements have been applied with more to come.                        |
+| **Jun 16, 2021** Architecture overhaul                                                                           | Many improvements delivered. Wiki update in progress to reflect improvements.                                                                                                                                                                                                                         |
+| **Feb 10, 2021** Many improvements                                                                               | See latest delivery notes and [updated project WIKI...](https://github.com/spoofzu/jvmxray/wiki)                                                                                                                                                                                                      |
+| **Apr 23, 2025** Platform rearchitected                                                                          | Architecture improved to remove deprecated SecurityManager and move to byte code injection approach.                                                                                                                                                                                                  |
 
 [Duke: Oracle's Java mascot...](https://wiki.openjdk.java.net/display/duke/Main)
 
@@ -56,20 +57,18 @@ Security event destinations and formats are flexible but here's some sample mess
 
 ```
 ...
-2024.02.12 at 13:03:06 CST | main | org.jvmxray.events.access.threadgroup | DEBUG | AID=c2f97677bbccd0c2-6347816e-18d9eb374b8-8000 EID=6f77809c0b5f406f-3ab753c9-18d9eb3976b-7ffd CAT=unit-test P1=system P2= P3= CL=xray:org.jvmxray.platform.shared.classloader.XRLoggingClassLoader
-2024.02.12 at 13:03:06 CST | main | org.jvmxray.events.access.thread | DEBUG | AID=c2f97677bbccd0c2-6347816e-18d9eb374b8-8000 EID=6f77809c0b5f406f-3ab753c9-18d9eb3976b-7ffc CAT=unit-test P1=Notification+Thread P2= P3= CL=xray:org.jvmxray.platform.shared.classloader.XRLoggingClassLoader
-2024.02.12 at 13:03:06 CST | main | org.jvmxray.events.system.properertiesnamed | DEBUG | AID=c2f97677bbccd0c2-6347816e-18d9eb374b8-8000 EID=6f77809c0b5f406f-3ab753c9-18d9eb3976b-7ffb CAT=unit-test P1=sun.jnu.encoding P2= P3= CL=xray:org.jvmxray.platform.shared.classloader.XRLoggingClassLoader
-2024.02.12 at 13:03:06 CST | main | org.jvmxray.events.permission.check | DEBUG | AID=c2f97677bbccd0c2-6347816e-18d9eb374b8-8000 EID=6f77809c0b5f406f-3ab753c9-18d9eb3976b-7b4e CAT=unit-test P1=%2Fusr%2Flocal%2FCellar%2Fmaven%2F3.9.5%2Flibexec%2Flib%2Fjavax.inject-1.jar P2=read P3=java.io.FilePermission CL=unassigned:org.codehaus.plexus.classworlds.realm.ClassRealm
-2024.02.12 at 13:03:29 CST | main | org.jvmxray.events.io.filedelete | DEBUG | AID=c2f97677bbccd0c2-6347816e-18d9eb374b8-8000 EID=6f77809c0b5f406f-3ab753c9-18d9eb3ad18-6514 CAT=unit-test P1=%2Fvar%2Ffolders%2Fzb%2Flw89d2ms76x75zfy_8btv4l40000gn%2FT%2Fjansi-2.4.0-5b614d71567410f3-libjansi.jnilib.lck P2= P3= CL=xray:org.jvmxray.platform.shared.classloader.XRLoggingClassLoader
-2024.02.12 at 13:03:29 CST | main | org.jvmxray.events.io.filedelete | DEBUG | AID=c2f97677bbccd0c2-6347816e-18d9eb374b8-8000 EID=6f77809c0b5f406f-3ab753c9-18d9eb3ad18-6513 CAT=unit-test P1=%2Fvar%2Ffolders%2Fzb%2Flw89d2ms76x75zfy_8btv4l40000gn%2FT%2Fjansi-2.4.0-5b614d71567410f3-libjansi.jnilib P2= P3= CL=xray:org.jvmxray.platform.shared.classloader.XRLoggingClassLoader
+2025.04.23 at 16:38:52 CDT | jvmxray.sensor-1 |  INFO | org.jvmxray.events.io.filedelete |  | caller=java.io.File:1075, target=/Users/milton/.webgoat-2025.4-SNAPSHOT/webgoat.properties, status=successfully deleted
+2025.04.23 at 16:38:51 CDT | jvmxray.sensor-1 |  INFO | org.jvmxray.events.monitor |  | GCCount=1, ThreadNew=0, ThreadWaiting=2, ThreadTerminated=0, NonHeapUsed=11.6MB, GCTime=1ms, DeadlockedThreads=0, ProcessCpuLoad=0%, ThreadBlocked=0, MemoryFree=566.3MB, caller=java.lang.Thread:1575, OpenFiles=163, ThreadRunnable=2, MemoryMax=9GB, MemoryTotal=584MB
+2025.04.23 at 16:38:51 CDT | jvmxray.sensor-1 |  INFO | org.jvmxray.events.system.lib |  | method=static, jarPath=/Users/milton/.m2/repository/org/springframework/boot/spring-boot-configuration-metadata/3.4.3/spring-boot-configuration-metadata-3.4.3.jar, caller=sun.instrument.InstrumentationImpl:560
+2025.04.23 at 16:38:51 CDT | jvmxray.sensor-1 |  INFO | org.jvmxray.events.system.lib |  | method=dynamic, jarPath=/Users/milton/github/jvmxray/agent/target/agent-0.0.1-shaded.jar, caller=java.lang.Thread:1575
 ...
 
 ```
 
 ## How it Works
-The Java Virtual Machine provides a robust security framework for controlling access to protected resources.  JVMXRay provides an implementation of the java.lang.SecurityManager component.  JVMXRay provides no policy enforcement but instead monitors activities to protected resources.  When the security manager is called the metadata is put into an event and logged using a logback logger.  It's expected machine learning and log management technologies will provide additional depth and insight into these security events as the project matures.
+JVMXRay runs as a Java Agent and is injected at startup into your project via Java command line parameter.  When the Agent initializes, it installs sensors via byte-code injection monitoring access to protected resources (files, http connections, etc) by your program and third party programs. Event metadata is logged as a Logback log message.  Logback is a popular logging platform, very powerful and flexible, and facilites security event handling in many ways.  Tools and tip for configuring Logback are available widely and many books are available.  
 
-## Project Leader(s)
-Milton Smith
+## Project Contributors(s)
+Milton Smith - Project creator, leader
 
-Disclosure(s):  The JVMXRay project is not, approved, endorsed by, or affiliated with Oracle Corporation.  Oracle is a long-time supporter of secure open source software and the Online Web Application Security(OWASP) project.  Milton Smith is also active in the open source community and an employee of Oracle.
+Disclosure(s):  The JVMXRay project is not, approved, endorsed by, or affiliated with Oracle Corporation.  Oracle is a long-time supporter of secure open source software and the Online Web Application Security(OWASP) project.  Milton Smith is active in the open source community and an employee of Oracle.

@@ -1,196 +1,116 @@
-<configuration debug="false" scan="false" scanPeriod="1 minutes">
+<configuration debug="true" scan="false" scanPeriod="1 minutes">
 
-    <!-- jvmxray.logs is set by jvmxray as, jvmxray.base+file.separator+"logs"+file.separator -->
     <property name="LOG_HOME" value="${jvmxray.logs}" />
-    <property name="MSG_FMT_SM" value="%d{YYYY.MM.dd 'at' HH:mm:ss z} | %logger{1} | %5level | %msg%n" />
-    <property name="MSG_FMT_LG" value="%d{YYYY.MM.dd 'at' HH:mm:ss z} | %thread | %logger | %5level | %msg%n" />
-    <property name="MSG_FMT_MACHINE" value="%d{yyyy-MM-dd'T'HH:mm:ss.SSS'Z', GMT},%thread,%X,%logger,%5level,%msg%n" />
+    <property name="MSG_FMT_LG" value="%d{YYYY.MM.dd 'at' HH:mm:ss z} | %thread | %5level | %logger | %X | %msg%n" />
 
-    <!-- Unspecified messages go here.  -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>${MSG_FMT_LG}</pattern>
         </encoder>
     </appender>
 
-
-    <!-- JVMXRay ACCESS security events go here.  -->
-    <appender name="ACCESSEVENTS" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_HOME}jvmxray-agent-ACCESS-events.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_HOME}jvmxray-agent-ACCESS-events-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-            <maxFileSize>1MB</maxFileSize>
-            <maxHistory>5</maxHistory>
-        </rollingPolicy>
+    <appender name="IOEVENTS" class="ch.qos.logback.core.FileAppender">
+        <file>${LOG_HOME}/jvmxray-agent-IO-events.log</file>
+        <immediateFlush>true</immediateFlush>
+        <append>true</append>
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+    </appender>
+    <appender name="HTTPEVENTS" class="ch.qos.logback.core.FileAppender">
+        <file>${LOG_HOME}/jvmxray-agent-HTTP-events.log</file>
+        <immediateFlush>true</immediateFlush>
+        <append>true</append>
         <encoder>
             <pattern>${MSG_FMT_LG}</pattern>
         </encoder>
     </appender>
 
-    <!-- JVMXRay IO security events go here.  -->
-    <appender name="IOEVENTS" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_HOME}jvmxray-agent-IO-events.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_HOME}jvmxray-agent-IO-events-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-            <maxFileSize>1MB</maxFileSize>
-            <maxHistory>5</maxHistory>
-        </rollingPolicy>
+    <appender name="MONITOREVENTS" class="ch.qos.logback.core.FileAppender">
+        <file>${LOG_HOME}/jvmxray-agent-MONITOR-events.log</file>
+        <immediateFlush>true</immediateFlush>
+        <append>true</append>
         <encoder>
             <pattern>${MSG_FMT_LG}</pattern>
         </encoder>
     </appender>
 
-    <!-- JVMXRay CLZLOADER security events go here.  -->
-    <appender name="CLZLOADEREVENTS" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_HOME}jvmxray-agent-CLZLOADER-events.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_HOME}jvmxray-agent-CLZLOADER-events-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-            <maxFileSize>1MB</maxFileSize>
-            <maxHistory>5</maxHistory>
-        </rollingPolicy>
+    <appender name="SYSTEMEVENTS" class="ch.qos.logback.core.FileAppender">
+        <file>${LOG_HOME}/jvmxray-agent-SYSTEM-events.log</file>
+        <immediateFlush>true</immediateFlush>
+        <append>true</append>
         <encoder>
             <pattern>${MSG_FMT_LG}</pattern>
         </encoder>
     </appender>
 
-        <!-- JVMXRay PERMISSION security events go here.  -->
-    <appender name="PERMISSIONEVENTS" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_HOME}jvmxray-agent-PERMISSION-events.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_HOME}jvmxray-agent-PERMISSION-events-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-            <maxFileSize>1MB</maxFileSize>
-            <maxHistory>5</maxHistory>
-        </rollingPolicy>
-         <encoder>
-            <pattern>${MSG_FMT_LG}</pattern>
-        </encoder>
-    </appender>
-
-    <!-- JVMXRay SYSTEM security events go here.  -->
-    <appender name="SYSTEMEVENTS" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_HOME}jvmxray-agent-SYSTEM-events.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_HOME}jvmxray-agent-SYSTEM-events-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-            <maxFileSize>1MB</maxFileSize>
-            <maxHistory>5</maxHistory>
-        </rollingPolicy>
-         <encoder>
-            <pattern>${MSG_FMT_LG}</pattern>
-        </encoder>
-    </appender>
-
-    <!-- JVMXRay SOCKET security events go here.  -->
-    <appender name="SOCKETEVENTS" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_HOME}jvmxray-agent-SOCKET-events.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_HOME}jvmxray-agent-SOCKET-events-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-            <maxFileSize>1MB</maxFileSize>
-            <maxHistory>5</maxHistory>
-        </rollingPolicy>
+    <!--  COMMENTED OUT UNTIL WE GET SENSORS WORKING.
+    <appender name="SOCKETEVENTS" class="ch.qos.logback.core.FileAppender">
+        <file>${LOG_HOME}/jvmxray-agent-SOCKET-events.log</file>
+        <immediateFlush>true</immediateFlush>
+        <append>true</append>
         <encoder>
             <pattern>${MSG_FMT_LG}</pattern>
         </encoder>
     </appender>
 
-    <!-- JVMXRay platform messages go here.  These are messages directly from the platform, diagnostics, debugging, etc. -->
-    <appender name="PLATFORMLOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_HOME}jvmxray-agent-platform.log</file>
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_HOME}jvmxray-agent-platform-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-            <maxFileSize>1MB</maxFileSize>
-            <maxHistory>5</maxHistory>
-        </rollingPolicy>
+    <appender name="EXCEPTIONEVENTS" class="ch.qos.logback.core.FileAppender">
+        <file>${LOG_HOME}/jvmxray-agent-EXCEPTION-events.log</file>
+        <immediateFlush>true</immediateFlush>
+        <append>true</append>
         <encoder>
             <pattern>${MSG_FMT_LG}</pattern>
         </encoder>
     </appender>
 
-    <!-- Platform logs.  This is log messages from platform code, useful in debuging platform problems. -->
-    <logger name="org.jvmxray.platform" level="DEBUG" additivity="false">
-        <appender-ref ref="PLATFORMLOG" />
-    </logger>
-
-    <!-- Check Access Events -->
-    <!--
-        org.jvmxray.events.access.target
-        org.jvmxray.events.access.thread
-        org.jvmxray.events.access.threadgroup
+    <appender name="SQLEVENTS" class="ch.qos.logback.core.FileAppender">
+        <file>${LOG_HOME}/jvmxray-agent-SQL-events.log</file>
+        <immediateFlush>true</immediateFlush>
+        <append>true</append>
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+    </appender>
     -->
-    <logger name="org.jvmxray.events.access" level="INFO" additivity="false">
-        <appender-ref ref="ACCESSEVENTS" />
-    </logger>
 
-    <!-- File CRUD Events -->
-    <!--
-        org.jvmxray.events.io.filedelete
-        org.jvmxray.events.io.fileread
-        org.jvmxray.events.io.filereadwithcontext
-        org.jvmxray.events.io.filereadwithfiledescriptor
-        org.jvmxray.events.io.filewrite
-        org.jvmxray.events.io.filewritewithfiledescriptor
-    -->
-    <logger name="org.jvmxray.events.io" level="TRACE" additivity="false">
+    <appender name="PLATFORM" class="ch.qos.logback.core.FileAppender">
+        <file>${LOG_HOME}/jvmxray-PLATFORM.log</file>
+        <immediateFlush>true</immediateFlush>
+        <append>true</append>
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+    </appender>
+
+    <logger name="org.jvmxray.events.io" level="DEBUG" additivity="false">
         <appender-ref ref="IOEVENTS" />
     </logger>
-    <!-- Supress file READ events. -->
-    <logger name="org.jvmxray.events.io.fileread" level="OFF"/>
-    <logger name="org.jvmxray.events.io.filereadwithcontext" level="OFF"/>
-    <logger name="org.jvmxray.events.io.filereadwithfiledescriptor" level="OFF"/>
-
-    <!-- Classloader & Package Events -->
-    <!--
-        org.jvmxray.events.class.classloadercreate
-        org.jvmxray.events.class.packageaccess
-        org.jvmxray.events.class.packagedefine
-        org.jvmxray.events.class.loaded
-    -->
-    <logger name="org.jvmxray.events.class" level="OFF" additivity="false">
-        <appender-ref ref="CLZLOADEREVENTS" />
+    <logger name="org.jvmxray.events.http" level="DEBUG" additivity="false">
+        <appender-ref ref="HTTPEVENTS" />
     </logger>
-    <logger name="org.jvmxray.events.class.loaded" level="DEBUG" additivity="false">
-        <appender-ref ref="CLZLOADEREVENTS" />
+    <logger name="org.jvmxray.events.monitor" level="DEBUG" additivity="false">
+        <appender-ref ref="MONITOREVENTS" />
     </logger>
-
-    <!-- Permission Check Events -->
-    <!--
-        org.jvmxray.events.permission.check
-        org.jvmxray.events.permission.checkwithcontext
-    -->
-    <logger name="org.jvmxray.events.permission" level="DEBUG" additivity="false">
-        <appender-ref ref="PERMISSIONEVENTS" />
-    </logger>
-
-    <!-- System Events -->
-    <!--
-        org.jvmxray.events.system.exit
-        org.jvmxray.events.system.execute
-        org.jvmxray.events.system.link
-        org.jvmxray.events.system.print
-        org.jvmxray.events.system.propertiesany
-        org.jvmxray.events.system.properertiesnamed
-        org.jvmxray.events.system.factory
-    -->
     <logger name="org.jvmxray.events.system" level="DEBUG" additivity="false">
         <appender-ref ref="SYSTEMEVENTS" />
     </logger>
-    <logger name="org.jvmxray.events.system.propertiesany" level="OFF" additivity="false">
-        <appender-ref ref="SYSTEMEVENTS" />
-    </logger>
 
-    <!-- Socket Events -->
-    <!--
-        org.jvmxray.events.socket.accept
-        org.jvmxray.events.socket.connect
-        org.jvmxray.events.socket.connectwithcontext
-        org.jvmxray.events.socket.listen
-        org.jvmxray.events.socket.multicast
-        org.jvmxray.events.socket.multicastwithttl
-    -->
-    <logger name="org.jvmxray.events.socket" level="TRACE" additivity="false">
+    <!--  COMMENTED OUT UNTIL WE GET SENSORS WORKING.
+    <logger name="org.jvmxray.events.sql" level="DEBUG" additivity="false">
+        <appender-ref ref="SQLEVENTS" />
+    </logger>
+    <logger name="org.jvmxray.events.net.socket" level="DEBUG" additivity="false">
         <appender-ref ref="SOCKETEVENTS" />
     </logger>
+    <logger name="org.jvmxray.events.system.uncaughtexception" level="DEBUG" additivity="false">
+        <appender-ref ref="EXCEPTIONEVENTS" />
+    </logger>
+    -->
 
-    <!-- Any undefined events -->
+    <logger name="org.jvmxray" level="DEBUG" additivity="false">
+        <appender-ref ref="PLATFORM" />
+    </logger>
+
     <root level="ERROR">
         <appender-ref ref="CONSOLE" />
     </root>

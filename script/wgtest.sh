@@ -1,39 +1,95 @@
-#!/bin/sh
+#!/bin/bash
 
-# **************************************************************************
-# WEBGOAT INTEGRATION TEST
-#
-# PREQUALIFICATIONS:  1) JVMXRAY INSTALLED, 2) WEBGOAT INSTALLED
-#
-# **************************************************************************
+# Script to run WebGoat with a JVMXRay Agent
+# Author: Milton Smith
+# Date: April 23, 2025
+# Purpose: Configures and runs WebGoat with the JVMXRay agent, logging output to a specified file.
 
-# JVMXRAY_BASE is root of the 'jvmxray' folder. The path is used by
-#    all modules.  For example, your base path may look like the following,
-#    $JVMXRAY_BASE/
-#       +jvmxray/
-#          +agent/
-#             agent.properties
-#          +injector/
-#             injector.properties
-#          +logs/
-#             jvmxray-agent-events.log
-#             jvmxray-agent-platform.log
-#          logback.xml
+# Configuration variables
+# Use absolute paths or resolve relative to script location
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+WEBGOAT_DIR="/Users/milton/github/WebGoat"
+LOG_DIR="/Users/milton/jvmxray/logs"
+LOG_FILE="$LOG_DIR/maven.log"
+AGENT_JAR="/Users/milton/github/jvmxray/agent/target/agent-0.0.1-shaded.jar"
+MVN_COMMAND="mvn spring-boot:run"
+JVM_ARGS="-javaagent:$AGENT_JAR"
 
-# JVMXRAY HOME DIRECTORY
-export JVMXRAY_BASE="/Users/milton/"
+# Function to log messages
+log_message() {
+    local message="$1"
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    echo "[$timestamp] $message" | tee -a "$LOG_FILE"
+}
 
-# ALLOW SECURITYMANAGER.  UNCOMMENT AS REQUIRED 
-#   java.lang.UnsupportedOperationException: The Security Manager is deprecated
-#   and will be removed in a future release
-export JAVA_SECURITYMGR="-Djava.security.manager=allow"
+# Function to check if a file or directory exists
+check_path() {
+    local path="$1"
+    local type="$2"  # 'file' or 'dir'
+    if [ "$type" = "file" ] && [ ! -f "$path" ]; then
+        log_message "ERROR: File $path does not exist."
+        exit 1
+    elif [ "$type" = "dir" ] && [ ! -d "$path" ]; then
+        log_message "ERROR: Directory $path does not exist."
+        exit 1
+    fi
+}
 
-# CHANGE TO WEBGOATS DIRECTORY
-cd ../../WebGoat/ || { echo "Error changing directory"; exit 1; }
+# Trap errors and exit gracefully
+trap 'log_message "ERROR: Script terminated unexpectedly."; exit 1' ERR
 
-# EXECUTE WEBGOAT W/JVMXRAY
-export MAVEN_OPTS="-javaagent:../jvmxray/agent/target/agent-0.0.1-agent-w-deps.jar -Djvmxray.base=$JVMXRAY_BASE $JAVA_SECURITYMGR"
-mvn spring-boot:run || { cd - >/dev/null; exit 1; }
+# Validate prerequisites
+log_message "Starting WebGoat with JVMXRay agent..."
 
-# NORMAL EXIT
-cd - >/dev/null
+# Check if WebGoat directory exists
+check_path "$WEBGOAT_DIR" "dir"
+
+# Check if agent JAR exists
+check_path "$AGENT_JAR" "file"
+
+# Check if already in WebGoat directory
+CURRENT_DIR="$(pwd)"
+if [ "$CURRENT_DIR" != "$WEBGOAT_DIR" ]; then
+    log_message "Changing to WebGoat directory: $WEBGOAT_DIR"
+    if ! cd "$WEBGOAT_DIR"; then
+        log_message "ERROR: Failed to change to $WEBGOAT_DIR"
+        exit 1
+    fi
+else
+    log_message "Already in WebGoat directory: $WEBGOAT_DIR"
+fi
+
+# Ensure log directory exists
+log_message "Creating log directory if it doesn't exist: $LOG_DIR"
+if ! mkdir -p "$LOG_DIR"; then
+    log_message "ERROR: Failed to create log directory $LOG_DIR"
+    exit 1
+fi
+
+# Check if Maven is installed
+if ! command -v mvn >/dev/null 2>&1; then
+    log_message "ERROR: Maven is not installed or not found in PATH."
+    exit 1
+fi
+
+# Run Maven Spring Boot with agent
+log_message "Running Maven Spring Boot with JVMXRay agent..."
+if ! $MVN_COMMAND -Dspring-boot.run.jvmArguments="$JVM_ARGS" >> "$LOG_FILE" 2>&1; then
+    log_message "ERROR: Failed to run Maven Spring Boot."
+    exit 1
+fi
+
+# Return to parent directory if we changed directories
+if [ "$CURRENT_DIR" != "$WEBGOAT_DIR" ]; then
+    log_message "Returning to parent directory."
+    if ! cd ..; then
+        log_message "ERROR: Failed to return to parent directory."
+        exit 1
+    fi
+else
+    log_message "No need to return to parent directory (already in WebGoat root)."
+fi
+
+log_message "Script completed successfully."
+exit 0
