@@ -1,24 +1,19 @@
-module jvmxray.shared {
-    // Project Dependencies
-    // None
+module org.jvmxray.shared {
+    // Export shared packages
+    exports org.jvmxray.platform.shared.classloader;
+    exports org.jvmxray.platform.shared.log;
+    exports org.jvmxray.platform.shared.property;
+    exports org.jvmxray.platform.shared.util;
 
-    // Project External Dependencies
+    // Require essential JDK modules
     requires java.rmi;
-    requires org.slf4j;
+
+    // Require dependencies
     requires ch.qos.logback.classic;
     requires ch.qos.logback.core;
-    requires com.datastax.oss.driver.core;
-    requires com.datastax.oss.driver.querybuilder;
+    requires logback.json.classic;
+    requires logback.jackson;
+    requires com.fasterxml.jackson.core;
     requires com.fasterxml.jackson.databind;
-
-    // Private Project Exports
-    exports org.jvmxray.platform.shared.classloader to jvmxray.agent, jvmxray.logserver;
-    exports org.jvmxray.platform.shared.event to jvmxray.agent, jvmxray.logserver;
-    exports org.jvmxray.platform.shared.property to jvmxray.agent, jvmxray.logserver;
-    exports org.jvmxray.platform.shared.util to jvmxray.agent, jvmxray.logserver;
-
-    // Public API Exports
-    exports org.jvmxray.platform.shared.logback.appender.cassandra;
-    exports org.jvmxray.platform.shared.logback.codec;
-    exports org.jvmxray.platform.shared.logback.converter;
+    requires org.slf4j;
 }
