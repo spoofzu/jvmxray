@@ -49,7 +49,6 @@ public class jvmxrayagent {
                     " ██   ██║╚██╗ ██╔╝██║╚██╔╝██║ ██╔██╗ ██╔══██╗██╔══██║  ╚██╔╝  " + EOL +
                     " ╚█████╔╝ ╚████╔╝ ██║ ╚═╝ ██║██╔╝ ██╗██║  ██║██║  ██║   ██║   " + EOL +
                     "  ╚════╝   ╚═══╝  ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   " + EOL +
-                    "Copyright (c) 2020-2025 Milton Smith. All Rights Reserved." + EOL +
                     "Permission to modify and redistribute is granted under the" + EOL +
                     " terms as described within the project LICENSE and" + EOL +
                     " NOTICE files.";
