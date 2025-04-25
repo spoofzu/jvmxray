@@ -1,6 +1,4 @@
 JVMXRay Notice & Credits
-Copyright (c) 2020-2025 Milton Smith. All Rights Reserved.
-
 
 This product includes software developed by The Apache Software Foundation (https://www.apache.org/).
 
@@ -10,5 +8,5 @@ This project includes software developed by Rafael Winterhalter (https://bytebud
 
 This product architecture was developed in part based on ideas by Terse Systems (https://tersesystems.com/)
 
-Permission to modify and redistribute is granted under the terms of the Apache 2.0 license. See the
-  JVMXRay LICENSE file for the full license.
+Permission to modify and redistribute is granted under the terms as specified in
+  JVMXRay project LICENSE file.
