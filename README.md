@@ -4,9 +4,9 @@
 [![Black Hat Arsenal](https://raw.githubusercontent.com/toolswatch/badges/master/arsenal/usa/2020.svg?sanitize=true)](https://www.toolswatch.org/blackhat-arsenal-us-2020-archive/)
 
 <picture>
-  <source srcset="https://github.com/spoofzu/jvmxray/blob/origin/lightduke.png?raw=true" media="(prefers-color-scheme: dark)">
-  <source srcset="https://github.com/spoofzu/jvmxray/blob/origin/darkduke.png?raw=true" media="(prefers-color-scheme: light)">
-  <img src="https://private-user-images.githubusercontent.com/8450615/437588506-6d476b56-0b7f-4b48-824a-cd2d7a881357.png" alt="Logo" width="200">
+  <source srcset="https://github.com/spoofzu/jvmxray/blob/master/build/lightduke.png?raw=true" media="(prefers-color-scheme: dark)">
+  <source srcset="https://github.com/spoofzu/jvmxray/blob/master/build/darkduke.png?raw=true" media="(prefers-color-scheme: light)">
+  <img src="https://github.com/spoofzu/jvmxray/blob/master/build/lightduke.png" alt="Logo" width="200">
 </picture>
 
 |                                                                                                                  |                                                                                                                                                                                                                                                                                                     |
