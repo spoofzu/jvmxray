@@ -1,7 +1,8 @@
 package org.jvmxray.agent.sensor.system;
 
 import org.jvmxray.agent.proxy.LogProxy;
-import org.jvmxray.agent.sensor.Sensor;
+import org.jvmxray.agent.sensor.AbstractSensor;
+import org.jvmxray.agent.sensor.*;
 import org.jvmxray.platform.shared.property.AgentProperties;
 
 import java.lang.instrument.Instrumentation;
@@ -16,7 +17,7 @@ import java.util.Map;
  *
  * @author Milton Smith
  */
-public class LibSensor implements Sensor {
+public class LibSensor extends AbstractSensor implements Sensor {
     // Namespace for logging JAR detection events
     private static final String NAMESPACE = "org.jvmxray.events.system.lib";
     // Singleton instance of LogProxy for logging
@@ -30,15 +31,23 @@ public class LibSensor implements Sensor {
     // Instrumentation instance for accessing loaded classes
     private Instrumentation instrumentation;
 
+    // Static sensor identity.
+    private static final String SENSOR_GUID = "D2F1DE24-EA0F-44F8-8D0E-E23398ECB537"; // Generated via uuidgen
+
+    public LibSensor(String propertySuffix) {
+        super(propertySuffix);
+    }
+
     /**
      * Returns the unique identifier for this sensor, used for logging and configuration.
      *
-     * @return The sensor's name, "LibSensor".
+     * @return The sensor's identity is, "D2F1DE24-EA0F-44F8-8D0E-E23398ECB537".
      */
     @Override
-    public String getName() {
-        return "LibSensor";
+    public String getIdentity() {
+        return SENSOR_GUID;
     }
+
 
     /**
      * Initializes the sensor by setting up the instrumentation instance, parsing agent arguments,

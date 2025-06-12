@@ -1,6 +1,6 @@
 package org.jvmxray.agent.sensor.system;
 
-import org.jvmxray.agent.sensor.Sensor;
+import org.jvmxray.agent.sensor.*;
 import org.jvmxray.platform.shared.log.JVMXRayLogFactory;
 import org.jvmxray.platform.shared.log.SecurityUtil;
 import org.jvmxray.platform.shared.property.AgentProperties;
@@ -15,16 +15,26 @@ import java.lang.instrument.Instrumentation;
  *
  * @author Milton Smith
  */
-public class AppInitSensor implements Sensor {
+public class AppInitSensor extends AbstractSensor implements Sensor {
+
+    // Namespace for logging sensor events
+    private static final String NAMESPACE = "org.jvmxray.events.system.settings";
+
+    // Static sensor identity.
+    private static final String SENSOR_GUID = "7E2DFD81-7532-46E4-875F-DAA061F877A1"; // Generated via uuidgen
+
+    public AppInitSensor(String propertySuffix) {
+        super(propertySuffix);
+    }
 
     /**
      * Returns the unique identifier for this sensor, used for logging and configuration.
      *
-     * @return The sensor's name, "AppInitSensor".
+     * @return The sensor's identity is, "7E2DFD81-7532-46E4-875F-DAA061F877A1".
      */
     @Override
-    public String getName() {
-        return "AppInitSensor";
+    public String getIdentity() {
+        return SENSOR_GUID;
     }
 
     /**
@@ -37,7 +47,7 @@ public class AppInitSensor implements Sensor {
     @Override
     public void initialize(AgentProperties properties, String agentArgs, Instrumentation inst) {
         // Initialize logger for system settings events
-        Logger logger = JVMXRayLogFactory.getInstance().getLogger("org.jvmxray.events.system.settings");
+        Logger logger = JVMXRayLogFactory.getInstance().getLogger(NAMESPACE);
         // Create SecurityUtil instance with logger callback
         SecurityUtil util = new SecurityUtil(message -> logger.info(message));
         // Log shell environment variables

@@ -6,8 +6,8 @@
   <artifactId>jvmxray</artifactId>
   <version>0.0.1</version>
   <packaging>pom</packaging>
-  <name>jvmxray</name>
-  <description>The OWASP JVMXRay is a technology for monitoring access to system resources within the Java Virtual Machine. It’s designed with application security emphasis but some will also find it beneficial for software quality processes and diagnostics.</description>
+  <name>jvmxray platform</name>
+  <description>VMXRay is a technology for monitoring access to system resources within the Java Virtual Machine.</description>
   <url>https://github.com/spoofzu/jvmxray/</url>
   <licenses>
     <license>
@@ -26,7 +26,7 @@
   <modules>
     <module>shared</module>
     <module>agent</module>
-    <!-- commented out for now -->
+    <!-- todo: commented out for now -->
     <!-- <module>logserver</module> -->
   </modules>
   <properties>

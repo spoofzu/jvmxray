@@ -1,10 +1,7 @@
 package org.jvmxray.agent.sensor.io;
 
 import org.jvmxray.agent.proxy.LogProxy;
-import org.jvmxray.agent.sensor.InjectableSensor;
-import org.jvmxray.agent.sensor.MethodSpec;
-import org.jvmxray.agent.sensor.Sensor;
-import org.jvmxray.agent.sensor.Transform;
+import org.jvmxray.agent.sensor.*;
 import org.jvmxray.platform.shared.property.AgentProperties;
 
 import java.lang.instrument.Instrumentation;
@@ -17,18 +14,25 @@ import java.lang.instrument.Instrumentation;
  *
  * @author Milton Smith
  */
-public class FileIOSensor implements InjectableSensor {
+public class FileIOSensor extends AbstractSensor implements InjectableSensor {
     // Namespace for logging sensor events
     private static final String NAMESPACE = "org.jvmxray.agent.core.io.FileIOSensor";
+
+    // Static sensor identity.
+    private static final String SENSOR_GUID = "B871EC6C-7361-429F-B6AB-8956F509239D"; // Generated via uuidgen
+
+    public FileIOSensor(String propertySuffix) {
+        super(propertySuffix);
+    }
 
     /**
      * Returns the unique identifier for this sensor, used for logging and configuration.
      *
-     * @return The sensor's name, "FileIOSensor".
+     * @return The sensor's identity is, "B871EC6C-7361-429F-B6AB-8956F509239D".
      */
     @Override
-    public String getName() {
-        return "FileIOSensor";
+    public String getIdentity() {
+        return SENSOR_GUID;
     }
 
     /**

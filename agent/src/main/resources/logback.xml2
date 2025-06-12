@@ -35,6 +35,15 @@
         </encoder>
     </appender>
 
+    <appender name="SQLEVENTS" class="ch.qos.logback.core.FileAppender">
+        <file>${LOG_HOME}/jvmxray-agent-SQL-events.log</file>
+        <immediateFlush>true</immediateFlush>
+        <append>true</append>
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+    </appender>
+
     <appender name="SYSTEMEVENTS" class="ch.qos.logback.core.FileAppender">
         <file>${LOG_HOME}/jvmxray-agent-SYSTEM-events.log</file>
         <immediateFlush>true</immediateFlush>
@@ -62,15 +71,6 @@
             <pattern>${MSG_FMT_LG}</pattern>
         </encoder>
     </appender>
-
-    <appender name="SQLEVENTS" class="ch.qos.logback.core.FileAppender">
-        <file>${LOG_HOME}/jvmxray-agent-SQL-events.log</file>
-        <immediateFlush>true</immediateFlush>
-        <append>true</append>
-        <encoder>
-            <pattern>${MSG_FMT_LG}</pattern>
-        </encoder>
-    </appender>
     -->
 
     <appender name="PLATFORM" class="ch.qos.logback.core.FileAppender">
@@ -91,14 +91,14 @@
     <logger name="org.jvmxray.events.monitor" level="DEBUG" additivity="false">
         <appender-ref ref="MONITOREVENTS" />
     </logger>
+    <logger name="org.jvmxray.events.sql" level="DEBUG" additivity="false">
+        <appender-ref ref="SQLEVENTS" />
+    </logger>
     <logger name="org.jvmxray.events.system" level="DEBUG" additivity="false">
         <appender-ref ref="SYSTEMEVENTS" />
     </logger>
 
     <!--  COMMENTED OUT UNTIL WE GET SENSORS WORKING.
-    <logger name="org.jvmxray.events.sql" level="DEBUG" additivity="false">
-        <appender-ref ref="SQLEVENTS" />
-    </logger>
     <logger name="org.jvmxray.events.net.socket" level="DEBUG" additivity="false">
         <appender-ref ref="SOCKETEVENTS" />
     </logger>

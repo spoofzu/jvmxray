@@ -2,7 +2,7 @@ package org.jvmxray.agent.sensor.monitor;
 
 import com.sun.management.UnixOperatingSystemMXBean;
 import org.jvmxray.agent.proxy.LogProxy;
-import org.jvmxray.agent.sensor.Sensor;
+import org.jvmxray.agent.sensor.*;
 import org.jvmxray.platform.shared.property.AgentProperties;
 
 import java.lang.instrument.Instrumentation;
@@ -20,7 +20,7 @@ import java.util.Map;
  *
  * @author Milton Smith
  */
-public class MonitorSensor implements Sensor {
+public class MonitorSensor extends AbstractSensor implements Sensor {
     // Namespace for logging system statistics events
     private static final String NAMESPACE = "org.jvmxray.events.monitor";
     // Singleton instance of LogProxy for logging
@@ -30,14 +30,21 @@ public class MonitorSensor implements Sensor {
     // Background thread for periodic monitoring
     private Thread monitoringThread;
 
+    // Static sensor identity.
+    private static final String SENSOR_GUID = "74AD1687-A129-4535-A82A-ED30E0435ADA"; // Generated via uuidgen
+
+    public MonitorSensor(String propertySuffix) {
+        super(propertySuffix);
+    }
+
     /**
      * Returns the unique identifier for this sensor, used for logging and configuration.
      *
-     * @return The sensor's name, "MonitorSensor".
+     * @return The sensor's identity is, "74AD1687-A129-4535-A82A-ED30E0435ADA".
      */
     @Override
-    public String getName() {
-        return "MonitorSensor";
+    public String getIdentity() {
+        return SENSOR_GUID;
     }
 
     /**

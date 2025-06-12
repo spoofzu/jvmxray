@@ -12,7 +12,7 @@
 
     <artifactId>agent</artifactId>
     <packaging>jar</packaging>
-    <name>JVMXRay Agent</name>
+    <name>agent</name>
 
     <dependencies>
         <dependency>
@@ -23,17 +23,16 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>net.bytebuddy</groupId>
             <artifactId>byte-buddy</artifactId>
-<!--            <version>1.9.7</version>-->
             <version>1.14.17</version>
         </dependency>
         <dependency>
             <groupId>net.bytebuddy</groupId>
             <artifactId>byte-buddy-agent</artifactId>
-<!--            <version>1.9.7</version>-->
             <version>1.14.17</version>
         </dependency>
         <dependency>

@@ -11,11 +11,6 @@ import org.jvmxray.agent.sensor.InjectableSensor;
 import org.jvmxray.agent.sensor.MethodSpec;
 import org.jvmxray.agent.sensor.Sensor;
 import org.jvmxray.agent.sensor.Transform;
-import org.jvmxray.agent.sensor.system.AppInitSensor;
-import org.jvmxray.agent.sensor.http.HttpSensor;
-import org.jvmxray.agent.sensor.io.FileIOSensor;
-import org.jvmxray.agent.sensor.monitor.MonitorSensor;
-import org.jvmxray.agent.sensor.system.LibSensor;
 import org.jvmxray.agent.util.sensor.SensorUtils;
 import org.jvmxray.platform.shared.log.JVMXRayLogFactory;
 import org.jvmxray.platform.shared.property.AgentProperties;
@@ -42,64 +37,49 @@ public class jvmxrayagent {
     private static final String EOL = System.lineSeparator();
     // ASCII art banner for JVMXRay
     private static final String BANNER =
-            "" + EOL +
-                    "      ██╗██╗   ██║███╗   ███╗██╗  ██╗██████╗  █████╗ ██╗   ██╗" + EOL +
-                    "      ██║██║   ██║████╗ ████║╚██╗██╔╝██╔══██╗██╔══██╗╚██╗ ██╔╝" + EOL +
-                    "      ██║██║   ██║██╔████╔██║ ╚███╔╝ ██████╔╝███████║ ╚████╔╝ " + EOL +
-                    " ██   ██║╚██╗ ██╔╝██║╚██╔╝██║ ██╔██╗ ██╔══██╗██╔══██║  ╚██╔╝  " + EOL +
-                    " ╚█████╔╝ ╚████╔╝ ██║ ╚═╝ ██║██╔╝ ██╗██║  ██║██║  ██║   ██║   " + EOL +
-                    "  ╚════╝   ╚═══╝  ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   " + EOL +
-                    "Permission to modify and redistribute is granted under the" + EOL +
-                    " terms as described within the project LICENSE and" + EOL +
-                    " NOTICE files.";
-
-    // Logger for platform-wide logging
+        "" + EOL +
+        "      ██╗██╗   ██║███╗   ███╗██╗  ██╗██████╗  █████╗ ██╗   ██╗" + EOL +
+        "      ██║██║   ██║████╗ ████║╚██╗██╔╝██╔══██╗██╔══██╗╚██╗ ██╔╝" + EOL +
+        "      ██║██║   ██║██╔████╔██║ ╚███╔╝ ██████╔╝███████║ ╚████╔╝ " + EOL +
+        " ██   ██║╚██╗ ██╔╝██║╚██╔╝██║ ██╔██╗ ██╔══██╗██╔══██║  ╚██╔╝  " + EOL +
+        " ╚█████╔╝ ╚████╔╝ ██║ ╚═╝ ██║██╔╝ ██╗██║  ██║██║  ██║   ██║   " + EOL +
+        "  ╚════╝   ╚═══╝  ╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝   ╚═╝   " + EOL +
+        "Permission to modify and redistribute is granted under the" +
+        " terms as described within the project LICENSE and" +
+        " NOTICE files.";
     private static Logger platformLogger;
-    // List of registered sensors
     private static final List<Sensor> sensors = new ArrayList<>();
 
-    /**
-     * Entry point for the JVMXRay agent, called by the JVM during startup.
-     * Initializes properties, logging, sensors, and Byte Buddy instrumentation.
-     *
-     * @param agentArgs Arguments passed to the agent.
-     * @param instrumentation The instrumentation instance provided by the JVM.
-     */
     public static void premain(String agentArgs, Instrumentation instrumentation) {
-        // Display startup banner
         System.out.println(BANNER);
         System.out.println("jvmxrayagent.premain(): Agent started.");
         try {
             // Initialize property factory
             PropertyFactory propertyFactory = PropertyFactory.getInstance();
             propertyFactory.init();
-            AgentProperties properties = propertyFactory.getAgentProperties();
-
             // Initialize logging
             JVMXRayLogFactory logFactory = JVMXRayLogFactory.getInstance();
             logFactory.init(propertyFactory.getJvmxrayHome());
             platformLogger = logFactory.getLogger("org.jvmxray.agent.bin.jvmxrayagent");
             platformLogger.info(BANNER);
             platformLogger.info("Agent started.");
+            // Initialize agent property settings.  We do this after init to record problems if any.
+            AgentProperties properties = propertyFactory.getAgentProperties();
 
-            // Register sensors
-            // TODO: Implement dynamic sensor loading
-            sensors.add(new HttpSensor());
-            sensors.add(new FileIOSensor());
-            sensors.add(new MonitorSensor());
-            sensors.add(new AppInitSensor());
-            sensors.add(new LibSensor());
-            // sensors.add(new SQLSensor()); // TODO: SQLSensor implementation incomplete
-            // sensors.add(new SocketSensor()); // TODO: SocketSensor implementation incomplete
-            // sensors.add(new UncaughtExceptionSensor()); // TODO: UncaughtExceptionSensor implementation incomplete
+            // Register sensors from properties
+            sensors.addAll(SensorUtils.loadSensors(properties,"jvmxray.sensor."));
+            if (sensors.isEmpty()) {
+                platformLogger.warn("No sensors loaded from properties. Agent will run without sensors.");
+            }
 
             // Initialize all registered sensors
             for (Sensor sensor : sensors) {
                 try {
                     sensor.initialize(properties, agentArgs, instrumentation);
-                    platformLogger.info("Initialized sensor: " + sensor.getName());
+                    platformLogger.info("Initialized sensor: {}", sensor.getDisplayName());
                 } catch (Exception e) {
-                    platformLogger.error("Failed to initialize sensor " + sensor.getName() + ": " + e.getMessage());
+                    platformLogger.error("Failed to initialize sensor {}: {}",
+                            sensor.getDisplayName(), e.getMessage());
                 }
             }
 
@@ -108,6 +88,8 @@ public class jvmxrayagent {
             for (Sensor sensor : sensors) {
                 if (sensor instanceof InjectableSensor) {
                     injectableSensors.add((InjectableSensor) sensor);
+                    platformLogger.debug("Registered injectable sensor: {}",
+                            sensor.getDisplayName());
                 }
             }
 
@@ -121,12 +103,11 @@ public class jvmxrayagent {
             }
             Class<?>[] uniqueClasses = classMap.values().toArray(new Class[0]);
             SensorUtils.injectClasses(instrumentation, "org.jvmxray.agent", uniqueClasses);
-            platformLogger.debug("Injected " + uniqueClasses.length + " unique classes into bootstrap loader.");
+            platformLogger.debug("Injected {} unique classes into bootstrap loader.", uniqueClasses.length);
 
             // Apply transformations for each injectable sensor
             for (InjectableSensor sensor : injectableSensors) {
                 try {
-                    // Configure Byte Buddy agent builder
                     AgentBuilder builder = new AgentBuilder.Default()
                             .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
                             .with(AgentBuilder.RedefinitionStrategy.Listener.StreamWriting.toSystemError())
@@ -134,11 +115,11 @@ public class jvmxrayagent {
 
                     Transform[] transforms = sensor.configure();
                     if (transforms.length == 0) {
-                        platformLogger.warn("No transformations configured for sensor: " + sensor.getName());
+                        platformLogger.warn("No transformations configured for sensor: {}",
+                                sensor.getDisplayName());
                         continue;
                     }
 
-                    // Apply each transformation
                     for (Transform transform : transforms) {
                         builder = builder.type(ElementMatchers.is(transform.getTargetClass()))
                                 .transform((bldr, typeDesc, classLoader, module, protectionDomain) -> {
@@ -152,11 +133,11 @@ public class jvmxrayagent {
                                     }
                                     return intermediate;
                                 });
-                        platformLogger.info("Configured transform for " + transform.getTargetClass().getName() +
-                                " in sensor " + sensor.getName());
+                        platformLogger.info("Configured transform for {} in sensor {}",
+                                transform.getTargetClass().getName(),
+                                sensor.getDisplayName());
                     }
 
-                    // Add listener for transformation events
                     builder.with(new AgentBuilder.Listener() {
                         @Override
                         public void onDiscovery(String typeName, ClassLoader classLoader, JavaModule module, boolean loaded) {}
@@ -164,7 +145,8 @@ public class jvmxrayagent {
                         @Override
                         public void onTransformation(TypeDescription typeDescription, ClassLoader classLoader, JavaModule module,
                                                      boolean loaded, DynamicType dynamicType) {
-                            platformLogger.info("Transformed " + typeDescription.getName() + " for sensor " + sensor.getName());
+                            platformLogger.info("Transformed {} for sensor {}",
+                                    typeDescription.getName(), sensor.getDisplayName());
                         }
 
                         @Override
@@ -174,18 +156,19 @@ public class jvmxrayagent {
                         @Override
                         public void onError(String typeName, ClassLoader classLoader, JavaModule module, boolean loaded,
                                             Throwable throwable) {
-                            platformLogger.error("Error transforming " + typeName + " for sensor " + sensor.getName() +
-                                    ": " + throwable.getMessage());
+                            platformLogger.error("Error transforming {} for sensor {}: {}",
+                                    typeName, sensor.getDisplayName(), throwable.getMessage());
                         }
 
                         @Override
                         public void onComplete(String typeName, ClassLoader classLoader, JavaModule module, boolean loaded) {}
                     }).installOn(instrumentation);
 
-                    platformLogger.info("Transformers installed for sensor: " + sensor.getName());
+                    platformLogger.info("Transformers installed for sensor: {}",
+                            sensor.getDisplayName());
                 } catch (Exception e) {
-                    platformLogger.error("Failed to install transformers for sensor " + sensor.getName() +
-                            ": " + e.getMessage(), e);
+                    platformLogger.error("Failed to install transformers for sensor {}: {}",
+                            sensor.getDisplayName(), e.getMessage(), e);
                 }
             }
 
@@ -199,20 +182,16 @@ public class jvmxrayagent {
         }
     }
 
-    /**
-     * Shuts down the JVMXRay agent, cleaning up resources and shutting down all registered sensors.
-     */
     public static void shutdown() {
-        // Shut down all sensors
         for (Sensor sensor : sensors) {
             try {
                 sensor.shutdown();
-                platformLogger.debug("Shut down sensor: " + sensor.getName());
+                platformLogger.debug("Shut down sensor: {}", sensor.getDisplayName());
             } catch (Exception e) {
-                platformLogger.error("Failed to shut down sensor " + sensor.getName() + ": " + e.getMessage());
+                platformLogger.error("Failed to shut down sensor {}: {}",
+                        sensor.getDisplayName(), e.getMessage());
             }
         }
-        // Shut down logging proxy
         LogProxy.shutdown();
         System.out.println("jvmxrayagent.shutdown(): jvmxrayagent shutting down.");
     }
