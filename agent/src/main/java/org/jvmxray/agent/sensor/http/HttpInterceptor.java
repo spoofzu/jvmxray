@@ -2,10 +2,10 @@ package org.jvmxray.agent.sensor.http;
 
 import net.bytebuddy.asm.Advice;
 import org.jvmxray.agent.proxy.LogProxy;
+import org.jvmxray.agent.util.sensor.RequestContextHolder;
 
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Interceptor class for HTTP servlet requests and responses.
@@ -31,8 +31,14 @@ public class HttpInterceptor {
     @Advice.OnMethodEnter
     public static void enter(@Advice.This Object servlet, @Advice.Argument(0) Object request) {
         try {
-            // Initialize metadata for logging
-            Map<String, String> metadata = new HashMap<>();
+            // todo Consider ramifications and protections to support sensitive cookie values.
+
+            // Generate a unique request ID
+            String requestId = UUID.randomUUID().toString().substring(0, 8); // Shortened for brevity
+            RequestContextHolder.clearContext();
+            Map<String, String> metadata = RequestContextHolder.getContext();
+            metadata.put("request_id", requestId);
+
             // Retrieve all request headers
             Map<String, String> headers = getAllHeaders(request);
 
@@ -77,15 +83,33 @@ public class HttpInterceptor {
     @Advice.OnMethodExit
     public static void exit(@Advice.Argument(1) Object response) {
         try {
-            // Initialize metadata for logging
-            Map<String, String> metadata = new HashMap<>();
+            //todo May consider adding support for returning server response headers.
+
+            // Retrieve request_id for correlation of responses.
+            Map<String, String> metadata =  RequestContextHolder.getContext();
+            String requestId = metadata.get("request_id"); // correlate req to the response.
+            String requestUri = metadata.get("request_uri"); // helpful to understand context.
+            // Clear all the other headers not required for the response.
+            metadata.clear();
+            metadata.put("request_id", requestId);
+            metadata.put("request_uri", requestUri != null ? requestUri : "unknown");
+
+            // When DEBUG enabled log the response content length header value.
+            String level = "INFO";
+            if (logProxy.isLoggingAtLevel(RES_NAMESPACE, "DEBUG")) {
+                level = "DEBUG";
+                // Retrieve all request headers
+                Map<String, String> headers = getAllHeaders(response);
+                headers.remove("request_uri"); // remove it since we included it by default.
+                metadata.putAll(headers);
+            }
 
             // Capture response status code
             Integer status = (Integer) invokeMethod(response, "getStatus");
             metadata.put("status", status != null ? status.toString() : "unknown");
 
             // Log the response event
-            logProxy.logEvent(RES_NAMESPACE, "INFO", metadata);
+            logProxy.logEvent(RES_NAMESPACE, level, metadata);
         } catch (Exception e) {
             // Log error event
             Map<String, String> errorMetadata = new HashMap<>();
@@ -117,9 +141,9 @@ public class HttpInterceptor {
     }
 
     /**
-     * Retrieves all headers from the HTTP request.
+     * Retrieves all headers from the HTTP request or response.
      *
-     * @param request The HTTP request object.
+     * @param request The HTTP request or response object.
      * @return A {@code Map<String, String>} containing header names and their values.
      * @throws Exception If an error occurs during method invocation.
      */
@@ -129,7 +153,14 @@ public class HttpInterceptor {
 
         // Get the enumeration of header names
         @SuppressWarnings("unchecked")
-        java.util.Enumeration<String> headerNames = (java.util.Enumeration<String>) invokeMethod(request, "getHeaderNames");
+        Object headers = invokeMethod(request, "getHeaderNames");
+        Enumeration<String> headerNames = null;
+        if(headers instanceof Collection) {
+            headerNames = Collections.enumeration((Collection<String>) headers);
+        } else {
+            headerNames = (Enumeration<String>)headers;
+        }
+        //java.util.Enumeration<String> headerNames = (java.util.Enumeration<String>) invokeMethod(request, "getHeaderNames");
 
         if (headerNames != null) {
             while (headerNames.hasMoreElements()) {

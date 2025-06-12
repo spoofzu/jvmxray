@@ -3,100 +3,125 @@ package org.jvmxray.agent.sensor.sql;
 import net.bytebuddy.asm.Advice;
 import org.jvmxray.agent.proxy.LogProxy;
 
+import java.sql.PreparedStatement;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 /**
- * Interceptor class for monitoring and logging SQL query execution events within the JVMXRay agent framework.
- * Uses Byte Buddy's {@link Advice} annotations to instrument methods of SQL-related classes (e.g., {@code PreparedStatement}),
- * capturing query details, execution duration, and parameters. Events are logged with contextual metadata using
- * the {@link LogProxy}. Note: This implementation is not yet fully operational and requires further development.
+ * Interceptor for monitoring SQL query execution in JDBC PreparedStatement implementations.
+ * Instruments execute methods to capture query details, execution duration, and errors.
+ * Logs events with contextual metadata using LogProxy.
  *
  * @author Milton Smith
  */
 public class SQLInterceptor {
-    // Namespace for logging SQL query events
-    public static final String SQL_NAMESPACE = "org.jvmxray.events.sql.query";
-    // Singleton instance of LogProxy for logging
+    private static final String SQL_NAMESPACE = "org.jvmxray.events.sql.query";
     public static final LogProxy logProxy = LogProxy.getInstance();
 
     /**
-     * Intercepts the entry of a SQL-related method to log query details and record the start time.
-     * Note: This implementation is not yet fully operational and may require adjustments for specific SQL classes.
-     *
-     * @param preparedStatement The SQL statement object (e.g., {@code PreparedStatement}) being executed.
-     * @return The start time in nanoseconds, or -1L if an error occurs.
+     * Intercepts method entry to log query details and record start time.
+     * @param preparedStatement The PreparedStatement instance.
+     * @return A context object containing start time and correlation ID.
      */
     @Advice.OnMethodEnter
-    public static long enter(@Advice.This Object preparedStatement) {
+    public static Object[] enter(@Advice.This Object preparedStatement) {
         try {
-            // Initialize metadata for logging
+            String correlationId = UUID.randomUUID().toString();
             Map<String, String> metadata = new HashMap<>();
-
-            // Retrieve SQL query, falling back to toString() if reflection fails
-            String sqlQuery = getSqlQuery(preparedStatement);
-            metadata.put("query", sqlQuery != null ? sqlQuery : "unknown");
+            metadata.put("correlation_id", correlationId);
             metadata.put("class", preparedStatement.getClass().getName());
 
-            // Log the query start event
+            // Retrieve SQL query safely
+            String sqlQuery = null;
+            try {
+                // Use driver-specific methods or toString as a last resort
+                if (preparedStatement instanceof PreparedStatement) {
+                    // Some drivers provide proprietary methods; fallback to toString
+                    sqlQuery = preparedStatement.toString(); // Replace with driver-specific logic if needed
+                }
+            } catch (Exception e) {
+                //todo sink exception for now, revisit.
+            }
+            metadata.put("query", sqlQuery != null ? sqlQuery : "unknown");
+
+            // Add connection details if available
+            if (preparedStatement instanceof PreparedStatement) {
+                try {
+                    java.sql.Connection conn = ((PreparedStatement) preparedStatement).getConnection();
+                    metadata.put("db_url", conn.getMetaData().getURL());
+                    metadata.put("db_user", conn.getMetaData().getUserName());
+                } catch (Exception ignored) {
+                    // Ignore if connection metadata is unavailable
+                }
+            }
+
             logProxy.logEvent(SQL_NAMESPACE, "INFO", metadata);
-            return System.nanoTime();
+            return new Object[]{System.nanoTime(), correlationId};
         } catch (Exception e) {
-            // Log error if query processing fails
             Map<String, String> errorMetadata = new HashMap<>();
             errorMetadata.put("error", "Failed to process SQL query start: " + e.getMessage());
             errorMetadata.put("class", preparedStatement.getClass().getName());
             logProxy.logEvent(SQL_NAMESPACE, "ERROR", errorMetadata);
-            return -1L;
+            return new Object[]{-1L, null};
         }
     }
 
     /**
-     * Intercepts the exit of a SQL-related method to log the execution result and duration.
-     * Captures both successful executions and exceptions, and logs parameters at DEBUG level.
-     * Note: This implementation is not yet fully operational and may require adjustments for specific SQL classes.
-     *
-     * @param preparedStatement The SQL statement object (e.g., {@code PreparedStatement}) being executed.
-     * @param startTime        The start time in nanoseconds, as returned by {@code enter}.
-     * @param throwable        The {@code Throwable} thrown during execution, or null if successful.
+     * Intercepts method exit to log execution result and duration.
+     * @param preparedStatement The PreparedStatement instance.
+     * @param context The context object from enter (start time, correlation ID).
+     * @param result The method result (if any).
+     * @param throwable The thrown exception, if any.
      */
     @Advice.OnMethodExit(onThrowable = Throwable.class)
     public static void exit(@Advice.This Object preparedStatement,
-                            @Advice.Enter long startTime,
+                            @Advice.Enter Object[] context,
+                            @Advice.Return Object result,
                             @Advice.Thrown Throwable throwable) {
         try {
-            // Initialize metadata for logging
             Map<String, String> metadata = new HashMap<>();
+            long startTime = (Long) context[0];
+            String correlationId = (String) context[1];
+            metadata.put("correlation_id", correlationId);
+            metadata.put("class", preparedStatement.getClass().getName());
 
-            // Calculate execution duration if start time is valid
+            // Calculate duration
             if (startTime != -1L) {
-                long durationNs = System.nanoTime() - startTime;
-                double durationMs = durationNs / 1_000_000.0;
+                double durationMs = (System.nanoTime() - startTime) / 1_000_000.0;
                 metadata.put("duration_ms", String.format("%.2f", durationMs));
             } else {
                 metadata.put("duration_ms", "unknown");
             }
 
-            metadata.put("class", preparedStatement.getClass().getName());
+            // Log execution result
             if (throwable != null) {
-                // Log error status and details
                 metadata.put("status", "error");
                 metadata.put("error_message", throwable.getMessage());
                 logProxy.logEvent(SQL_NAMESPACE, "ERROR", metadata);
             } else {
-                // Log success status
                 metadata.put("status", "success");
+                if (result instanceof java.sql.ResultSet) {
+                    metadata.put("result_type", "ResultSet");
+                } else if (result instanceof Integer) {
+                    metadata.put("update_count", result.toString());
+                }
                 logProxy.logEvent(SQL_NAMESPACE, "INFO", metadata);
             }
 
-            // Log additional parameters at DEBUG level if enabled
+            // Log parameters at DEBUG level
             if (logProxy.isLoggingAtLevel(SQL_NAMESPACE, "DEBUG")) {
-                Map<String, String> parameters = getParameters(preparedStatement);
-                metadata.putAll(parameters);
+                Map<String, String> params = new HashMap<>();
+                try {
+                    // todo: Implement driver-specific parameter extraction
+                    params.put("parameters", "unavailable");
+                } catch (Exception e) {
+                    params.put("param_error", "Unable to retrieve parameters: " + e.getMessage());
+                }
+                metadata.putAll(params);
                 logProxy.logEvent(SQL_NAMESPACE, "DEBUG", metadata);
             }
         } catch (Exception e) {
-            // Log error if exit processing fails
             Map<String, String> errorMetadata = new HashMap<>();
             errorMetadata.put("error", "Failed to process SQL query exit: " + e.getMessage());
             errorMetadata.put("class", preparedStatement.getClass().getName());
@@ -104,43 +129,4 @@ public class SQLInterceptor {
         }
     }
 
-    /**
-     * Attempts to retrieve the SQL query string from the statement object using reflection.
-     * Falls back to {@code toString()} if reflection fails.
-     * Note: This method is not yet fully operational and may not work for all SQL implementations.
-     *
-     * @param preparedStatement The SQL statement object (e.g., {@code PreparedStatement}).
-     * @return The SQL query string, or the object's {@code toString()} representation if retrieval fails.
-     */
-    private static String getSqlQuery(Object preparedStatement) {
-        try {
-            // Attempt to access the query via reflection (vendor-specific)
-            java.lang.reflect.Field sqlField = preparedStatement.getClass().getDeclaredField("sql");
-            sqlField.setAccessible(true);
-            return (String) sqlField.get(preparedStatement);
-        } catch (Exception e) {
-            // Fallback to toString() if reflection fails
-            return preparedStatement.toString();
-        }
-    }
-
-    /**
-     * Retrieves parameters from the SQL statement object.
-     * Currently retrieves the query string again as a placeholder.
-     * Note: This method is not yet fully operational and requires proper parameter extraction logic.
-     *
-     * @param preparedStatement The SQL statement object (e.g., {@code PreparedStatement}).
-     * @return A map containing query details or an error message if retrieval fails.
-     */
-    private static Map<String, String> getParameters(Object preparedStatement) {
-        Map<String, String> params = new HashMap<>();
-        try {
-            // Retrieve query string (placeholder for actual parameter extraction)
-            String sqlQuery = getSqlQuery(preparedStatement);
-            params.put("query_details", sqlQuery != null ? sqlQuery : "unknown");
-        } catch (Exception e) {
-            params.put("param_error", "Unable to retrieve parameters: " + e.getMessage());
-        }
-        return params;
-    }
 }

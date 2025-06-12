@@ -2,10 +2,7 @@ package org.jvmxray.agent.sensor.uncaughtexception;
 
 import org.jvmxray.agent.proxy.LogProxy;
 import org.jvmxray.agent.proxy.ManagementProxy;
-import org.jvmxray.agent.sensor.InjectableSensor;
-import org.jvmxray.agent.sensor.MethodSpec;
-import org.jvmxray.agent.sensor.Sensor;
-import org.jvmxray.agent.sensor.Transform;
+import org.jvmxray.agent.sensor.*;
 import org.jvmxray.platform.shared.property.AgentProperties;
 
 import java.lang.instrument.Instrumentation;
@@ -20,18 +17,25 @@ import java.lang.instrument.Instrumentation;
  *
  * @author Milton Smith
  */
-public class UncaughtExceptionSensor implements InjectableSensor {
+public class UncaughtExceptionSensor extends AbstractSensor implements InjectableSensor {
     // Namespace for logging sensor events
     private static final String NAMESPACE = "org.jvmxray.agent.core.uncaughtexception.UncaughtExceptionSensor";
+
+    // Static sensor identity.
+    private static final String SENSOR_GUID = "C7A0DE90-46D1-47BE-B265-7B89FF65CD6F"; // Generated via uuidgen
+
+    public UncaughtExceptionSensor(String propertySuffix) {
+        super(propertySuffix);
+    }
 
     /**
      * Returns the unique identifier for this sensor, used for logging and configuration.
      *
-     * @return The sensor's name, "UncaughtExceptionSensor".
+     * @return The sensor's identity is, "C7A0DE90-46D1-47BE-B265-7B89FF65CD6F".
      */
     @Override
-    public String getName() {
-        return "UncaughtExceptionSensor";
+    public String getIdentity() {
+        return SENSOR_GUID;
     }
 
     /**

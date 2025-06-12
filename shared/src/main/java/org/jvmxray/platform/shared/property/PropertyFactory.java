@@ -166,7 +166,7 @@ public class PropertyFactory {
      *                   property loading errors.
      */
     public synchronized AgentProperties getAgentProperties() throws Exception {
-        // Check if properties are initialized
+        //todo: need to redesign.  knowledge of property config should be stored in PropertyBase implementation (e.g., AgentProperties).
         if (agentProperties == null) {
             // Validate directory initialization
             if (jvmxrayBase == null || jvmxrayHome == null || jvmxrayLogHome == null) {
@@ -175,16 +175,23 @@ public class PropertyFactory {
             // Create and initialize agent properties
             agentProperties = new AgentProperties(jvmxrayHome.toPath());
             agentProperties.init();
-            // Set default properties if modified or new
-            if (agentProperties.isModified()) {
+            // Always set default properties for new or empty files
+            if (agentProperties.isPropertyFileNewOrEmpty()) {
                 agentProperties.setProperty("AID", GUID.getID());
                 agentProperties.setProperty("CAT", "unit-test");
                 agentProperties.setProperty("log.message.encoding", "true");
+                agentProperties.setProperty("jvmxray.sensor.http","org.jvmxray.agent.sensor.http.HttpSensor");
+                agentProperties.setProperty("jvmxray.sensor.fileio","org.jvmxray.agent.sensor.io.FileIOSensor");
+                agentProperties.setProperty("jvmxray.sensor.monitor","org.jvmxray.agent.sensor.monitor.MonitorSensor");
+                agentProperties.setProperty("jvmxray.sensor.appinit","org.jvmxray.agent.sensor.system.AppInitSensor");
+                agentProperties.setProperty("jvmxray.sensor.lib","org.jvmxray.agent.sensor.system.LibSensor");
+                agentProperties.setProperty("jvmxray.sensor.sql","org.jvmxray.agent.sensor.sql.SQLSensor");
                 agentProperties.setIntProperty("monitor.interval", 60000);
-                // Save properties with header
+                // Save properties file with header
                 agentProperties.saveProperties("JVMXRay Agent Properties");
             }
         }
         return agentProperties;
     }
+
 }

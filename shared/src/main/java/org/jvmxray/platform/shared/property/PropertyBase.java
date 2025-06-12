@@ -21,7 +21,7 @@ import java.util.Properties;
  * Abstract base class for managing properties in a standard Java properties file
  * within the JVMXRay framework. Provides functionality to read, write, and modify
  * properties, supporting multi-line values and preserving file comments. Designed
- * for subclasses like {@link AgentProperties} to manage component-specific
+ * for subclasses to manage component-specific
  * configurations, such as agent settings, with required properties like Agent ID
  * (AID) and Category (CAT).
  *
@@ -33,7 +33,6 @@ import java.util.Properties;
  * line size limits to prevent resource exhaustion.</p>
  *
  * @author Milton Smith
- * @see AgentProperties
  * @see IProperties
  */
 public abstract class PropertyBase {
@@ -106,6 +105,19 @@ public abstract class PropertyBase {
         readPropertiesFile();
         // Store original properties for modification tracking
         propertiesOriginal.putAll(properties);
+    }
+
+    /**
+     * Checks if the properties file is new (does not exist) or empty (exists but has zero length).
+     *
+     * @return {@code true} if the properties file does not exist or is empty, {@code false} otherwise.
+     * @throws IllegalStateException If the property file is not initialized (i.e., {@code init()} has not been called).
+     */
+    public boolean isPropertyFileNewOrEmpty() {
+        if (propertyFile == null) {
+            throw new IllegalStateException("Property file not initialized. Call init() first.");
+        }
+        return !propertyFile.exists() || propertyFile.length() == 0;
     }
 
     /**
@@ -332,6 +344,10 @@ public abstract class PropertyBase {
                     throw new IOException("Failed to create parent directory for properties file: " + parentDir.getAbsolutePath());
                 }
             }
+            // Check if parent directory is writable
+            if (!parentDir.canWrite()) {
+                throw new IOException("Parent directory is not writable: " + parentDir.getAbsolutePath());
+            }
             // Create empty file
             if (!propertyFile.createNewFile()) {
                 logger.warn("Properties file already created by another process: {}", propertyFile.getAbsolutePath());
@@ -442,7 +458,10 @@ public abstract class PropertyBase {
      * @throws IOException If an I/O error occurs while writing the file.
      */
     public void saveProperties(String header) throws IOException {
-        // Write properties with header and timestamp
+        // Check if file is writable
+        if (propertyFile.exists() && !propertyFile.canWrite()) {
+            throw new IOException("Properties file is not writable: " + propertyFile.getAbsolutePath());
+        }
         try (BufferedWriter writer = Files.newBufferedWriter(propertyFile.toPath())) {
             // Write custom header if provided
             if (header != null && !header.isEmpty()) {
@@ -457,6 +476,9 @@ public abstract class PropertyBase {
             // Reset modification flag and update original properties
             bModifiedProperties = false;
             propertiesOriginal = (Properties) properties.clone();
+        } catch (IOException e) {
+            logger.error("Failed to save properties to {}: {}", propertyFile.getAbsolutePath(), e.getMessage(), e);
+            throw e; // Re-throw to ensure callers are aware of the failure
         }
     }
 
@@ -466,7 +488,6 @@ public abstract class PropertyBase {
      * @throws IOException If an I/O error occurs while writing the file.
      */
     private void writePropertiesWithTimestamp() throws IOException {
-        // Write properties with buffered writer
         try (BufferedWriter writer = Files.newBufferedWriter(propertyFile.toPath())) {
             // Add timestamp for new files
             if (!propertyFile.exists()) {
@@ -475,6 +496,9 @@ public abstract class PropertyBase {
             }
             // Write file content and properties
             writeContentAndProperties(writer);
+        } catch (IOException e) {
+            logger.error("Failed to write properties to {}: {}", propertyFile.getAbsolutePath(), e.getMessage(), e);
+            throw e;
         }
     }
 
@@ -584,8 +608,8 @@ public abstract class PropertyBase {
      *         {@code false} otherwise.
      */
     public boolean isModified() {
-        // Check if file does not exist
-        if (!propertyFile.exists()) {
+        // Check if file does not exist or is empty
+        if (!propertyFile.exists() || propertyFile.length() == 0) {
             bModifiedProperties = true;
         } else if (propertiesOriginal.size() != properties.size()) {
             // Check if property count differs
@@ -601,4 +625,5 @@ public abstract class PropertyBase {
         }
         return bModifiedProperties;
     }
+
 }

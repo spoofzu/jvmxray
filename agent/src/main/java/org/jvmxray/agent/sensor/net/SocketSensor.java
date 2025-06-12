@@ -1,10 +1,7 @@
 package org.jvmxray.agent.sensor.net;
 
 import org.jvmxray.agent.proxy.LogProxy;
-import org.jvmxray.agent.sensor.InjectableSensor;
-import org.jvmxray.agent.sensor.MethodSpec;
-import org.jvmxray.agent.sensor.Sensor;
-import org.jvmxray.agent.sensor.Transform;
+import org.jvmxray.agent.sensor.*;
 import org.jvmxray.platform.shared.property.AgentProperties;
 
 import java.lang.instrument.Instrumentation;
@@ -18,18 +15,25 @@ import java.net.SocketAddress;
  *
  * @author Milton Smith
  */
-public class SocketSensor implements InjectableSensor {
+public class SocketSensor extends AbstractSensor implements InjectableSensor {
     // Namespace for logging sensor events
     private static final String NAMESPACE = "org.jvmxray.agent.core.net.SocketSensor";
+
+    // Static sensor identity.
+    private static final String SENSOR_GUID = "B3650B2D-BB32-45A2-A552-3F8AA624B708"; // Generated via uuidgen
+
+    public SocketSensor(String propertySuffix) {
+        super(propertySuffix);
+    }
 
     /**
      * Returns the unique identifier for this sensor, used for logging and configuration.
      *
-     * @return The sensor's name, "SocketSensor".
+     * @return The sensor's identity is, "B3650B2D-BB32-45A2-A552-3F8AA624B708".
      */
     @Override
-    public String getName() {
-        return "SocketSensor";
+    public String getIdentity() {
+        return SENSOR_GUID;
     }
 
     /**

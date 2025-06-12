@@ -1,10 +1,8 @@
 package org.jvmxray.agent.sensor.http;
 
 import org.jvmxray.agent.proxy.LogProxy;
-import org.jvmxray.agent.sensor.InjectableSensor;
-import org.jvmxray.agent.sensor.MethodSpec;
-import org.jvmxray.agent.sensor.Sensor;
-import org.jvmxray.agent.sensor.Transform;
+import org.jvmxray.agent.sensor.*;
+import org.jvmxray.agent.util.sensor.RequestContextHolder;
 import org.jvmxray.agent.util.sensor.ServletDetector;
 import org.jvmxray.platform.shared.property.AgentProperties;
 
@@ -20,18 +18,26 @@ import java.util.Map;
  *
  * @author Milton Smith
  */
-public class HttpSensor implements InjectableSensor {
+public class HttpSensor extends AbstractSensor implements InjectableSensor {
+
     // Namespace for logging sensor events
     private static final String NAMESPACE = "org.jvmxray.agent.core.io.HttpSensor";
+
+    // Static sensor identity.
+    private static final String SENSOR_GUID = "CCF1EE82-F58A-4866-A1D4-09A3B7B25A2D"; // Generated via uuidgen
+
+    public HttpSensor(String propertySuffix) {
+        super(propertySuffix);
+    }
 
     /**
      * Returns the unique identifier for this sensor, used for logging and configuration.
      *
-     * @return The sensor's name, "HttpSensor".
+     * @return The sensor's identity is, "CCF1EE82-F58A-4866-A1D4-09A3B7B25A2D".
      */
     @Override
-    public String getName() {
-        return "HttpSensor";
+    public String getIdentity() {
+        return SENSOR_GUID;
     }
 
     /**
@@ -62,7 +68,8 @@ public class HttpSensor implements InjectableSensor {
                 InjectableSensor.class,
                 LogProxy.class,
                 // Sensor-specific class
-                HttpInterceptor.class
+                HttpInterceptor.class,
+                RequestContextHolder.class  // req for req/resp correlation
         };
     }
 
@@ -90,7 +97,7 @@ public class HttpSensor implements InjectableSensor {
         Class<?> requestClass = detectedClasses.get("request");
         Class<?> responseClass = detectedClasses.get("response");
 
-        // Log detected classes for debugging
+        // Log detected classes to system log for debugging
         Map<String, String> logMetadata = new HashMap<>();
         logMetadata.put("Instrumenting httpServlet", servletClass.getName());
         logMetadata.put("request", requestClass.getName());
