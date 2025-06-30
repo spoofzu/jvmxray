@@ -13,7 +13,6 @@ module org.jvmxray.agent {
     exports org.jvmxray.agent.sensor;
 
     // Export utility packages for logging and detection
-    exports org.jvmxray.agent.util.log;
     exports org.jvmxray.agent.util.sensor;
 
     // Require the shared module
@@ -22,8 +21,9 @@ module org.jvmxray.agent {
     // Open packages to java.base for instrumentation and reflection
     opens org.jvmxray.agent.bin to java.base;
     opens org.jvmxray.agent.sensor to java.base;
-    opens org.jvmxray.agent.util.log to java.base;
     opens org.jvmxray.agent.util.sensor to java.base;
+    exports org.jvmxray.agent.proxy;
+    opens org.jvmxray.agent.proxy to java.base;
 
     // Require essential JDK modules
     requires java.instrument;            // Java agent and instrumentation APIs

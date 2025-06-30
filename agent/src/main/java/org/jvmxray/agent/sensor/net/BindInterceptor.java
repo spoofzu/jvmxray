@@ -68,6 +68,6 @@ public class BindInterceptor {
                 "threw " + thrown.getClass().getSimpleName() + ": " + thrown.getMessage() : "accepted");
 
         // Log the socket bind event
-        logProxy.logEvent(NAMESPACE, "INFO", metadata);
+        logProxy.logMessage(NAMESPACE, "INFO", metadata);
     }
 }

@@ -57,7 +57,7 @@ public class SQLSensor extends AbstractSensor implements InjectableSensor {
                         String className = typeDescription.getName();
                         if (!detectedClasses.contains(className)) {
                             detectedClasses.add(className);
-                            logProxy.logEvent(NAMESPACE, "INFO", Map.of(
+                            logProxy.logMessage(NAMESPACE, "INFO", Map.of(
                                     "message", "Detected PreparedStatement implementation: " + className
                             ));
                         }
@@ -70,11 +70,11 @@ public class SQLSensor extends AbstractSensor implements InjectableSensor {
                     })
                     .installOn(instrumentation);
 
-            logProxy.logEvent(NAMESPACE, "INFO", Map.of(
+            logProxy.logMessage(NAMESPACE, "INFO", Map.of(
                     "message", "SQLSensor initialized with ByteBuddy transformer, detected classes: " + detectedClasses.size()
             ));
         } catch (Exception e) {
-            logProxy.logEvent(NAMESPACE, "ERROR", Map.of(
+            logProxy.logMessage(NAMESPACE, "ERROR", Map.of(
                     "message", "Failed to initialize SQLSensor: " + e.getMessage()
             ));
         }
@@ -91,14 +91,14 @@ public class SQLSensor extends AbstractSensor implements InjectableSensor {
     @Override
     public Transform[] configure() {
         if (instrumentation == null) {
-            logProxy.logEvent(NAMESPACE, "ERROR", Map.of(
+            logProxy.logMessage(NAMESPACE, "ERROR", Map.of(
                     "message", "Instrumentation unavailable. Skipping configuration."
             ));
             return new Transform[0];
         }
 
         if (detectedClasses.isEmpty()) {
-            logProxy.logEvent(NAMESPACE, "INFO", Map.of(
+            logProxy.logMessage(NAMESPACE, "INFO", Map.of(
                     "message", "No PreparedStatement implementations detected. Checking loaded classes."
             ));
             // Fallback: Check all loaded classes for PreparedStatement implementations
@@ -106,7 +106,7 @@ public class SQLSensor extends AbstractSensor implements InjectableSensor {
                 if (PreparedStatement.class.isAssignableFrom(clazz) && !clazz.isInterface()) {
                     if (!detectedClasses.contains(clazz.getName())) {
                         detectedClasses.add(clazz.getName());
-                        logProxy.logEvent(NAMESPACE, "INFO", Map.of(
+                        logProxy.logMessage(NAMESPACE, "INFO", Map.of(
                                 "message", "Fallback detection: Found PreparedStatement implementation: " + clazz.getName()
                         ));
                     }
@@ -127,18 +127,18 @@ public class SQLSensor extends AbstractSensor implements InjectableSensor {
                 Class<?> clazz = Class.forName(className, false, instrumentation.getAllLoadedClasses()[0].getClassLoader());
                 for (MethodSpec method : methodsToInstrument) {
                     transforms.add(new Transform(clazz, SQLInterceptor.class, method));
-                    logProxy.logEvent(NAMESPACE, "INFO", Map.of(
+                    logProxy.logMessage(NAMESPACE, "INFO", Map.of(
                             "message", "Instrumenting " + clazz.getName() + "." + method.getMethodName()
                     ));
                 }
             } catch (ClassNotFoundException e) {
-                logProxy.logEvent(NAMESPACE, "ERROR", Map.of(
+                logProxy.logMessage(NAMESPACE, "ERROR", Map.of(
                         "message", "Failed to load class for transformation: " + className,
                         "error", e.getMessage()
                 ));
             }
         }
-        logProxy.logEvent(NAMESPACE, "INFO", Map.of(
+        logProxy.logMessage(NAMESPACE, "INFO", Map.of(
                 "message", "Configured " + transforms.size() + " transformations for SQLSensor"
         ));
         return transforms.toArray(new Transform[0]);
@@ -146,7 +146,7 @@ public class SQLSensor extends AbstractSensor implements InjectableSensor {
 
     @Override
     public void shutdown() {
-        logProxy.logEvent(NAMESPACE, "INFO", Map.of(
+        logProxy.logMessage(NAMESPACE, "INFO", Map.of(
                 "message", "SQLSensor shutting down"
         ));
     }

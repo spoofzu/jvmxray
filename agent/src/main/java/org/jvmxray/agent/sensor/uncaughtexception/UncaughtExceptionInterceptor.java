@@ -97,6 +97,6 @@ public class UncaughtExceptionInterceptor {
         metadata.put("threads", threadsInfo.toString());
 
         // Log the uncaught exception event
-        logProxy.logEvent(NAMESPACE, "INFO", metadata);
+        logProxy.logMessage(NAMESPACE, "INFO", metadata);
     }
 }

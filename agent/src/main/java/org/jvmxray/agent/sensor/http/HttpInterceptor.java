@@ -64,14 +64,14 @@ public class HttpInterceptor {
                 }
             }
             // Log the request event
-            logProxy.logEvent(REQ_NAMESPACE, level, metadata);
+            logProxy.logMessage(REQ_NAMESPACE, level, metadata);
         } catch (Exception e) {
             System.err.println("enter: Failed: " + e.getMessage());
             e.printStackTrace();
             // Log error event
             Map<String, String> errorMetadata = new HashMap<>();
             errorMetadata.put("error", "Failed to process request: " + e.getMessage());
-            logProxy.logEvent(REQ_NAMESPACE, "ERROR", errorMetadata);
+            logProxy.logMessage(REQ_NAMESPACE, "ERROR", errorMetadata);
         }
     }
 
@@ -109,12 +109,12 @@ public class HttpInterceptor {
             metadata.put("status", status != null ? status.toString() : "unknown");
 
             // Log the response event
-            logProxy.logEvent(RES_NAMESPACE, level, metadata);
+            logProxy.logMessage(RES_NAMESPACE, level, metadata);
         } catch (Exception e) {
             // Log error event
             Map<String, String> errorMetadata = new HashMap<>();
             errorMetadata.put("error", "Failed to process response: " + e.getMessage());
-            logProxy.logEvent(RES_NAMESPACE, "ERROR", errorMetadata);
+            logProxy.logMessage(RES_NAMESPACE, "ERROR", errorMetadata);
         }
     }
 

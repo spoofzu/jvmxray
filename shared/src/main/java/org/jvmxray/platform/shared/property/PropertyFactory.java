@@ -178,7 +178,7 @@ public class PropertyFactory {
             // Always set default properties for new or empty files
             if (agentProperties.isPropertyFileNewOrEmpty()) {
                 agentProperties.setProperty("AID", GUID.getID());
-                agentProperties.setProperty("CAT", "unit-test");
+                agentProperties.setProperty("CID", "unit-test");
                 agentProperties.setProperty("log.message.encoding", "true");
                 agentProperties.setProperty("jvmxray.sensor.http","org.jvmxray.agent.sensor.http.HttpSensor");
                 agentProperties.setProperty("jvmxray.sensor.fileio","org.jvmxray.agent.sensor.io.FileIOSensor");

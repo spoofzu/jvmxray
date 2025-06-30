@@ -86,7 +86,7 @@ public class HttpSensor extends AbstractSensor implements InjectableSensor {
 
         // Handle case where no Servlet API is found
         if (detectedClasses.isEmpty()) {
-            LogProxy.getInstance().logEvent(NAMESPACE, "ERROR", Map.of(
+            LogProxy.getInstance().logMessage(NAMESPACE, "ERROR", Map.of(
                     "message", "No suitable Servlet API found for instrumentation"
             ));
             return new Transform[0];
@@ -102,7 +102,7 @@ public class HttpSensor extends AbstractSensor implements InjectableSensor {
         logMetadata.put("Instrumenting httpServlet", servletClass.getName());
         logMetadata.put("request", requestClass.getName());
         logMetadata.put("response", responseClass.getName());
-        LogProxy.getInstance().logEvent(NAMESPACE, "INFO", logMetadata);
+        LogProxy.getInstance().logMessage(NAMESPACE, "INFO", logMetadata);
 
         // Define transformation for the service method
         return new Transform[] {

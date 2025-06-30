@@ -1,8 +1,11 @@
-package org.jvmxray.agent.util.log;
+package org.jvmxray.agent.proxy;
 
 import org.jvmxray.platform.shared.log.JVMXRayLogFactory;
+import org.jvmxray.platform.shared.property.AgentProperties;
+import org.jvmxray.platform.shared.property.PropertyFactory;
 import org.slf4j.Logger;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -163,7 +166,12 @@ public class AgentLogger {
      * @param metadata  The metadata key-value pairs for the event.
      */
     public void logEvent(String namespace, String level, Map<String, String> metadata) {
-        handleEvent0(namespace, level, metadata);
+        // Don't modify the original.
+        Map<String, String> clonedMetadata = new HashMap<>(metadata);
+        // Add AID and CID to the meta.
+        updateApplicationMeta(clonedMetadata);
+        // Log all the sensor keyval pairs and also teh AID and CID properties.
+        handleEvent0(namespace, level, clonedMetadata);
     }
 
     /**
@@ -349,6 +357,33 @@ public class AgentLogger {
             } catch (Exception e) {
                 // Log processing errors
                 logger.error("Failed to process log event: {}", event.namespace, e);
+            }
+        }
+    }
+
+    /**
+     * Adds server properties like application id (AID) and category id (CID) from
+     * <codd>agent.properties</codd> to log messages.  Note: we need AID to identify
+     * which cloud service produced an event.  The category is useful to separate
+     * out events like unit-testing from production logs/events.
+     * @param metadata Event meta provided by the caller.
+     */
+    private void updateApplicationMeta( Map<String, String> metadata ) {
+        PropertyFactory propertyFactory = PropertyFactory.getInstance();
+        // Safety check, should always be initialized.
+        if( propertyFactory != null) {
+            try {
+                AgentProperties properties = propertyFactory.getAgentProperties();
+                if (properties != null) {
+                    String aid = properties.getProperty("AID", "unknown");
+                    String cid = properties.getProperty("CID", "unknown");
+                    // Add if missing or replace it.
+                    metadata.put("AID", aid);
+                    metadata.put("CID", cid);
+                }
+            } catch (Exception e) {
+                System.err.println("Error updating application meta data: " + e.getMessage());
+                e.printStackTrace();
             }
         }
     }

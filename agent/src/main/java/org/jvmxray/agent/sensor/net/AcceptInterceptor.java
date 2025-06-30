@@ -57,6 +57,6 @@ public class AcceptInterceptor {
         metadata.put("status", thrown != null ?
                 "threw " + thrown.getClass().getSimpleName() + ": " + thrown.getMessage() : "accepted");
         // Log the socket accept event
-        logProxy.logEvent(NAMESPACE, "INFO", metadata);
+        logProxy.logMessage(NAMESPACE, "INFO", metadata);
     }
 }

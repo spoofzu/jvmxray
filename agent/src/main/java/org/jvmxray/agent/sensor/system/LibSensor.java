@@ -73,7 +73,7 @@ public class LibSensor extends AbstractSensor implements Sensor {
                 }
             } catch (NumberFormatException e) {
                 // Log warning if interval parsing fails
-                logProxy.logEvent(NAMESPACE, "WARN", Map.of(
+                logProxy.logMessage(NAMESPACE, "WARN", Map.of(
                         "message", "Invalid lib.interval in agentArgs, using default: " + checkIntervalSeconds
                 ));
             }
@@ -94,7 +94,7 @@ public class LibSensor extends AbstractSensor implements Sensor {
                     break;
                 } catch (Exception e) {
                     // Log errors during dynamic detection
-                    logProxy.logEvent(NAMESPACE, "ERROR", Map.of(
+                    logProxy.logMessage(NAMESPACE, "ERROR", Map.of(
                             "message", "Dynamic JAR detection failed: " + e.getMessage()
                     ));
                 }
@@ -128,7 +128,7 @@ public class LibSensor extends AbstractSensor implements Sensor {
                 Map<String, String> eventData = new HashMap<>();
                 eventData.put("method", "static");
                 eventData.put("jarPath", entry);
-                logProxy.logEvent(NAMESPACE, "INFO", eventData);
+                logProxy.logMessage(NAMESPACE, "INFO", eventData);
                 // Cache JAR to avoid duplicate logging
                 knownJars.put(entry, true);
             }
@@ -155,7 +155,7 @@ public class LibSensor extends AbstractSensor implements Sensor {
                         Map<String, String> eventData = new HashMap<>();
                         eventData.put("method", "dynamic");
                         eventData.put("jarPath", jarPath);
-                        logProxy.logEvent(NAMESPACE, "INFO", eventData);
+                        logProxy.logMessage(NAMESPACE, "INFO", eventData);
                         // Cache JAR to avoid duplicate logging
                         knownJars.put(jarPath, true);
                     }

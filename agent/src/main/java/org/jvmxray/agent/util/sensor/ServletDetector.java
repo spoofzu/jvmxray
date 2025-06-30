@@ -44,7 +44,7 @@ public class ServletDetector {
             detectedClasses.put("response", responseClass);
             attempts.put("jakarta.servlet", "Detected");
             // Log successful detection
-            logProxy.logEvent(NAMESPACE, "INFO", Map.of(
+            logProxy.logMessage(NAMESPACE, "INFO", Map.of(
                     "message", "Detected Jakarta Servlet API (jakarta.servlet.http.HttpServlet)"
             ));
             return detectedClasses; // Return immediately if Jakarta is found
@@ -65,7 +65,7 @@ public class ServletDetector {
             detectedClasses.put("response", responseClass);
             attempts.put("javax.servlet", "Detected");
             // Log successful detection
-            logProxy.logEvent(NAMESPACE, "INFO", Map.of(
+            logProxy.logMessage(NAMESPACE, "INFO", Map.of(
                     "message", "Detected Java EE Servlet API (javax.servlet.http.HttpServlet)"
             ));
             return detectedClasses; // Return if Java EE is found
@@ -95,7 +95,7 @@ public class ServletDetector {
             detectedClasses.put("response", responseClass);
             attempts.put("spring.dispatcher", "Detected");
             // Log successful detection
-            logProxy.logEvent(NAMESPACE, "INFO", Map.of(
+            logProxy.logMessage(NAMESPACE, "INFO", Map.of(
                     "message", "Detected Spring DispatcherServlet (org.springframework.web.servlet.DispatcherServlet)"
             ));
         } catch (ClassNotFoundException e) {
@@ -105,7 +105,7 @@ public class ServletDetector {
 
         // Log failure if no Servlet API was detected
         if (detectedClasses.isEmpty()) {
-            logProxy.logEvent(NAMESPACE, "ERROR", Map.of(
+            logProxy.logMessage(NAMESPACE, "ERROR", Map.of(
                     "message", "No Servlet API detected",
                     "attempts", attempts.toString()
             ));

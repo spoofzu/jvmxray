@@ -47,6 +47,6 @@ public class WriteInterceptor {
         metadata.put("target", fos.getFD().toString());
         metadata.put("status", "successfully written");
         // Log the file write event
-        logProxy.logEvent(NAMESPACE, "INFO", metadata);
+        logProxy.logMessage(NAMESPACE, "INFO", metadata);
     }
 }
