@@ -61,7 +61,7 @@ public class CloseInterceptor {
                 "threw " + thrown.getClass().getSimpleName() + ": " + thrown.getMessage() : "closed");
 
         // Log the socket close event
-        logProxy.logEvent(NAMESPACE, "INFO", metadata);
+        logProxy.logMessage(NAMESPACE, "INFO", metadata);
 
         // Clean up thread-local storage
         startTime.remove();

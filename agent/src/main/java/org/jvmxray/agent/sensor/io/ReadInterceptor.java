@@ -47,6 +47,6 @@ public class ReadInterceptor {
         metadata.put("target", fis.getFD().toString());
         metadata.put("status", (result >= 0) ? "read " + result + " bytes" : "reached EOF");
         // Log the file read event
-        logProxy.logEvent(NAMESPACE, "INFO", metadata);
+        logProxy.logMessage(NAMESPACE, "INFO", metadata);
     }
 }

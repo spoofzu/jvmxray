@@ -15,13 +15,10 @@ import org.jvmxray.agent.util.sensor.SensorUtils;
 import org.jvmxray.platform.shared.log.JVMXRayLogFactory;
 import org.jvmxray.platform.shared.property.AgentProperties;
 import org.jvmxray.platform.shared.property.PropertyFactory;
-import org.slf4j.Logger;
 
 import java.lang.instrument.Instrumentation;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import static net.bytebuddy.matcher.ElementMatchers.named;
 import static net.bytebuddy.matcher.ElementMatchers.takesArguments;
@@ -47,39 +44,80 @@ public class jvmxrayagent {
         "Permission to modify and redistribute is granted under the" +
         " terms as described within the project LICENSE and" +
         " NOTICE files.";
-    private static Logger platformLogger;
+    private static final String NAMESPACE = "org.jvmxray.agent.bin.jvmxrayagent";
+    // Must wait to init logProxy until JVMXRayLogFactory is initialized.
+    private static LogProxy logProxy = null;
     private static final List<Sensor> sensors = new ArrayList<>();
 
     public static void premain(String agentArgs, Instrumentation instrumentation) {
         System.out.println(BANNER);
         System.out.println("jvmxrayagent.premain(): Agent started.");
         try {
+            // ********************
+            // *** BEGIN SECTION
+            // ***
+            // *** WARNING:
+            // *** Don't modify anything within this section since there's a specific
+            // ***   order of initialization.
+            // ********************
+            //
             // Initialize property factory
             PropertyFactory propertyFactory = PropertyFactory.getInstance();
             propertyFactory.init();
-            // Initialize logging
-            JVMXRayLogFactory logFactory = JVMXRayLogFactory.getInstance();
-            logFactory.init(propertyFactory.getJvmxrayHome());
-            platformLogger = logFactory.getLogger("org.jvmxray.agent.bin.jvmxrayagent");
-            platformLogger.info(BANNER);
-            platformLogger.info("Agent started.");
             // Initialize agent property settings.  We do this after init to record problems if any.
             AgentProperties properties = propertyFactory.getAgentProperties();
+            // Initialize proxy logging.
+            //   Note(s):
+            //   - We use a proxy for logging since Sensors can't log using a standard logger.
+            //   - We don't need to use a proxy but it's required for sensors so we use it in
+            //       core agent code(here) for consistency.  Using the proxy also includes
+            //       AID/CID to uniquely identify messages from cloud services.
+            JVMXRayLogFactory logFactory = JVMXRayLogFactory.getInstance();
+            logFactory.init(propertyFactory.getJvmxrayHome());
+            logProxy = LogProxy.getInstance();
+            // ********************
+            // *** END SECTION
+            // ********************
+            logProxy.logMessage(NAMESPACE, "INFO", BANNER);
+            logProxy.logMessage(NAMESPACE, "INFO", "Agent started.");
 
             // Register sensors from properties
-            sensors.addAll(SensorUtils.loadSensors(properties,"jvmxray.sensor."));
+            Set<Sensor> sensors = new HashSet<>(); // Use Set to help track unique sensors
+            List<Sensor> loadedSensors = SensorUtils.loadSensors(properties, "jvmxray.sensor.");
+            Map<String, List<Sensor>> identityMap = new HashMap<>();
+
+            // Check for duplicate sensor identities
+            for (Sensor sensor : loadedSensors) {
+                String identity = sensor.getIdentity();
+                identityMap.computeIfAbsent(identity, k -> new ArrayList<>()).add(sensor);
+            }
+
+            // Process sensors.  Check for duplicate sensor identities, if found, log and remove them.
+            for (Map.Entry<String, List<Sensor>> entry : identityMap.entrySet()) {
+                String identity = entry.getKey();
+                List<Sensor> sensorsWithIdentity = entry.getValue();
+                if (sensorsWithIdentity.size() > 1) {
+                    // Log duplicate sensors
+                    String sensorNames = sensorsWithIdentity.stream()
+                            .map(Sensor::getDisplayName)
+                            .collect(Collectors.joining(", "));
+                            logProxy.logMessage(NAMESPACE, "INFO", String.format("Duplicate sensor identity detected: ID=%s used by sensors: %s. Removing all duplicates.",identity,sensorNames));
+                    continue; // Skip adding duplicates to sensors set
+                }
+                sensors.add(sensorsWithIdentity.get(0));
+            }
+
             if (sensors.isEmpty()) {
-                platformLogger.warn("No sensors loaded from properties. Agent will run without sensors.");
+                logProxy.logMessage(NAMESPACE, "WARN", "No sensors loaded from properties. Agent running in NOP mode.");
             }
 
             // Initialize all registered sensors
             for (Sensor sensor : sensors) {
                 try {
                     sensor.initialize(properties, agentArgs, instrumentation);
-                    platformLogger.info("Initialized sensor: {}", sensor.getDisplayName());
+                    logProxy.logMessage(NAMESPACE, "INFO", String.format("Initialized sensor: %s", sensor.getDisplayName()));
                 } catch (Exception e) {
-                    platformLogger.error("Failed to initialize sensor {}: {}",
-                            sensor.getDisplayName(), e.getMessage());
+                    logProxy.logMessage(NAMESPACE, "ERROR", String.format("Failed to initialize sensor %s: %s", sensor.getDisplayName(), e.getMessage()));
                 }
             }
 
@@ -88,8 +126,7 @@ public class jvmxrayagent {
             for (Sensor sensor : sensors) {
                 if (sensor instanceof InjectableSensor) {
                     injectableSensors.add((InjectableSensor) sensor);
-                    platformLogger.debug("Registered injectable sensor: {}",
-                            sensor.getDisplayName());
+                    logProxy.logMessage(NAMESPACE, "DEBUG", String.format("Registered injectable sensor: %s", sensor.getDisplayName()));
                 }
             }
 
@@ -103,7 +140,7 @@ public class jvmxrayagent {
             }
             Class<?>[] uniqueClasses = classMap.values().toArray(new Class[0]);
             SensorUtils.injectClasses(instrumentation, "org.jvmxray.agent", uniqueClasses);
-            platformLogger.debug("Injected {} unique classes into bootstrap loader.", uniqueClasses.length);
+            logProxy.logMessage(NAMESPACE, "DEBUG", String.format("Injected %s unique classes into bootstrap loader.", uniqueClasses.length));
 
             // Apply transformations for each injectable sensor
             for (InjectableSensor sensor : injectableSensors) {
@@ -115,8 +152,7 @@ public class jvmxrayagent {
 
                     Transform[] transforms = sensor.configure();
                     if (transforms.length == 0) {
-                        platformLogger.warn("No transformations configured for sensor: {}",
-                                sensor.getDisplayName());
+                        logProxy.logMessage(NAMESPACE, "WARN", String.format("No transformations configured for sensor: %s", sensor.getDisplayName()));
                         continue;
                     }
 
@@ -133,9 +169,9 @@ public class jvmxrayagent {
                                     }
                                     return intermediate;
                                 });
-                        platformLogger.info("Configured transform for {} in sensor {}",
+                        logProxy.logMessage(NAMESPACE, "INFO", String.format("Configured transform for %s in sensor %s",
                                 transform.getTargetClass().getName(),
-                                sensor.getDisplayName());
+                                sensor.getDisplayName()));
                     }
 
                     builder.with(new AgentBuilder.Listener() {
@@ -145,8 +181,9 @@ public class jvmxrayagent {
                         @Override
                         public void onTransformation(TypeDescription typeDescription, ClassLoader classLoader, JavaModule module,
                                                      boolean loaded, DynamicType dynamicType) {
-                            platformLogger.info("Transformed {} for sensor {}",
-                                    typeDescription.getName(), sensor.getDisplayName());
+                            logProxy.logMessage(NAMESPACE, "INFO", String.format("Transformed %s for sensor %s",
+                                    typeDescription.getName(),
+                                    sensor.getDisplayName()));
                         }
 
                         @Override
@@ -156,25 +193,29 @@ public class jvmxrayagent {
                         @Override
                         public void onError(String typeName, ClassLoader classLoader, JavaModule module, boolean loaded,
                                             Throwable throwable) {
-                            platformLogger.error("Error transforming {} for sensor {}: {}",
-                                    typeName, sensor.getDisplayName(), throwable.getMessage());
+                            logProxy.logMessage(NAMESPACE, "ERROR", String.format("Error transforming %s for sensor %s: %s",
+                                    typeName,
+                                    sensor.getDisplayName(),
+                                    throwable.getMessage()));
                         }
 
                         @Override
                         public void onComplete(String typeName, ClassLoader classLoader, JavaModule module, boolean loaded) {}
                     }).installOn(instrumentation);
 
-                    platformLogger.info("Transformers installed for sensor: {}",
-                            sensor.getDisplayName());
+                    logProxy.logMessage(NAMESPACE, "INFO", String.format("Transformers installed for sensor: %s",
+                            sensor.getDisplayName()));
+
                 } catch (Exception e) {
-                    platformLogger.error("Failed to install transformers for sensor {}: {}",
-                            sensor.getDisplayName(), e.getMessage(), e);
+                    logProxy.logMessageWithException(NAMESPACE, "ERROR",  String.format("Failed to install transformers for sensor %s",
+                            sensor.getDisplayName()),
+                            e);
                 }
             }
 
             // Register shutdown hook
             Runtime.getRuntime().addShutdownHook(new Thread(jvmxrayagent::shutdown, "jvmxrayagent.shutdownhook"));
-            platformLogger.info("Agent premain initialization complete. Agent active.");
+            logProxy.logMessage(NAMESPACE, "INFO", "Agent premain initialization complete. Agent active.");
             System.out.println("jvmxray.premain(): Agent premain initialization complete. Agent active.");
         } catch (Exception e) {
             System.err.println("jvmxrayagent.premain(): Agent premain failed: " + e.getMessage());
@@ -186,10 +227,12 @@ public class jvmxrayagent {
         for (Sensor sensor : sensors) {
             try {
                 sensor.shutdown();
-                platformLogger.debug("Shut down sensor: {}", sensor.getDisplayName());
+                logProxy.logMessage(NAMESPACE, "DEBUG", String.format("Shut down sensor: %s",
+                        sensor.getDisplayName()));
             } catch (Exception e) {
-                platformLogger.error("Failed to shut down sensor {}: {}",
-                        sensor.getDisplayName(), e.getMessage());
+                logProxy.logMessageWithException(NAMESPACE, "DEBUG", String.format("Failed to shut down sensor %s",
+                        sensor.getDisplayName()),
+                        e);
             }
         }
         LogProxy.shutdown();

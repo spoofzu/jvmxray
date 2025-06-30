@@ -68,7 +68,7 @@ public class MonitorSensor extends AbstractSensor implements Sensor {
                     break;
                 } catch (Exception e) {
                     // Log any errors during monitoring
-                    logProxy.logEvent(NAMESPACE, "ERROR", Map.of("message", "Monitoring failed: " + e.getMessage()));
+                    logProxy.logMessage(NAMESPACE, "ERROR", Map.of("message", "Monitoring failed: " + e.getMessage()));
                 }
             }
         }, "jvmxray.monitor-1");
@@ -151,7 +151,7 @@ public class MonitorSensor extends AbstractSensor implements Sensor {
         stats.put("DeadlockedThreads", String.valueOf(deadlockedThreads != null ? deadlockedThreads.length : 0));
 
         // Log the system statistics
-        logProxy.logEvent(NAMESPACE, "INFO", stats);
+        logProxy.logMessage(NAMESPACE, "INFO", stats);
     }
 
     /**

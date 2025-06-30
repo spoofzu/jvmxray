@@ -56,13 +56,13 @@ public class SQLInterceptor {
                 }
             }
 
-            logProxy.logEvent(SQL_NAMESPACE, "INFO", metadata);
+            logProxy.logMessage(SQL_NAMESPACE, "INFO", metadata);
             return new Object[]{System.nanoTime(), correlationId};
         } catch (Exception e) {
             Map<String, String> errorMetadata = new HashMap<>();
             errorMetadata.put("error", "Failed to process SQL query start: " + e.getMessage());
             errorMetadata.put("class", preparedStatement.getClass().getName());
-            logProxy.logEvent(SQL_NAMESPACE, "ERROR", errorMetadata);
+            logProxy.logMessage(SQL_NAMESPACE, "ERROR", errorMetadata);
             return new Object[]{-1L, null};
         }
     }
@@ -98,7 +98,7 @@ public class SQLInterceptor {
             if (throwable != null) {
                 metadata.put("status", "error");
                 metadata.put("error_message", throwable.getMessage());
-                logProxy.logEvent(SQL_NAMESPACE, "ERROR", metadata);
+                logProxy.logMessage(SQL_NAMESPACE, "ERROR", metadata);
             } else {
                 metadata.put("status", "success");
                 if (result instanceof java.sql.ResultSet) {
@@ -106,7 +106,7 @@ public class SQLInterceptor {
                 } else if (result instanceof Integer) {
                     metadata.put("update_count", result.toString());
                 }
-                logProxy.logEvent(SQL_NAMESPACE, "INFO", metadata);
+                logProxy.logMessage(SQL_NAMESPACE, "INFO", metadata);
             }
 
             // Log parameters at DEBUG level
@@ -119,13 +119,13 @@ public class SQLInterceptor {
                     params.put("param_error", "Unable to retrieve parameters: " + e.getMessage());
                 }
                 metadata.putAll(params);
-                logProxy.logEvent(SQL_NAMESPACE, "DEBUG", metadata);
+                logProxy.logMessage(SQL_NAMESPACE, "DEBUG", metadata);
             }
         } catch (Exception e) {
             Map<String, String> errorMetadata = new HashMap<>();
             errorMetadata.put("error", "Failed to process SQL query exit: " + e.getMessage());
             errorMetadata.put("class", preparedStatement.getClass().getName());
-            logProxy.logEvent(SQL_NAMESPACE, "ERROR", errorMetadata);
+            logProxy.logMessage(SQL_NAMESPACE, "ERROR", errorMetadata);
         }
     }
 

@@ -1,5 +1,7 @@
 package org.jvmxray.agent.proxy;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -42,11 +44,11 @@ public class LogProxy {
      */
     static {
         try {
-            System.err.println("LogProxy: Attempting to load AgentLogger...");
+            System.out.println("LogProxy: Attempting to load AgentLogger...");
             // Load AgentLogger class
             agentLoggerClass = ClassLoader.getSystemClassLoader()
-                    .loadClass("org.jvmxray.agent.util.log.AgentLogger");
-            System.err.println("LogProxy: AgentLogger loaded successfully.");
+                    .loadClass("org.jvmxray.agent.proxy.AgentLogger");
+            System.out.println("LogProxy: AgentLogger loaded successfully.");
 
             // Get the singleton instance via getInstance()
             java.lang.reflect.Method getInstanceMethod = agentLoggerClass.getMethod("getInstance");
@@ -58,7 +60,7 @@ public class LogProxy {
             shutdownMethod = agentLoggerClass.getMethod("shutdown");
             isLoggingAtLevelMethod = agentLoggerClass.getMethod("isLoggingAtLevel",
                     String.class, String.class);
-            System.err.println("LogProxy: Methods initialized successfully.");
+            System.out.println("LogProxy: Methods initialized successfully.");
         } catch (ClassNotFoundException e) {
             System.err.println("LogProxy: Failed to find AgentLogger class: " + e.getMessage());
             e.printStackTrace();
@@ -105,13 +107,79 @@ public class LogProxy {
     }
 
     /**
-     * Logs an event using the AgentLogger instance, enriching metadata with caller information.
+     * Logs an event using the AgentLogger instance.  Log messages are enriched with caller information,
+     * application id, and category id.
+     *
+     * <emphasis>Note: this is a convenience method for platform logging messages.  Sensors should
+     * normally log using logEvent(String,String,Map) to log keyvalue pairs.</emphasis>
+     *
+     * @param namespace The logging namespace.
+     * @param level The log level (e.g., DEBUG, INFO, ERROR).
+     * @param message Message to log.
+     */
+    public synchronized void logMessage(String namespace, String level, String message) {
+        try {
+            // Capture caller information
+            String caller = captureCallerInfo(namespace);
+            // Enrich metadata with caller info
+            Map<String, String> metadata = new HashMap<>();
+            metadata.put("caller", caller);
+            metadata.put("message",message);
+            // Invoke logEvent method if initialized
+            if (logEventMethod != null && agentLoggerInstance != null) {
+                logEventMethod.invoke(agentLoggerInstance, namespace, level, metadata);
+            } else {
+                System.err.println("LogProxy: Cannot log event - logEventMethod or instance not initialized. Check startup logs.");
+            }
+        } catch (Exception e) {
+            System.err.println("LogProxy: Failed to log event: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Logs an event with an exception using the AgentLogger instance. Log messages are enriched with
+     * caller information, application id, category id, and exception details.
+     *
+     * <emphasis>Note: this is a convenience method for platform logging messages with exceptions.
+     * Sensors should normally log using logEvent(String,String,Map) to log keyvalue pairs.</emphasis>
+     *
+     * @param namespace The logging namespace.
+     * @param level The log level (e.g., DEBUG, INFO, ERROR).
+     * @param message Message to log.
+     * @param exception The exception to log.
+     */
+    public synchronized void logMessageWithException(String namespace, String level, String message, Throwable exception) {
+        try {
+            // Capture caller information
+            String caller = captureCallerInfo(namespace);
+            // Enrich metadata with caller info and exception details
+            Map<String, String> metadata = new HashMap<>();
+            metadata.put("caller", caller);
+            metadata.put("message", message);
+            metadata.put("exception", exception.getClass().getName() + ": " + exception.getMessage());
+            metadata.put("stacktrace", getStackTraceAsString(exception));
+            // Invoke logEvent method if initialized
+            if (logEventMethod != null && agentLoggerInstance != null) {
+                logEventMethod.invoke(agentLoggerInstance, namespace, level, metadata);
+            } else {
+                System.err.println("LogProxy: Cannot log event - logEventMethod or instance not initialized. Check startup logs.");
+            }
+        } catch (Exception e) {
+            System.err.println("LogProxy: Failed to log event with exception: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Logs an event using the AgentLogger instance.  Log messages are enriched with caller information,
+     * application id, and category id.
      *
      * @param namespace The logging namespace.
      * @param level The log level (e.g., DEBUG, INFO, ERROR).
      * @param metadata Metadata associated with the log event.
      */
-    public synchronized void logEvent(String namespace, String level, Map<String, String> metadata) {
+    public synchronized void logMessage(String namespace, String level, Map<String, String> metadata) {
         try {
             // Capture caller information
             String caller = captureCallerInfo(namespace);
@@ -186,4 +254,18 @@ public class LogProxy {
         }
         return result;
     }
+
+    /**
+     * Converts an exception's stack trace to a string.
+     *
+     * @param throwable The exception to convert.
+     * @return The stack trace as a string.
+     */
+    private String getStackTraceAsString(Throwable throwable) {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        throwable.printStackTrace(pw);
+        return sw.toString();
+    }
+
 }

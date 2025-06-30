@@ -68,7 +68,7 @@ public class ConnectInterceptor {
                 "threw " + thrown.getClass().getSimpleName() + ": " + thrown.getMessage() : "connected");
 
         // Log the socket connect event
-        logProxy.logEvent(NAMESPACE, "INFO", metadata);
+        logProxy.logMessage(NAMESPACE, "INFO", metadata);
 
         // Clean up thread-local storage
         startTime.remove();

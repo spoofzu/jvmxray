@@ -46,6 +46,6 @@ public class DeleteInterceptor {
         metadata.put("target", file.getAbsoluteFile().toString());
         metadata.put("status", result ? "successfully deleted" : "failed to delete");
         // Log the file deletion event
-        logProxy.logEvent(NAMESPACE, "INFO", metadata);
+        logProxy.logMessage(NAMESPACE, "INFO", metadata);
     }
 }
