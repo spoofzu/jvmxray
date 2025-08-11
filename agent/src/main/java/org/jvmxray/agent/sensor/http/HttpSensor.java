@@ -2,8 +2,8 @@ package org.jvmxray.agent.sensor.http;
 
 import org.jvmxray.agent.proxy.LogProxy;
 import org.jvmxray.agent.sensor.*;
-import org.jvmxray.agent.util.sensor.RequestContextHolder;
-import org.jvmxray.agent.util.sensor.ServletDetector;
+import org.jvmxray.agent.sensor.util.RequestContextHolder;
+import org.jvmxray.agent.sensor.util.ServletDetector;
 import org.jvmxray.platform.shared.property.AgentProperties;
 
 import java.lang.instrument.Instrumentation;

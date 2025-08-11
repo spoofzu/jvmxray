@@ -1,4 +1,4 @@
-package org.jvmxray.agent.util.sensor;
+package org.jvmxray.agent.sensor.util;
 
 import org.jvmxray.agent.proxy.LogProxy;
 

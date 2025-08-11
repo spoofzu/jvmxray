@@ -11,7 +11,7 @@ import org.jvmxray.agent.sensor.InjectableSensor;
 import org.jvmxray.agent.sensor.MethodSpec;
 import org.jvmxray.agent.sensor.Sensor;
 import org.jvmxray.agent.sensor.Transform;
-import org.jvmxray.agent.util.sensor.SensorUtils;
+import org.jvmxray.agent.sensor.util.SensorUtils;
 import org.jvmxray.platform.shared.log.JVMXRayLogFactory;
 import org.jvmxray.platform.shared.property.AgentProperties;
 import org.jvmxray.platform.shared.property.PropertyFactory;
