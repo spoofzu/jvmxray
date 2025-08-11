@@ -2,7 +2,7 @@ package org.jvmxray.agent.sensor.http;
 
 import net.bytebuddy.asm.Advice;
 import org.jvmxray.agent.proxy.LogProxy;
-import org.jvmxray.agent.util.sensor.RequestContextHolder;
+import org.jvmxray.agent.sensor.util.RequestContextHolder;
 
 import java.lang.reflect.Method;
 import java.util.*;

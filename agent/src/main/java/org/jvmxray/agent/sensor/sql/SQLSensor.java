@@ -70,9 +70,9 @@ public class SQLSensor extends AbstractSensor implements InjectableSensor {
                     })
                     .installOn(instrumentation);
 
-            logProxy.logMessage(NAMESPACE, "INFO", Map.of(
-                    "message", "SQLSensor initialized with ByteBuddy transformer, detected classes: " + detectedClasses.size()
-            ));
+            String priority = (detectedClasses.size() < 1 ) ? "WARN" : "INFO";
+                logProxy.logMessage(NAMESPACE, priority, Map.of(
+                        "message", "SQLSensor initialized with ByteBuddy transformer, detected classes: " + detectedClasses.size()));
         } catch (Exception e) {
             logProxy.logMessage(NAMESPACE, "ERROR", Map.of(
                     "message", "Failed to initialize SQLSensor: " + e.getMessage()

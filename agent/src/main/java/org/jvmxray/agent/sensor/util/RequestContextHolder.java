@@ -1,4 +1,4 @@
-package org.jvmxray.agent.util.sensor;
+package org.jvmxray.agent.sensor.util;
 
 import java.util.HashMap;
 import java.util.Map;

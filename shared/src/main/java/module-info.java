@@ -7,10 +7,11 @@ module org.jvmxray.shared {
 
     // Require essential JDK modules
     requires java.rmi;
+    requires java.xml;
 
-    // Require dependencies
-    requires ch.qos.logback.classic;
-    requires ch.qos.logback.core;
+    // Require dependencies (updated for automatic module names)
+    requires logback.classic;
+    requires logback.core;
     requires logback.json.classic;
     requires logback.jackson;
     requires com.fasterxml.jackson.core;

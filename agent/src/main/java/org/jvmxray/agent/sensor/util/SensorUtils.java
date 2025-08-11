@@ -1,4 +1,4 @@
-package org.jvmxray.agent.util.sensor;
+package org.jvmxray.agent.sensor.util;
 
 import net.bytebuddy.description.type.TypeDescription;
 import net.bytebuddy.dynamic.loading.ClassInjector;
@@ -26,7 +26,7 @@ import static net.bytebuddy.dynamic.loading.ClassInjector.UsingInstrumentation.T
  */
 public class SensorUtils {
 
-    private static final Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.util.sensor.SensorUtils");
+    private static final Logger logger = LoggerFactory.getLogger("org.jvmxray.agent.sensor.util.SensorUtils");
 
     /**
      * Loads sensors from properties with the specified prefix.

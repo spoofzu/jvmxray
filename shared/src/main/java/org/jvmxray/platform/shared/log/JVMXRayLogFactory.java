@@ -81,7 +81,8 @@ public class JVMXRayLogFactory {
         context.setName("JvmXrayAgentContext");
 
         // Set MDC adapter to avoid null pointer exceptions
-        context.setMDCAdapter(new ch.qos.logback.classic.util.LogbackMDCAdapter());
+        // context.setMDCAdapter(new ch.qos.logback.classic.util.LogbackMDCAdapter());
+        // todo: removed since it's not supported older logback required for jdk1.9 support.
 
         // Define the test and production Logback configuration file names
         String testLogConfig = "logback-test.xml2";
