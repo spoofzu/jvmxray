@@ -39,7 +39,7 @@
         <bytebuddy.version>1.14.17</bytebuddy.version> <!-- Latest stable for Java 9 -->
         <logback.version>1.2.11</logback.version>
         <slf4j.version>1.7.36</slf4j.version>
-        <jackson.version>2.9.10</jackson.version> <!-- Java 9 compatible -->
+        <jackson.version>2.15.0</jackson.version> <!-- Java 9 compatible -->
         <logback-contrib.version>0.1.5</logback-contrib.version>
         <junit.version>4.13.2</junit.version>
     </properties>
