@@ -100,3 +100,6 @@ nb-configuration.xml
 ## MISIC
 ##############################
 .env
+memory/
+templates/
+CLAUDE.md
