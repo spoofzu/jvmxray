@@ -1,0 +1,26 @@
+<configuration debug="true" scan="false" scanPeriod="1 minutes">
+
+    <property name="LOG_HOME" value="${jvmxray.common.logs}" />
+    <property name="MSG_FMT_LG" value="C:CP | %d{YYYY.MM.dd 'at' HH:mm:ss z} | %thread | %5level | %logger | %X | %msg%n" />
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="FILEAPPENDER" class="ch.qos.logback.core.FileAppender">
+        <file>${LOG_HOME}/platform-misc-events.log</file>
+        <immediateFlush>true</immediateFlush>
+        <append>true</append>
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+    </appender>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILEAPPENDER" />
+    </root>
+
+</configuration>

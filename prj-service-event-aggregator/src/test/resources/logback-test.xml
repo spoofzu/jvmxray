@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration debug="false" scan="false">
+
+    <!-- Define properties -->
+    <property name="LOG_HOME" value="${basedir}/target/logs" />
+    <property name="TEST_LOG_PATTERN" value="%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n" />
+
+    <!-- Console appender for immediate feedback -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${TEST_LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Integration test main log -->
+    <appender name="INTEGRATION_TEST" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/integration-test.log</file>
+        <immediateFlush>true</immediateFlush>
+        <append>false</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/integration-test.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Turtle test specific log -->
+    <appender name="TURTLE_TEST" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/turtle-test.log</file>
+        <immediateFlush>true</immediateFlush>
+        <append>false</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/turtle-test.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Logger for TurtleIntegrationTest -->
+    <logger name="org.jvmxray.integration.turtle.TurtleIntegrationTest" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="TURTLE_TEST" />
+    </logger>
+
+    <!-- Logger for all integration tests -->
+    <logger name="org.jvmxray.integration" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="INTEGRATION_TEST" />
+    </logger>
+
+    <!-- Root logger -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="INTEGRATION_TEST" />
+    </root>
+
+</configuration>
