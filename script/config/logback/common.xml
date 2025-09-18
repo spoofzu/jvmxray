@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration debug="true" scan="false">
+
+    <!-- System properties for flexible configuration -->
+    <property name="LOG_HOME" value="/Users/milton/github/jvmxray/script/generate-events-common.log" />
+    
+    <!-- Agent message format - matches production agent format -->
+    <property name="MSG_FMT_LG" value="C:AP | %d{YYYY.MM.dd 'at' HH:mm:ss z} | %thread | %5level | %logger | %X | %msg%n" />
+
+    <!-- Console appender for immediate feedback (optional) -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>WARN</level>
+        </filter>
+    </appender>
+
+    <!-- Optional file appender for debugging (can be removed in production) -->
+    <appender name="DEBUG_FILE" class="ch.qos.logback.core.FileAppender">
+        <file>${LOG_HOME}</file>
+        <immediateFlush>true</immediateFlush>
+        <append>false</append>
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>DEBUG</level>
+        </filter>
+    </appender>
+
+    <!-- 
+    Root logger configuration
+    Set to WARN to minimize noise, but capture important events
+    All agent sensor events should be handled by specific loggers above
+    -->
+    <root level="DEBUG">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="DEBUG_FILE" />
+    </root>
+
+</configuration>

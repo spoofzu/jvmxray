@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+
+# JVMXRay LogService Launcher - Minimal Wrapper Script
+# All logic resides in org.jvmxray.service.log.bin.LogService
+# Author: JVMXRay Development Team
+
+# Determine script location and project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+
+# Function to log messages with timestamp
+log_message() {
+    local message="$1"
+    local timestamp
+    timestamp=$(date '+%Y-%m-%d %H:%M:%S')
+    echo "[$timestamp] $message"
+}
+
+# Check if Maven build has been run
+check_build() {
+    if [[ ! -f "$PROJECT_ROOT/prj-service-log/target/prj-service-log-0.0.1.jar" ]]; then
+        log_message "ERROR: LogService JAR not found. Please run 'mvn clean install' first."
+        exit 1
+    fi
+    
+    if [[ ! -f "$PROJECT_ROOT/prj-common/target/prj-common-0.0.1.jar" ]]; then
+        log_message "ERROR: Common JAR not found. Please run 'mvn clean install' first."
+        exit 1
+    fi
+}
+
+# Build classpath for LogService
+build_classpath() {
+    local CP=""
+    local MAVEN_REPO="$HOME/.m2/repository"
+    
+    # Add project JARs
+    CP="$PROJECT_ROOT/prj-service-log/target/prj-service-log-0.0.1.jar"
+    CP="$CP:$PROJECT_ROOT/prj-common/target/prj-common-0.0.1.jar"
+    
+    # Add Maven dependencies - using exact versions from project
+    local DEPS=(
+        "ch/qos/logback/logback-classic/1.5.6/logback-classic-1.5.6.jar"
+        "ch/qos/logback/logback-core/1.5.6/logback-core-1.5.6.jar"
+        "org/slf4j/slf4j-api/2.0.13/slf4j-api-2.0.13.jar"
+        "commons-cli/commons-cli/1.5.0/commons-cli-1.5.0.jar"
+        "org/xerial/sqlite-jdbc/3.42.0.0/sqlite-jdbc-3.42.0.0.jar"
+        "com/zaxxer/HikariCP/5.0.1/HikariCP-5.0.1.jar"
+    )
+    
+    for dep in "${DEPS[@]}"; do
+        local jar_path="$MAVEN_REPO/$dep"
+        if [[ -f "$jar_path" ]]; then
+            CP="$CP:$jar_path"
+        else
+            log_message "WARNING: Dependency not found: $jar_path"
+        fi
+    done
+    
+    echo "$CP"
+}
+
+# Validate prerequisites
+check_build
+
+# Build classpath
+CLASSPATH=$(build_classpath)
+
+# Set basic JVM options including jvmxray.test.home for proper directory initialization
+JVM_OPTS="-Xmx512m -XX:MaxMetaspaceSize=128m -Djvmxray.test.home=$PROJECT_ROOT/.jvmxray"
+
+# Launch LogService with all arguments passed through
+log_message "Launching JVMXRay LogService..."
+exec java $JVM_OPTS -cp "$CLASSPATH" org.jvmxray.service.log.bin.LogService "$@"

@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.logging.Logger;
 import java.util.logging.Level;
+import org.jvmxray.platform.shared.util.GUID;
 
 /**
  * Parser for JVMXRay logback event format.
@@ -255,12 +256,12 @@ public class EventParser {
     
     /**
      * Generate a unique event ID for database storage.
-     * Uses UUID format for uniqueness.
-     * 
+     * Uses Base36-encoded GUID format for uniqueness and compactness.
+     *
      * @return Unique event ID string
      */
     private static String generateEventId() {
-        return UUID.randomUUID().toString();
+        return GUID.generate();
     }
     
     /**
@@ -310,5 +311,77 @@ public class EventParser {
                event.getThreadId() != null && !event.getThreadId().trim().isEmpty() &&
                event.getPriority() != null && !event.getPriority().trim().isEmpty() &&
                event.getNamespace() != null && !event.getNamespace().trim().isEmpty();
+    }
+    
+    /**
+     * Serializes a map of key-value pairs to a string format for storage in the KEYPAIRS column.
+     * Format: "key1=value1, key2=value2, key3=value3"
+     * 
+     * @param keyPairs The key-value pairs to serialize
+     * @return Serialized string representation, or empty string if map is null/empty
+     */
+    public static String serializeKeyPairs(Map<String, String> keyPairs) {
+        if (keyPairs == null || keyPairs.isEmpty()) {
+            return "";
+        }
+        
+        StringBuilder sb = new StringBuilder();
+        boolean first = true;
+        
+        for (Map.Entry<String, String> entry : keyPairs.entrySet()) {
+            if (!first) {
+                sb.append(KEYPAIR_SEPARATOR);
+            }
+            first = false;
+            
+            // Escape any special characters in key and value
+            String key = entry.getKey() != null ? entry.getKey().replace("=", "\\=").replace(", ", "\\, ") : "";
+            String value = entry.getValue() != null ? entry.getValue().replace("=", "\\=").replace(", ", "\\, ") : "";
+            
+            sb.append(key).append(KEYVALUE_SEPARATOR).append(value);
+        }
+        
+        return sb.toString();
+    }
+    
+    /**
+     * Deserializes a string from the KEYPAIRS column back to a map of key-value pairs.
+     * 
+     * @param serializedKeyPairs The serialized string to deserialize
+     * @return Map of key-value pairs, or empty map if string is null/empty
+     */
+    public static Map<String, String> deserializeKeyPairs(String serializedKeyPairs) {
+        Map<String, String> keyPairs = new HashMap<>();
+        
+        if (serializedKeyPairs == null || serializedKeyPairs.trim().isEmpty()) {
+            return keyPairs;
+        }
+        
+        try {
+            // Split on unescaped comma-space separator
+            String[] pairs = serializedKeyPairs.split("(?<!\\\\)" + KEYPAIR_SEPARATOR.replace(", ", ", "));
+            
+            for (String pair : pairs) {
+                if (pair == null || pair.trim().isEmpty()) {
+                    continue;
+                }
+                
+                // Split on unescaped equals sign
+                String[] keyValue = pair.split("(?<!\\\\)" + KEYVALUE_SEPARATOR, 2);
+                
+                if (keyValue.length == 2) {
+                    // Unescape special characters
+                    String key = keyValue[0].replace("\\=", "=").replace("\\, ", ", ");
+                    String value = keyValue[1].replace("\\=", "=").replace("\\, ", ", ");
+                    keyPairs.put(key, value);
+                } else {
+                    logger.warning("Invalid key-value pair format: " + pair);
+                }
+            }
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Failed to deserialize keypairs: " + serializedKeyPairs, e);
+        }
+        
+        return keyPairs;
     }
 }

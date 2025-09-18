@@ -4,6 +4,8 @@ import org.jvmxray.platform.shared.property.ComponentProperties;
 import org.jvmxray.platform.shared.property.PropertyBase;
 import org.jvmxray.platform.shared.util.GUID;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -84,12 +86,23 @@ public class CommonInitializer extends ComponentInitializer {
         Properties defaults = new Properties();
         
         // Core common properties
-        defaults.setProperty("AID", GUID.getID());
+        defaults.setProperty("AID", GUID.generate());
         defaults.setProperty("CID", "common");
         defaults.setProperty("log.message.encoding", "true");
 
-        // Common module configuration
-        defaults.setProperty("jvmxray.common.database.type", "sqlite");
+        // SQLite DB location - use proper directory path construction
+        String datapath = System.getProperty("jvmxray.common.data");
+        Path sqlitedb;
+        if (datapath != null) {
+            sqlitedb = Paths.get(datapath, "jvmxray-test.db");
+        } else {
+            // Fallback to component data directory (will be created by setupDirectories)
+            Path componentHome = getJvmxrayHome().resolve(getComponentName());
+            sqlitedb = componentHome.resolve("data").resolve("jvmxray-test.db");
+        }
+
+        // Common module configuration - JDBC connection string for database  
+        defaults.setProperty("jvmxray.common.database.jdbc.connection", "jdbc:sqlite:"+sqlitedb.toAbsolutePath());
         defaults.setProperty("jvmxray.common.database.pool.size", "5");
         defaults.setProperty("jvmxray.common.log.retention.days", "30");
 
@@ -103,6 +116,23 @@ public class CommonInitializer extends ComponentInitializer {
     @Override
     protected PropertyBase createProperties(java.nio.file.Path componentHome) {
         return new ComponentProperties(componentHome);
+    }
+
+    @Override
+    protected void setupDirectories() throws java.io.IOException {
+        // Call parent to create standard config/ and logs/ directories
+        super.setupDirectories();
+        
+        // Create additional data/ directory for common component
+        java.nio.file.Path componentHomePath = getJvmxrayHome().resolve(getComponentName());
+        java.nio.file.Path componentDataPath = componentHomePath.resolve("data");
+        
+        ensureDirectory(componentDataPath);
+        
+        // Set the jvmxray.common.data system property for database access
+        if (System.getProperty("jvmxray.common.data") == null) {
+            System.setProperty("jvmxray.common.data", componentDataPath.toString());
+        }
     }
 
     /**

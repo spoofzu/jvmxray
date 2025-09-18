@@ -20,7 +20,7 @@ public class SocketSensor extends AbstractSensor implements InjectableSensor {
     private static final String NAMESPACE = "org.jvmxray.agent.core.net.SocketSensor";
 
     // Static sensor identity.
-    private static final String SENSOR_GUID = "A88B35E2-2AEA-4720-AEC9-5C05240CC20A"; // Generated via uuidgen
+    private static final String SENSOR_GUID = "9qXwF8rUdC4mL9p8Kc6Yf2"; // Generated via uuidgen
 
     public SocketSensor(String propertySuffix) {
         super(propertySuffix);

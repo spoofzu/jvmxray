@@ -1,32 +1,43 @@
 
-# JVMXRay - AI-Enhanced Java Security Monitoring
+# JVMXRay:  AI-Enhanced Java Security Monitoring
 
 [![Black Hat Arsenal](https://raw.githubusercontent.com/toolswatch/badges/master/arsenal/usa/2020.svg?sanitize=true)](https://www.toolswatch.org/blackhat-arsenal-us-2020-archive/)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0.txt)
-[![Java](https://img.shields.io/badge/Java-9+-orange.svg)](https://openjdk.java.net/)
-
+[![Java](https://img.shields.io/badge/Java-11+-orange.svg)](https://openjdk.java.net/)
 [![Build Status](https://github.com/spoofzu/jvmxray/actions/workflows/maven-build.yml/badge.svg)](https://github.com/spoofzu/jvmxray/actions/workflows/maven-build.yml)
 [![Contributors](https://img.shields.io/github/contributors/spoofzu/jvmxray.svg)](https://github.com/spoofzu/jvmxray/graphs/contributors)
-[![Last Commit](https://img.shields.io/github/last-commit/spoofzu/jvmxray.svg)](https://github.com/spoofzu/jvmxray/commits/master)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0.txt)
+[![Development Status](https://img.shields.io/badge/Status-Alpha-red.svg)](ZREADME-ALPHA.md)
 
+<div align="left">
 <picture>
-  <source srcset="https://github.com/spoofzu/jvmxray/blob/master/build/lightduke.png?raw=true" media="(prefers-color-scheme: dark)">
-  <source srcset="https://github.com/spoofzu/jvmxray/blob/master/build/darkduke.png?raw=true" media="(prefers-color-scheme: light)">
-  <img src="https://github.com/spoofzu/jvmxray/blob/master/build/lightduke.png" alt="Logo" width="200">
+  <source srcset="./media/logo-wht-on-blk.png?raw=true" media="(prefers-color-scheme: dark)">
+  <source srcset="./media/logo-blk-on-wht.png?raw=true" media="(prefers-color-scheme: light)">
+  <img src="https://github.com/spoofzu/jvmxray/blob/master/build/logo-blk-on-wht.png?raw=true" alt="JVMXRay Logo" width="600">
 </picture>
+</div>
 
-[Duke: Oracle's Java mascot...](https://wiki.openjdk.java.net/display/duke/Main)
+**[Duke history](https://dev.java/duke/)**
 
 **JVMXRay is an AI-enhanced security monitoring platform that watches Java applications in real-time, detecting vulnerabilities and suspicious activity without requiring code changes. Intelligence analysis enriches security events with additional metadata like CWE/CVSS scoring for regulatory reporting. With simple setup and minimal performance impact, JVMXRay provides comprehensive security visibility into applications and third-party dependencies, enhanced by machine learning that improves detection accuracy over time.**
 
 | &nbsp;                                  | &nbsp;                                                                                                                                                                                                                                                                                                                                |
 |-----------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **NEWS**                                | &nbsp;                                                                                                                                                                                                                                                                                                                                |
-| **Sep 1, 2025** Major Update            | Significant milestone release featuring AI-powered vulnerability analysis, online/offline integration support with AI MCP clients like Claude Desktop, 15+ sensor types and growing, enhanced documentation suite, multi-database support (SQLite/MySQL/Cassandra), and complete CI/CD pipeline. Suitable for testing and evaluation. |
-| **Apr 23, 2025** Platform rearchitected | Architecture improved to remove deprecated SecurityManager and move to byte code injection approach.                                                                                                                                                                                                                                  |
+| **Sep 18, 2024** Major Update           | Significant milestone release featuring AI-powered vulnerability analysis, online/offline integration support with AI MCP clients like Claude Desktop, 15+ sensor types and growing, enhanced documentation suite, multi-database support (SQLite/MySQL/Cassandra), and complete CI/CD pipeline. Suitable for testing and evaluation. |
+| **Apr 23, 2024** Platform rearchitected | Architecture improved to remove deprecated SecurityManager and move to byte code injection approach.                                                                                                                                                                                                                                  |
 | **Feb 20, 2024** Improved architecture  | Improved documentation for new architecture. Site docs forthcoming.                                                                                                                                                                                                                                                                   |
 
-**📰 [View News Archive](README-NEWS.md)** - Complete history of project announcements and milestones
+**📰 [View News Archive](ZREADME-NEWS.md)** - Complete history of project announcements and milestones
+
+## ⚠️ Development Status & Security Notice
+
+**🚨 ALPHA SOFTWARE - NOT FOR PRODUCTION USE 🚨**
+
+JVMXRay is currently in **alpha development status** and should **NOT be deployed in production environments**. This software is intended for testing, evaluation, and development purposes only.
+
+**📖 [Learn more about alpha limitations and security considerations →](ZREADME-ALPHA.md)**
+
+---
 
 ## Why JVMXRay?
 
@@ -106,28 +117,31 @@ Get up and running in **under 5 minutes** with SQLite demo data and Claude Deskt
    ```bash
    mvn clean package
    ```
-   **Note**: Test data is generated in a SQLite DB for JVMXRay unit tests. We also use the test data to demonstrate AI integration.
 
-
-4. **Generate API Key for AI MCP Client (Claude Desktop)**
+4. **Generate Test Data**
    ```bash
-   ./scripts/generate-api-key.sh
+   ./script/bin/data/generate-test-data
    ```
-   **Note**: Paste JVMXRay MCP Server API key into your [MCP Client configuration for Claude Desktop](https://support.anthropic.com/en/articles/10949351-getting-started-with-local-mcp-servers-on-claude-desktop).
+   **Note**: This script starts a program that executes various activities designed to stimulate JVMXRay Agent's sensors. When the script finishes, a SQLite database contains sensor data for experimentation.
 
 
-5. **Start JVMXRay MCP Server**
+5. **Explore Test Database**
    ```bash
-   ./scripts/start-mcp-server.sh
+   # SQLite test database¹ created at: .jvmxray/common/data/jvmxray-test.db
+   # Use any SQLite client to explore the test data generated during build
+   sqlite3 .jvmxray/common/data/jvmxray-test.db "SELECT * FROM STAGE0_EVENT LIMIT 10;"
    ```
 
-**That's it, you're up and running!** Try these sample phrases:
-- *"Show me all critical security events from the last 24 hours"*
-- *"Find network connections from IP 192.168.1.100 in the last hour"*
-- *"Analyze SQL injection attempts and show attack patterns"*  
-- *"Create a security timeline for the payment-gateway application"*
-- *"Query ERROR level events from web-server app with limit 50"*
+   **¹** *SQLite is used for development and testing. Production deployments support MySQL and Cassandra databases.*
 
+**Congratulations! You've built JVMXRay successfully!** 
+The project compiles, tests pass, and includes:
+- Complete sensor framework with 15+ monitoring capabilities
+- Multi-database support (SQLite/MySQL/Cassandra) 
+- AI-enhanced security event analysis
+- Enterprise logging integration
+
+<!-- TODO: Create Quick Start Guide -->
 **📖 For complete setup instructions, see [Quick Start Guide](docs/0002-QUICK-START-GUIDE.md)**
 
 ## Key Capabilities
@@ -138,42 +152,38 @@ Get up and running in **under 5 minutes** with SQLite demo data and Claude Deskt
 - **Pattern Recognition**: Advanced detection for SQL injection, command injection, path traversal using consistent event formats
 - **Intelligence Pipeline**: Rule-based analysis with configurable pattern matching and threat classification on structured data
 
-### 🔧 Extensible Sensor Capabilities  
+### 🔧 Extensible Sensor Capabilities
 - **File I/O Sensor**: Monitors file system access, reads, writes, and deletions
   ```
-  2025.04.23 at 16:38:52 CDT | INFO | org.jvmxray.events.io.filedelete | caller=java.io.File:1075, target=/tmp/sensitive.data, status=successfully deleted
+  C:AP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.events.io.fileio |  | caller=java.io.File:1075, file=/tmp/sensitive.data, operation=DELETE, status=deleted, AID=7KLZZAC0DM9RA1ISVXQY63NTK, CID=unit-test
   ```
 - **Network Sensor**: Tracks socket connections, binds, and data transfers
-  ```  
-  2025.04.23 at 16:38:51 CDT | INFO | org.jvmxray.events.net.connect | caller=java.net.Socket:189, destination=malicious-site.com:443, status=connected
+  ```
+  C:AP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.events.net.connect |  | caller=java.net.Socket:189, destination=malicious-site.com:443, status=connected, AID=7KLZZAC0DM9RA1ISVXQY63NTK, CID=production
   ```
 - **Process Sensor**: Detects system command execution and privilege escalation
   ```
-  2025.04.23 at 16:38:50 CDT | INFO | org.jvmxray.events.system.exec | caller=java.lang.ProcessBuilder:1029, command=/bin/sh -c rm -rf /, status=blocked
+  C:AP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.events.system.exec |  | caller=java.lang.ProcessBuilder:1029, command=/bin/sh -c rm -rf /, status=blocked, AID=7KLZZAC0DM9RA1ISVXQY63NTK, CID=production
   ```
 - **Monitor Sensor**: System performance and health monitoring with point-in-time snapshots
   ```
-  2025.04.23 at 16:38:51 CDT | INFO | org.jvmxray.events.monitor | GCCount=1, ThreadRunnable=2, MemoryFree=566.3MB, ProcessCpuLoad=0%, OpenFiles=163
+  C:AP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.events.monitor |  | caller=org.jvmxray.agent.sensor.monitor.MonitorSensor:45, GCCount=1, ThreadRunnable=2, MemoryFree=566.3MB, ProcessCpuLoad=0%, OpenFiles=163, AID=7KLZZAC0DM9RA1ISVXQY63NTK, CID=production
   ```
 - **Library Sensor**: Dynamic and static JAR loading detection
   ```
-  2025.04.23 at 16:38:51 CDT | INFO | org.jvmxray.events.system.lib | method=dynamic, jarPath=/path/to/library.jar, caller=ClassLoader:123
+  C:AP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.events.system.lib |  | caller=ClassLoader:123, method=dynamic, jarPath=/path/to/library.jar, AID=7KLZZAC0DM9RA1ISVXQY63NTK, CID=production
   ```
 - **Serialization Sensor**: Object serialization monitoring for deserialization attacks
   ```
-  2025.04.23 at 16:38:50 CDT | INFO | org.jvmxray.events.serialization | caller=ObjectInputStream:123, target=UserData.class, status=deserialized
+  C:AP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.events.serialization |  | caller=ObjectInputStream:123, target=UserData.class, status=deserialized, AID=7KLZZAC0DM9RA1ISVXQY63NTK, CID=production
   ```
 - **SQL Sensor**: Database query monitoring and injection attempt detection
   ```
-  2025.04.23 at 16:38:49 CDT | INFO | org.jvmxray.events.sql.query | query=SELECT * FROM users WHERE id = '1 OR 1=1', status=potential_injection
+  C:AP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.events.sql.query |  | caller=java.sql.Statement:142, query=SELECT * FROM users WHERE id = '1 OR 1=1', status=potential_injection, AID=7KLZZAC0DM9RA1ISVXQY63NTK, CID=production
   ```
 - **Uncaught Exception Sensor**: Application error and crash monitoring with comprehensive diagnostics
   ```
-  2025.04.23 at 16:38:48 CDT | INFO | org.jvmxray.events.system.uncaughtexception | 
-  thread_name=payment-processor-1, thread_id=42, thread_group=main, exception_type=java.lang.NullPointerException,
-  exception_location=com.example.PaymentProcessor:145, exception_method=processPayment,
-  exception_message=Cannot process null payment, stack_depth=28, memory_pressure=HIGH, heap_used_mb=756.2,
-  command_line=java -jar payment-service.jar --port=8080, jvm_uptime_minutes=47, incident_id=f3d4e5a6-b7c8-4d9e-a1b2-3c4d5e6f7a8b
+  C:AP | 2025.09.18 at 11:23:34 CDT | payment-processor-1 |  INFO | org.jvmxray.events.system.uncaughtexception |  | caller=com.example.PaymentProcessor:145, thread_name=payment-processor-1, thread_id=42, thread_group=main, exception_type=java.lang.NullPointerException, exception_location=com.example.PaymentProcessor:145, exception_method=processPayment, exception_message=Cannot process null payment, stack_depth=28, memory_pressure=HIGH, heap_used_mb=756.2, command_line=java -jar payment-service.jar --port=8080, jvm_uptime_minutes=47, incident_id=f3d4e5a6-b7c8-4d9e-a1b2-3c4d5e6f7a8b, AID=7KLZZAC0DM9RA1ISVXQY63NTK, CID=production
   ```
 - **API Sensor**: REST and web service call monitoring
 - **Configuration Sensor**: Application configuration access and modification tracking
@@ -190,7 +200,7 @@ Get up and running in **under 5 minutes** with SQLite demo data and Claude Deskt
 - **High Performance**: Bytecode injection with minimal overhead
 - **Scalable Design**: From single applications to enterprise-wide deployments
 
-## How It Works
+## How JMVXRay Works
 
 1. **Deploy Agent**: Add JVMXRay as Java agent: `java -javaagent:xray.jar -jar yourapp.jar` - That's it! Your application won't know it's monitored.
 2. **Sensor Installation**: Bytecode injection installs monitoring sensors automatically  
@@ -205,14 +215,17 @@ JVMXRay's MCP server enables AI clients like Claude Desktop to become instant se
 
 **See it in action:** [JVMXRay AI Integration Demo](https://www.youtube.com/watch?v=O-5oIXijMb8&t=101s) - A video is worth a thousand words!
 
-**📖 For complete query documentation, see [Enhanced MCP Queries Guide](docs/MCP_Enhanced_Queries.md)**
-
 ## Documentation
 
-- **[📖 Quick Start Guide](docs/0002-QUICK-START-GUIDE.md)** - Get up and running in under 5 minutes
-- **[🔑 Key Management](docs/KEY_MANAGEMENT.md)** - API key and master key management 
-- **[📋 Documentation Index](docs/0000-INDEX.md)** - Complete documentation catalog
-- **[🚀 Legacy Quick Start](docs/QUICK_START.md)** - Spring Boot focused setup guide
+### Component Documentation
+- **[🔧 JVMXRay Agent](docs/prj-agent.md)** - Java agent setup and sensor configuration
+- **[🌐 REST Service API](docs/prj-service-rest.md)** - REST API endpoints and authentication
+- **[🤖 MCP Client](docs/prj-mcp-client.md)** - Claude Desktop integration guide
+- **[📊 Common Components](docs/prj-common.md)** - Database setup and utilities
+- **[📝 Log Service](docs/prj-service-log.md)** - Event aggregation service
+
+### Quick Links
+- **[📰 News Archive](README-NEWS.md)** - Complete project history
 
 ## Project Contributors(s)
 Milton Smith - Project creator, leader

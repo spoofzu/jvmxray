@@ -23,7 +23,7 @@ import java.util.Map;
 public class APICallSensor extends AbstractSensor implements InjectableSensor {
 
     private static final String NAMESPACE = "org.jvmxray.agent.core.api.APICallSensor";
-    private static final String GUID = "D6D479C7-4BE9-4911-977F-D1F3AD00661C";
+    private static final String GUID = "3bIeP9s4mN5wV1z9Un7Ip3";
 
     public APICallSensor(String propertySuffix) {
         super(propertySuffix);

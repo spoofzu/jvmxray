@@ -1,14 +1,18 @@
-JVMXRay Notice & Credits
+JVMXRay Project Notice & Credits
 
-This product includes software developed by The Apache Software Foundation (https://www.apache.org/).
 
-This product includes software developed by QOS.ch Sarl Switzerland (https://www.qos.ch/).
+This project architecture/code developed in part using AI tools like,
+- Anthropic's Claude Code CLI (https://www.anthropic.com/claude-code)
+- OpenAI ChatGPT and Codex CLI (https://openai.com/)
+- Grok AI (https://x.com/)
 
-This project includes software developed by Rafael Winterhalter (https://bytebuddy.net/).
+This project byte-code architecture was developed in part based on ideas by Terse Systems (https://tersesystems.com/)
 
-This product architecture and code was developed in part using Grok AI (https://x.com/)
+This project byte-code injectection software developed by Rafael Winterhalter (https://bytebuddy.net/)
 
-This product architecture was developed in part based on ideas by Terse Systems (https://tersesystems.com/)
+This project includes 3rd party software by,
+- Logback logging by QOS.ch Sarl Switzerland (https://www.qos.ch/).
+- The Apache Software Foundation (https://www.apache.org/).
 
 Permission to modify and redistribute is granted under the terms as specified in
   JVMXRay project LICENSE file.

@@ -97,9 +97,16 @@ nb-configuration.xml
 .DS_Store
 
 ##############################
-## MISIC
+## AI/MISC
 ##############################
 .env
 memory/
 templates/
 CLAUDE.md
+.claude/
+
+##############################
+## JVMXRay
+##############################
+# Prevent logs from being created in source tree
+*/logs/

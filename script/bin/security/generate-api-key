@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+# Script to manage JVMXRay API keys via secure command-line interface
+# Security: This tool must be run locally on the server with database access.
+#
+# Usage:
+#   ./generate-api-key <app_name>              Generate new API key
+#   ./generate-api-key --help                  Show help
+#   ./generate-api-key --list                  List all API keys
+#   ./generate-api-key --revoke <key>          Revoke an API key
+#   ./generate-api-key --check <key>           Check API key status
+
+# Determine script directory and project root
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/../../.." && pwd )"
+
+# Change to project root directory before starting
+cd "$PROJECT_ROOT"
+
+# Build classpath for ApiKeyGenerator
+# Use target/classes for compiled classes and dependency classpath for libs
+CLASSPATH="prj-service-rest/target/classes:prj-common/target/classes"
+
+# Check if classes directories exist
+if [ ! -d "prj-service-rest/target/classes" ]; then
+    echo "Error: prj-service-rest classes not found. Please run 'mvn compile' first."
+    exit 1
+fi
+
+if [ ! -d "prj-common/target/classes" ]; then
+    echo "Error: prj-common classes not found. Please run 'mvn compile' first."
+    exit 1
+fi
+
+# Add Maven dependencies to classpath
+DEPS_CLASSPATH=$(mvn dependency:build-classpath -q -Dmdep.outputFile=/dev/stdout -f prj-service-rest/pom.xml 2>/dev/null)
+if [ $? -eq 0 ] && [ -n "$DEPS_CLASSPATH" ]; then
+    CLASSPATH="$CLASSPATH:$DEPS_CLASSPATH"
+fi
+
+# Execute the standalone API key generator
+exec java -cp "$CLASSPATH" org.jvmxray.service.rest.bin.ApiKeyGenerator "$@"

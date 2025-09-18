@@ -20,9 +20,11 @@ public final class SchemaConstants {
     
     // Table Names
     public static final String STAGE0_EVENT_TABLE = "STAGE0_EVENT";
-    public static final String STAGE0_EVENT_KEYPAIR_TABLE = "STAGE0_EVENT_KEYPAIR";
+    public static final String STAGE1_EVENT_TABLE = "STAGE1_EVENT";
+    public static final String STAGE1_EVENT_KEYPAIR_TABLE = "STAGE1_EVENT_KEYPAIR";
+    public static final String API_KEY_TABLE = "API_KEY";
     
-    // STAGE0_EVENT Column Names
+    // Common Column Names
     public static final String COL_EVENT_ID = "EVENT_ID";
     public static final String COL_CONFIG_FILE = "CONFIG_FILE";
     public static final String COL_TIMESTAMP = "TIMESTAMP";
@@ -32,11 +34,19 @@ public final class SchemaConstants {
     public static final String COL_AID = "AID";
     public static final String COL_CID = "CID";
     public static final String COL_IS_STABLE = "IS_STABLE";
+    public static final String COL_KEYPAIRS = "KEYPAIRS";
     
-    // STAGE0_EVENT_KEYPAIR Column Names
+    // STAGE1_EVENT_KEYPAIR Column Names
     public static final String COL_KEY = "KEY";
     public static final String COL_VALUE = "VALUE";
     
+    // API_KEY table column names
+    public static final String COL_API_KEY = "API_KEY";
+    public static final String COL_APP_NAME = "APP_NAME";
+    public static final String COL_IS_SUSPENDED = "IS_SUSPENDED";
+    public static final String COL_CREATED_AT = "CREATED_AT";
+    public static final String COL_LAST_USED = "LAST_USED";
+
     // Data Type Mappings
     public static final class DataTypes {
         // Common data types across databases
@@ -73,7 +83,7 @@ public final class SchemaConstants {
     // SQL Query Templates
     public static final class SQLTemplates {
         
-        // STAGE0_EVENT table creation templates
+        // STAGE0_EVENT table creation templates (raw events with KEYPAIRS column)
         public static final String CREATE_STAGE0_EVENT_MYSQL = 
             "CREATE TABLE IF NOT EXISTS " + STAGE0_EVENT_TABLE + " (" +
             COL_EVENT_ID + " " + DataTypes.MySQL.VARCHAR_255 + " PRIMARY KEY, " +
@@ -84,7 +94,7 @@ public final class SchemaConstants {
             COL_NAMESPACE + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
             COL_AID + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
             COL_CID + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
-            COL_IS_STABLE + " " + DataTypes.MySQL.BOOLEAN + " DEFAULT TRUE" +
+            COL_KEYPAIRS + " " + DataTypes.MySQL.TEXT +
             ")";
             
         public static final String CREATE_STAGE0_EVENT_SQLITE = 
@@ -97,7 +107,7 @@ public final class SchemaConstants {
             COL_NAMESPACE + " " + DataTypes.SQLite.TEXT + ", " +
             COL_AID + " " + DataTypes.SQLite.TEXT + ", " +
             COL_CID + " " + DataTypes.SQLite.TEXT + ", " +
-            COL_IS_STABLE + " " + DataTypes.SQLite.BOOLEAN + " DEFAULT 1" +
+            COL_KEYPAIRS + " " + DataTypes.SQLite.TEXT +
             ")";
             
         public static final String CREATE_STAGE0_EVENT_CASSANDRA = 
@@ -110,39 +120,110 @@ public final class SchemaConstants {
             COL_NAMESPACE + " " + DataTypes.Cassandra.TEXT + ", " +
             COL_AID + " " + DataTypes.Cassandra.TEXT + ", " +
             COL_CID + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_KEYPAIRS + " " + DataTypes.Cassandra.TEXT +
+            ")";
+        
+        // STAGE1_EVENT table creation templates (processed events with IS_STABLE)
+        public static final String CREATE_STAGE1_EVENT_MYSQL = 
+            "CREATE TABLE IF NOT EXISTS " + STAGE1_EVENT_TABLE + " (" +
+            COL_EVENT_ID + " " + DataTypes.MySQL.VARCHAR_255 + " PRIMARY KEY, " +
+            COL_CONFIG_FILE + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
+            COL_TIMESTAMP + " " + DataTypes.MySQL.BIGINT + ", " +
+            COL_THREAD_ID + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
+            COL_PRIORITY + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
+            COL_NAMESPACE + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
+            COL_AID + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
+            COL_CID + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
+            COL_IS_STABLE + " " + DataTypes.MySQL.BOOLEAN + " DEFAULT TRUE" +
+            ")";
+            
+        public static final String CREATE_STAGE1_EVENT_SQLITE = 
+            "CREATE TABLE IF NOT EXISTS " + STAGE1_EVENT_TABLE + " (" +
+            COL_EVENT_ID + " " + DataTypes.SQLite.TEXT + " PRIMARY KEY, " +
+            COL_CONFIG_FILE + " " + DataTypes.SQLite.TEXT + ", " +
+            COL_TIMESTAMP + " " + DataTypes.SQLite.INTEGER + ", " +
+            COL_THREAD_ID + " " + DataTypes.SQLite.TEXT + ", " +
+            COL_PRIORITY + " " + DataTypes.SQLite.TEXT + ", " +
+            COL_NAMESPACE + " " + DataTypes.SQLite.TEXT + ", " +
+            COL_AID + " " + DataTypes.SQLite.TEXT + ", " +
+            COL_CID + " " + DataTypes.SQLite.TEXT + ", " +
+            COL_IS_STABLE + " " + DataTypes.SQLite.BOOLEAN + " DEFAULT 1" +
+            ")";
+            
+        public static final String CREATE_STAGE1_EVENT_CASSANDRA = 
+            "CREATE TABLE IF NOT EXISTS %s." + STAGE1_EVENT_TABLE + " (" +
+            COL_EVENT_ID + " " + DataTypes.Cassandra.TEXT + " PRIMARY KEY, " +
+            COL_CONFIG_FILE + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_TIMESTAMP + " " + DataTypes.Cassandra.BIGINT + ", " +
+            COL_THREAD_ID + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_PRIORITY + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_NAMESPACE + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_AID + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_CID + " " + DataTypes.Cassandra.TEXT + ", " +
             COL_IS_STABLE + " " + DataTypes.Cassandra.BOOLEAN +
             ")";
         
-        // STAGE0_EVENT_KEYPAIR table creation templates
-        public static final String CREATE_STAGE0_EVENT_KEYPAIR_MYSQL = 
-            "CREATE TABLE IF NOT EXISTS " + STAGE0_EVENT_KEYPAIR_TABLE + " (" +
+        // STAGE1_EVENT_KEYPAIR table creation templates (normalized keypairs)
+        public static final String CREATE_STAGE1_EVENT_KEYPAIR_MYSQL = 
+            "CREATE TABLE IF NOT EXISTS " + STAGE1_EVENT_KEYPAIR_TABLE + " (" +
             COL_EVENT_ID + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
             COL_KEY + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
             COL_VALUE + " " + DataTypes.MySQL.TEXT + ", " +
             "PRIMARY KEY (" + COL_EVENT_ID + ", " + COL_KEY + ")" +
             ")";
             
-        public static final String CREATE_STAGE0_EVENT_KEYPAIR_SQLITE = 
-            "CREATE TABLE IF NOT EXISTS " + STAGE0_EVENT_KEYPAIR_TABLE + " (" +
+        public static final String CREATE_STAGE1_EVENT_KEYPAIR_SQLITE = 
+            "CREATE TABLE IF NOT EXISTS " + STAGE1_EVENT_KEYPAIR_TABLE + " (" +
             COL_EVENT_ID + " " + DataTypes.SQLite.TEXT + ", " +
             COL_KEY + " " + DataTypes.SQLite.TEXT + ", " +
             COL_VALUE + " " + DataTypes.SQLite.TEXT + ", " +
             "PRIMARY KEY (" + COL_EVENT_ID + ", " + COL_KEY + ")" +
             ")";
             
-        public static final String CREATE_STAGE0_EVENT_KEYPAIR_CASSANDRA = 
-            "CREATE TABLE IF NOT EXISTS %s." + STAGE0_EVENT_KEYPAIR_TABLE + " (" +
+        public static final String CREATE_STAGE1_EVENT_KEYPAIR_CASSANDRA = 
+            "CREATE TABLE IF NOT EXISTS %s." + STAGE1_EVENT_KEYPAIR_TABLE + " (" +
             COL_EVENT_ID + " " + DataTypes.Cassandra.TEXT + ", " +
             COL_KEY + " " + DataTypes.Cassandra.TEXT + ", " +
             COL_VALUE + " " + DataTypes.Cassandra.TEXT + ", " +
             "PRIMARY KEY (" + COL_EVENT_ID + ", " + COL_KEY + ")" +
             ")";
+        // API_KEY table creation templates
+        public static final String CREATE_API_KEY_MYSQL = 
+            "CREATE TABLE IF NOT EXISTS " + API_KEY_TABLE + " (" +
+            COL_API_KEY + " " + DataTypes.MySQL.VARCHAR_255 + " PRIMARY KEY, " +
+            COL_APP_NAME + " " + DataTypes.MySQL.VARCHAR_255 + " NOT NULL, " +
+            COL_IS_SUSPENDED + " " + DataTypes.MySQL.BOOLEAN + " DEFAULT FALSE, " +
+            COL_CREATED_AT + " " + DataTypes.MySQL.BIGINT + ", " +
+            COL_LAST_USED + " " + DataTypes.MySQL.BIGINT +
+            ")";
+            
+        public static final String CREATE_API_KEY_SQLITE = 
+            "CREATE TABLE IF NOT EXISTS " + API_KEY_TABLE + " (" +
+            COL_API_KEY + " " + DataTypes.SQLite.TEXT + " PRIMARY KEY, " +
+            COL_APP_NAME + " " + DataTypes.SQLite.TEXT + " NOT NULL, " +
+            COL_IS_SUSPENDED + " " + DataTypes.SQLite.BOOLEAN + " DEFAULT 0, " +
+            COL_CREATED_AT + " " + DataTypes.SQLite.INTEGER + ", " +
+            COL_LAST_USED + " " + DataTypes.SQLite.INTEGER +
+            ")";
+            
+        public static final String CREATE_API_KEY_CASSANDRA = 
+            "CREATE TABLE IF NOT EXISTS %s." + API_KEY_TABLE + " (" +
+            COL_API_KEY + " " + DataTypes.Cassandra.TEXT + " PRIMARY KEY, " +
+            COL_APP_NAME + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_IS_SUSPENDED + " " + DataTypes.Cassandra.BOOLEAN + ", " +
+            COL_CREATED_AT + " " + DataTypes.Cassandra.BIGINT + ", " +
+            COL_LAST_USED + " " + DataTypes.Cassandra.BIGINT +
+            ")";
             
         // Drop table statements
         public static final String DROP_STAGE0_EVENT = "DROP TABLE IF EXISTS " + STAGE0_EVENT_TABLE;
-        public static final String DROP_STAGE0_EVENT_KEYPAIR = "DROP TABLE IF EXISTS " + STAGE0_EVENT_KEYPAIR_TABLE;
+        public static final String DROP_STAGE1_EVENT = "DROP TABLE IF EXISTS " + STAGE1_EVENT_TABLE;
+        public static final String DROP_STAGE1_EVENT_KEYPAIR = "DROP TABLE IF EXISTS " + STAGE1_EVENT_KEYPAIR_TABLE;
         public static final String DROP_STAGE0_EVENT_CASSANDRA = "DROP TABLE IF EXISTS %s." + STAGE0_EVENT_TABLE;
-        public static final String DROP_STAGE0_EVENT_KEYPAIR_CASSANDRA = "DROP TABLE IF EXISTS %s." + STAGE0_EVENT_KEYPAIR_TABLE;
+        public static final String DROP_STAGE1_EVENT_CASSANDRA = "DROP TABLE IF EXISTS %s." + STAGE1_EVENT_TABLE;
+        public static final String DROP_STAGE1_EVENT_KEYPAIR_CASSANDRA = "DROP TABLE IF EXISTS %s." + STAGE1_EVENT_KEYPAIR_TABLE;
+        public static final String DROP_API_KEY = "DROP TABLE IF EXISTS " + API_KEY_TABLE;
+        public static final String DROP_API_KEY_CASSANDRA = "DROP TABLE IF EXISTS %s." + API_KEY_TABLE;
         
         // Table existence check queries
         public static final String CHECK_TABLE_EXISTS_MYSQL = 

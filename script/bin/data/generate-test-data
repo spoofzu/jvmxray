@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+# JVMXRay Test Data Generator - Minimal Wrapper Script
+# All business logic resides in org.jvmxray.platform.shared.bin.TestDataGenerator
+# Script responsibilities: classpath construction, JVM configuration, execution only
+
+# Determine project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+
+# Build minimal classpath for TestDataGenerator
+MAVEN_REPO="$HOME/.m2/repository"
+CLASSPATH="$PROJECT_ROOT/prj-common/target/prj-common-0.0.1.jar"
+CLASSPATH="$CLASSPATH:$PROJECT_ROOT/prj-common/target/test-classes"
+
+# Add essential dependencies
+CLASSPATH="$CLASSPATH:$MAVEN_REPO/ch/qos/logback/logback-classic/1.5.6/logback-classic-1.5.6.jar"
+CLASSPATH="$CLASSPATH:$MAVEN_REPO/ch/qos/logback/logback-core/1.5.6/logback-core-1.5.6.jar"
+CLASSPATH="$CLASSPATH:$MAVEN_REPO/org/slf4j/slf4j-api/2.0.13/slf4j-api-2.0.13.jar"
+CLASSPATH="$CLASSPATH:$MAVEN_REPO/commons-cli/commons-cli/1.5.0/commons-cli-1.5.0.jar"
+CLASSPATH="$CLASSPATH:$MAVEN_REPO/org/xerial/sqlite-jdbc/3.42.0.0/sqlite-jdbc-3.42.0.0.jar"
+CLASSPATH="$CLASSPATH:$MAVEN_REPO/com/zaxxer/HikariCP/5.0.1/HikariCP-5.0.1.jar"
+CLASSPATH="$CLASSPATH:$MAVEN_REPO/junit/junit/4.13.1/junit-4.13.1.jar"
+CLASSPATH="$CLASSPATH:$MAVEN_REPO/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar"
+
+# JVM configuration
+JVM_OPTS="-Xmx512m -XX:MaxMetaspaceSize=128m -Dlogback.common.configurationFile=$PROJECT_ROOT/script/config/logback/common.xml -Dlogback.agent.configurationFile=$PROJECT_ROOT/script/config/logback/agent-db.xml -Djvmxray.test.home=$PROJECT_ROOT/.jvmxray"
+
+# Execute Java application with all arguments passed through
+exec java $JVM_OPTS -cp "$CLASSPATH" org.jvmxray.platform.shared.bin.TestDataGenerator "$@"

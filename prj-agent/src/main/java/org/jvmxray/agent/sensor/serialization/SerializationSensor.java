@@ -30,7 +30,7 @@ import java.util.Map;
 public class SerializationSensor extends AbstractSensor implements InjectableSensor {
 
     private static final String NAMESPACE = "org.jvmxray.agent.core.serialization.SerializationSensor";
-    private static final String SENSOR_GUID = "CDFF9E26-2447-4BCB-AB03-3EABBD1CBBED";
+    private static final String SENSOR_GUID = "4tAwH1rWeF6oN2r1Mf8Ah4";
 
     public SerializationSensor(String propertySuffix) {
         super(propertySuffix);

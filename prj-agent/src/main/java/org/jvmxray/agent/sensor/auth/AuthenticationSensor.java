@@ -24,7 +24,7 @@ import java.util.Map;
 public class AuthenticationSensor extends AbstractSensor implements InjectableSensor {
 
     private static final String NAMESPACE = "org.jvmxray.agent.core.auth.AuthenticationSensor";
-    private static final String SENSOR_GUID = "1250A4D8-7981-4A69-97BC-8F86FE5D38A8";
+    private static final String SENSOR_GUID = "2sZvG9rVeD5nM1q9Ld7Zg3";
 
     public AuthenticationSensor(String propertySuffix) {
         super(propertySuffix);

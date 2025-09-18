@@ -23,7 +23,7 @@ import java.util.Map;
 public class CryptoSensor extends AbstractSensor implements InjectableSensor {
 
     private static final String NAMESPACE = "org.jvmxray.agent.core.crypto.CryptoSensor";
-    private static final String SENSOR_GUID = "CE21AA19-81BF-4B65-A4FD-AA724A9C790C";
+    private static final String SENSOR_GUID = "2n5kJHX8m9Wc3pYvE6rTaB";
 
     public CryptoSensor(String propertySuffix) {
         super(propertySuffix);

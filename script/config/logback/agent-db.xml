@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration debug="true" scan="false">
+
+    <!-- System properties for flexible configuration -->
+    <property name="DB_PATH" value="${jvmxray.test.home}/common/data/jvmxray-test.db" />
+    <property name="LOG_HOME" value="${jvmxray.test.home}/../script/generate-events-agent.log" />
+    
+    <!-- Agent message format - matches production agent format -->
+    <property name="MSG_FMT_LG" value="C:AP | %d{YYYY.MM.dd 'at' HH:mm:ss z} | %thread | %5level | %logger | %X | %msg%n" />
+
+    <!-- Console appender for immediate feedback (optional) -->
+    <appender name="CONSOLE" class="agent.shadow.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+        <filter class="agent.shadow.logback.classic.filter.ThresholdFilter">
+            <level>WARN</level>
+        </filter>
+    </appender>
+
+    <!-- Shaded SQLite appender for persisting agent events to test database -->
+    <appender name="DATABASE" class="org.jvmxray.agent.log.appender.ShadedSQLiteAppender">
+        <databasePath>${DB_PATH}</databasePath>
+        <batchSize>50</batchSize>
+        <flushIntervalMs>2000</flushIntervalMs>
+        <queueSize>5000</queueSize>
+    </appender>
+
+    <!-- Optional file appender for debugging (can be removed in production) -->
+    <appender name="DEBUG_FILE" class="agent.shadow.logback.core.FileAppender">
+        <file>${LOG_HOME}</file>
+        <immediateFlush>true</immediateFlush>
+        <append>false</append>
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+        <filter class="agent.shadow.logback.classic.filter.ThresholdFilter">
+            <level>DEBUG</level>
+        </filter>
+    </appender>
+
+    <!-- 
+    Agent-specific sensor loggers - route all agent sensor events to database
+    These correspond to the sensor namespaces in the JVMXRay agent
+    -->
+    
+    <!-- All agent sensor events -->
+    <logger name="org.jvmxray.agent.sensor" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="DEBUG_FILE" />
+        <appender-ref ref="DATABASE" />
+    </logger>
+    
+    <!-- All JVMXRay event messages from sensors -->
+    <logger name="org.jvmxray.events" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="DEBUG_FILE" />
+        <appender-ref ref="DATABASE" />
+    </logger>
+
+    <!-- 
+    Root logger configuration for agent context.  Captures messages from the
+     agent platform.
+    -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="DEBUG_FILE" />
+    </root>
+
+</configuration>

@@ -222,57 +222,84 @@
         </encoder>
     </appender>
 
+    <!-- LOGSERVER socket appender for sending events to LogService -->
+    <!-- UNCOMMENT the following section to enable remote logging to LogService -->
+    <!--
+    <appender name="LOGSERVER" class="ch.qos.logback.classic.net.SocketAppender">
+        <remoteHost>localhost</remoteHost>
+        <port>9876</port>
+        <reconnectionDelay>10000</reconnectionDelay>
+        <includeCallerData>false</includeCallerData>
+    </appender>
+    -->
+
     <logger name="org.jvmxray.events.io" level="DEBUG" additivity="false">
         <appender-ref ref="IOEVENTS" />
+        <!-- <appender-ref ref="LOGSERVER" /> -->
     </logger>
     <logger name="org.jvmxray.events.http" level="DEBUG" additivity="false">
         <appender-ref ref="HTTPEVENTS" />
+        <!-- <appender-ref ref="LOGSERVER" /> -->
     </logger>
     <logger name="org.jvmxray.events.monitor" level="DEBUG" additivity="false">
         <appender-ref ref="MONITOREVENTS" />
+        <!-- <appender-ref ref="LOGSERVER" /> -->
     </logger>
     <logger name="org.jvmxray.events.sql" level="DEBUG" additivity="false">
         <appender-ref ref="SQLEVENTS" />
+        <!-- <appender-ref ref="LOGSERVER" /> -->
     </logger>
     <logger name="org.jvmxray.events.system" level="DEBUG" additivity="false">
         <appender-ref ref="SYSTEMEVENTS" />
+        <!-- <appender-ref ref="LOGSERVER" /> -->
     </logger>
     <logger name="org.jvmxray.events.net" level="DEBUG" additivity="false">
         <appender-ref ref="NETEVENTS" />
+        <!-- <appender-ref ref="LOGSERVER" /> -->
     </logger>
     <logger name="org.jvmxray.events.system.uncaughtexception" level="DEBUG" additivity="false">
         <appender-ref ref="EXCEPTIONEVENTS" />
+        <!-- <appender-ref ref="LOGSERVER" /> -->
     </logger>
     <logger name="org.jvmxray.events.crypto" level="DEBUG" additivity="false">
         <appender-ref ref="CRYPTOEVENTS" />
+        <!-- <appender-ref ref="LOGSERVER" /> -->
     </logger>
     <logger name="org.jvmxray.events.config" level="DEBUG" additivity="false">
         <appender-ref ref="CONFIGEVENTS" />
+        <!-- <appender-ref ref="LOGSERVER" /> -->
     </logger>
     <!-- Memory events logger removed - MemorySensor disabled -->
     <logger name="org.jvmxray.events.auth" level="DEBUG" additivity="false">
         <appender-ref ref="AUTHEVENTS" />
+        <!-- <appender-ref ref="LOGSERVER" /> -->
     </logger>
     <logger name="org.jvmxray.events.serialization" level="DEBUG" additivity="false">
         <appender-ref ref="SERIALIZATIONEVENTS" />
+        <!-- <appender-ref ref="LOGSERVER" /> -->
     </logger>
     <logger name="org.jvmxray.events.script" level="DEBUG" additivity="false">
         <appender-ref ref="SCRIPTEVENTS" />
+        <!-- <appender-ref ref="LOGSERVER" /> -->
     </logger>
     <logger name="org.jvmxray.events.api" level="DEBUG" additivity="false">
         <appender-ref ref="APIEVENTS" />
+        <!-- <appender-ref ref="LOGSERVER" /> -->
     </logger>
     <logger name="org.jvmxray.events.data" level="DEBUG" additivity="false">
         <appender-ref ref="DATAEVENTS" />
+        <!-- <appender-ref ref="LOGSERVER" /> -->
     </logger>
     <!-- Thread events logger removed - ThreadSensor disabled -->
     <logger name="org.jvmxray.events.reflection" level="OFF" additivity="false">
         <appender-ref ref="REFLECTIONEVENTS" />
+        <!-- <appender-ref ref="LOGSERVER" /> -->
     </logger>
 
     <!-- Catch org.jvmxray* to see if we snag other xray projects. -->
     <logger name="org.jvmxray" level="DEBUG" additivity="false">
         <appender-ref ref="PLATFORM" />
+        <!-- <appender-ref ref="LOGSERVER" /> -->
     </logger>
 
     <root level="ERROR">

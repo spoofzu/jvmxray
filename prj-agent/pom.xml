@@ -63,6 +63,31 @@
 
     <build>
         <plugins>
+            <!-- Create test .jvmxray/agent structure and seed config during build -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>prepare-agent-test-home</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <mkdir dir="${project.basedir}/../.jvmxray/agent/config"/>
+                                <mkdir dir="${project.basedir}/../.jvmxray/agent/logs"/>
+                                <copy file="${project.basedir}/src/main/resources/agent-logback-production.xml2"
+                                      tofile="${project.basedir}/../.jvmxray/agent/config/logback.xml"
+                                      overwrite="false"/>
+                                <echo message="Seeded .jvmxray/agent with config/logs"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <!-- Compiler plugin -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>

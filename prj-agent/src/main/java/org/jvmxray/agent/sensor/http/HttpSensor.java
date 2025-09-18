@@ -24,7 +24,7 @@ public class HttpSensor extends AbstractSensor implements InjectableSensor {
     private static final String NAMESPACE = "org.jvmxray.agent.core.io.HttpSensor";
 
     // Static sensor identity.
-    private static final String SENSOR_GUID = "E8D8E24C-E278-4752-AAEF-704F600FD46F"; // Generated via uuidgen
+    private static final String SENSOR_GUID = "7pYvE6rTaB3kH8mK4p7Lc5"; // Generated via uuidgen
 
     public HttpSensor(String propertySuffix) {
         super(propertySuffix);

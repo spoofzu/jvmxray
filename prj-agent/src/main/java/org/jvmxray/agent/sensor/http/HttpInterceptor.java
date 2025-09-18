@@ -3,6 +3,7 @@ package org.jvmxray.agent.sensor.http;
 import net.bytebuddy.asm.Advice;
 import org.jvmxray.agent.proxy.LogProxy;
 import org.jvmxray.agent.util.sensor.RequestContextHolder;
+import org.jvmxray.platform.shared.util.GUID;
 
 import java.lang.reflect.Method;
 import java.util.*;
@@ -34,7 +35,7 @@ public class HttpInterceptor {
             // todo Consider ramifications and protections to support sensitive cookie values.
 
             // Generate a unique request ID
-            String requestId = UUID.randomUUID().toString().substring(0, 8); // Shortened for brevity
+            String requestId = GUID.generateShort(); // Short format for readability
             RequestContextHolder.clearContext();
             Map<String, String> metadata = RequestContextHolder.getContext();
             metadata.put("request_id", requestId);

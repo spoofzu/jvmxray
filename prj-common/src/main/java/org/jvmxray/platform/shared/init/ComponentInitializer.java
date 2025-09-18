@@ -37,6 +37,14 @@ import java.util.Properties;
 public abstract class ComponentInitializer {
 
     /**
+     * Static initialization block to ensure system properties are set early
+     * before any logger initialization occurs.
+     */
+    static {
+        ensureEarlySystemPropertiesInitialization();
+    }
+
+    /**
      * JVMXRay home directory (parent directory for all components).
      */
     protected Path jvmxrayHome = null;
@@ -150,9 +158,12 @@ public abstract class ComponentInitializer {
             // Production mode: add jvmxray subdirectory
             jvmxrayHome = Path.of(prodHome, "jvmxray");
         } else {
-            // Auto-detect: use current project/.jvmxray
-            String currentDir = System.getProperty("user.dir");
-            jvmxrayHome = Path.of(currentDir, ".jvmxray");
+            // Auto-detect: prefer Maven project.basedir when available, otherwise find project root
+            String baseDir = System.getProperty("project.basedir");
+            if (baseDir == null || baseDir.trim().isEmpty()) {
+                baseDir = findProjectRoot(System.getProperty("user.dir"));
+            }
+            jvmxrayHome = Path.of(baseDir, ".jvmxray");
         }
 
         // Create component directory structure
@@ -215,31 +226,50 @@ public abstract class ComponentInitializer {
         }
     }
 
-    /**
-     * Initializes logging configuration for the component.
-     * Sets the logback configuration file system property for standard SLF4J integration.
-     * 
-     * @throws Exception if logging initialization fails
-     */
     protected void initializeLogging() throws Exception {
-        String componentName = getComponentName();
-        
-        // Skip agent - it's a special case that uses LogProxy instead of Logback
-        if ("agent".equals(componentName)) {
+    String componentName = getComponentName();
+
+    // Skip agent - it's a special case that uses LogProxy instead of Logback
+    if ("agent".equals(componentName)) {
+        return;
+    }
+
+    // Check if logback.{component}.configurationFile is already set (e.g., via system property)
+    String existingLogbackConfig = System.getProperty("logback." + componentName + ".configurationFile");
+    if (existingLogbackConfig != null && !existingLogbackConfig.trim().isEmpty()) {
+        // Use existing configuration - don't override it
+        File existingConfig = new File(existingLogbackConfig);
+        if (existingConfig.exists()) {
+            // Explicitly configure Logback with the existing configuration
+            LoggerContext context = (LoggerContext) org.slf4j.LoggerFactory.getILoggerFactory();
+            context.reset();
+            JoranConfigurator configurator = new JoranConfigurator();
+            configurator.setContext(context);
+            configurator.doConfigure(existingConfig);
             return;
         }
-        
-        // Set logback configuration file path for standard SLF4J integration
-        String componentConfigPath = System.getProperty("jvmxray." + componentName + ".config");
-        if (componentConfigPath == null) {
-            componentConfigPath = new File(componentProject, "config").getAbsolutePath();
-        }
-        
-        File logbackConfig = new File(componentConfigPath, "logback.xml");
-        if (logbackConfig.exists()) {
-            System.setProperty("logback.configurationFile", logbackConfig.getAbsolutePath());
-        }
+        // If the file doesn't exist, fall through to default behavior
     }
+
+    // Set logback configuration file path for standard SLF4J integration
+    String componentConfigPath = System.getProperty("jvmxray." + componentName + ".config");
+    if (componentConfigPath == null) {
+        componentConfigPath = new File(componentProject, "config").getAbsolutePath();
+    }
+
+    File logbackConfig = new File(componentConfigPath, "logback.xml");
+    if (logbackConfig.exists()) {
+        // Set the component-specific property for this component to use
+        System.setProperty("logback." + componentName + ".configurationFile", logbackConfig.getAbsolutePath());
+
+        // Explicitly configure Logback to ensure properties are set
+        LoggerContext context = (LoggerContext) org.slf4j.LoggerFactory.getILoggerFactory();
+        context.reset();
+        JoranConfigurator configurator = new JoranConfigurator();
+        configurator.setContext(context);
+        configurator.doConfigure(logbackConfig);
+    }
+}
 
     /**
      * Copies a resource from the classpath to a target file.
@@ -315,5 +345,77 @@ public abstract class ComponentInitializer {
      */
     public boolean isInitialized() {
         return isInitialized;
+    }
+
+    /**
+     * Finds the project root by walking up the directory tree looking for Maven markers.
+     *
+     * @param startDir Starting directory to search from
+     * @return Project root directory path
+     */
+    private String findProjectRoot(String startDir) {
+        Path currentPath = Path.of(startDir).toAbsolutePath();
+
+        // Walk up the directory tree looking for project markers
+        while (currentPath != null) {
+            // Check for Maven project markers
+            if (Files.exists(currentPath.resolve("pom.xml")) ||
+                Files.exists(currentPath.resolve(".git")) ||
+                Files.exists(currentPath.resolve(".jvmxray"))) {
+                return currentPath.toString();
+            }
+
+            // Move up one directory
+            currentPath = currentPath.getParent();
+        }
+
+        // If no project root found, fall back to the starting directory
+        return startDir;
+    }
+
+    /**
+     * Ensures early system property initialization to prevent logback from creating
+     * directories with "_IS_UNDEFINED" suffixes when properties aren't resolved.
+     * This method is called from the static initialization block.
+     */
+    private static void ensureEarlySystemPropertiesInitialization() {
+        // Skip if running in production mode or if properties are already set
+        if (System.getProperty("jvmxray.home") != null) {
+            return;
+        }
+
+        // Determine base directory for early initialization
+        String testHome = System.getProperty("jvmxray.test.home");
+        String baseDir;
+        
+        if (testHome != null) {
+            baseDir = testHome;
+        } else {
+            // Use project.basedir when available, otherwise user.dir
+            String projectBaseDir = System.getProperty("project.basedir");
+            if (projectBaseDir == null || projectBaseDir.trim().isEmpty()) {
+                projectBaseDir = System.getProperty("user.dir");
+            }
+            baseDir = projectBaseDir + "/.jvmxray";
+        }
+
+        // Set common component properties early if not already set
+        if (System.getProperty("jvmxray.common.logs") == null) {
+            System.setProperty("jvmxray.common.logs", baseDir + "/common/logs");
+        }
+        if (System.getProperty("jvmxray.common.config") == null) {
+            System.setProperty("jvmxray.common.config", baseDir + "/common/config");
+        }
+        if (System.getProperty("jvmxray.common.data") == null) {
+            System.setProperty("jvmxray.common.data", baseDir + "/common/data");
+        }
+
+        // Set logservice properties early if not already set  
+        if (System.getProperty("jvmxray.logservice.logs") == null) {
+            System.setProperty("jvmxray.logservice.logs", baseDir + "/logservice/logs");
+        }
+        if (System.getProperty("jvmxray.logservice.config") == null) {
+            System.setProperty("jvmxray.logservice.config", baseDir + "/logservice/config");
+        }
     }
 }

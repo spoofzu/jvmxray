@@ -21,7 +21,7 @@ public class FileIOSensor extends AbstractSensor implements InjectableSensor {
     private static final String NAMESPACE = "org.jvmxray.agent.core.io.FileIOSensor";
 
     // Static sensor identity.
-    private static final String SENSOR_GUID = "76C8F32B-300C-41DF-A17A-44204ED928E7"; // Generated via uuidgen
+    private static final String SENSOR_GUID = "5uBxI2rXfG7pO3s2Ng9Bi5"; // Generated via uuidgen
 
     public FileIOSensor(String propertySuffix) {
         super(propertySuffix);

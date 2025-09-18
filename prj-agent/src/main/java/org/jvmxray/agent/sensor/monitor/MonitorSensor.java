@@ -32,7 +32,7 @@ public class MonitorSensor extends AbstractSensor implements Sensor {
     private Thread monitoringThread;
 
     // Static sensor identity.
-    private static final String SENSOR_GUID = "992CFB92-A3AB-41A7-9B8D-5496E2019885"; // Generated via uuidgen
+    private static final String SENSOR_GUID = "3kH8mK4p7Lc5xWe9gHvR2n";
 
     public MonitorSensor(String propertySuffix) {
         super(propertySuffix);

@@ -7,7 +7,6 @@ import com.zaxxer.hikari.HikariDataSource;
 import org.jvmxray.platform.shared.schema.EventParser;
 import org.jvmxray.platform.shared.schema.EventParser.ParsedEvent;
 import org.jvmxray.platform.shared.schema.SchemaConstants;
-import org.jvmxray.platform.shared.schema.SQLiteSchema;
 
 import java.io.File;
 import java.sql.Connection;
@@ -50,7 +49,7 @@ public class SQLiteAppender extends AppenderBase<ILoggingEvent> {
     private Thread writerThread;
     private AtomicBoolean shutdown = new AtomicBoolean(false);
     
-    // SQL statements
+    // SQL statements - STAGE0_EVENT now includes KEYPAIRS column
     private static final String INSERT_EVENT_SQL = 
         "INSERT OR IGNORE INTO " + SchemaConstants.STAGE0_EVENT_TABLE + " (" +
         SchemaConstants.COL_EVENT_ID + ", " +
@@ -61,13 +60,7 @@ public class SQLiteAppender extends AppenderBase<ILoggingEvent> {
         SchemaConstants.COL_NAMESPACE + ", " +
         SchemaConstants.COL_AID + ", " +
         SchemaConstants.COL_CID + ", " +
-        SchemaConstants.COL_IS_STABLE + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
-    
-    private static final String INSERT_KEYPAIR_SQL = 
-        "INSERT OR IGNORE INTO " + SchemaConstants.STAGE0_EVENT_KEYPAIR_TABLE + " (" +
-        SchemaConstants.COL_EVENT_ID + ", " +
-        SchemaConstants.COL_KEY + ", " +
-        SchemaConstants.COL_VALUE + ") VALUES (?, ?, ?)";
+        SchemaConstants.COL_KEYPAIRS + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
     
     @Override
     public void start() {
@@ -150,16 +143,13 @@ public class SQLiteAppender extends AppenderBase<ILoggingEvent> {
             return;
         }
         
-        // Also filter by message content to avoid processing non-JVMXRay messages
+        // Filter out obvious non-event noise (keep this conservative to avoid dropping real events)
         String message = event.getMessage();
         if (message != null && (
             message.contains("VALUES (") ||
-            message.contains("INSERT") ||
             message.contains("CREATE TABLE") ||
-            message.contains("Sharing is only supported") ||
-            message.startsWith("CONFIG_FILE") ||
-            message.startsWith("TIMESTAMP"))) {
-            logger.fine("Filtering non-JVMXRay message: " + message);
+            message.contains("Sharing is only supported"))) {
+            logger.fine("Filtering infrastructure message: " + message);
             return;
         }
         
@@ -262,6 +252,12 @@ public class SQLiteAppender extends AppenderBase<ILoggingEvent> {
      * Initialize database connection pool and create schema if needed.
      */
     private void initializeDatabase() throws SQLException {
+        // Ensure SQLite driver is registered even in shaded/isolated environments
+        try {
+            Class.forName("org.sqlite.JDBC");
+        } catch (ClassNotFoundException e) {
+            throw new SQLException("SQLite JDBC driver not found", e);
+        }
         // Configure HikariCP
         HikariConfig config = new HikariConfig();
         config.setJdbcUrl("jdbc:sqlite:" + databasePath);
@@ -276,15 +272,6 @@ public class SQLiteAppender extends AppenderBase<ILoggingEvent> {
         config.addDataSourceProperty("cache_size", "-2000"); // 2MB cache
         
         dataSource = new HikariDataSource(config);
-        
-        // Create schema if it doesn't exist
-        try (Connection conn = dataSource.getConnection()) {
-            SQLiteSchema schema = new SQLiteSchema("jdbc:sqlite:" + databasePath, null);
-            if (!schema.validateSchema()) {
-                logger.info("Creating SQLite schema at: " + databasePath);
-                schema.createSchema();
-            }
-        }
     }
     
     /**
@@ -337,20 +324,21 @@ public class SQLiteAppender extends AppenderBase<ILoggingEvent> {
         
         Connection conn = null;
         PreparedStatement eventStmt = null;
-        PreparedStatement keypairStmt = null;
         
         try {
             conn = dataSource.getConnection();
             conn.setAutoCommit(false);
             
             eventStmt = conn.prepareStatement(INSERT_EVENT_SQL);
-            keypairStmt = conn.prepareStatement(INSERT_KEYPAIR_SQL);
             
             for (int i = 0; i < count; i++) {
                 ParsedEvent event = batch[i];
                 if (event == null) continue;
                 
-                // Insert main event
+                // Serialize keypairs to string for KEYPAIRS column
+                String serializedKeypairs = EventParser.serializeKeyPairs(event.getKeyPairs());
+                
+                // Insert event with serialized keypairs
                 eventStmt.setString(1, event.getEventId());
                 eventStmt.setString(2, event.getConfigFile());
                 eventStmt.setLong(3, event.getTimestamp());
@@ -359,26 +347,15 @@ public class SQLiteAppender extends AppenderBase<ILoggingEvent> {
                 eventStmt.setString(6, event.getNamespace());
                 eventStmt.setString(7, event.getAid());
                 eventStmt.setString(8, event.getCid());
-                eventStmt.setBoolean(9, true); // IS_STABLE
+                eventStmt.setString(9, serializedKeypairs);
                 eventStmt.addBatch();
-                
-                // Insert keypairs
-                if (event.getKeyPairs() != null) {
-                    for (Map.Entry<String, String> entry : event.getKeyPairs().entrySet()) {
-                        keypairStmt.setString(1, event.getEventId());
-                        keypairStmt.setString(2, entry.getKey());
-                        keypairStmt.setString(3, entry.getValue());
-                        keypairStmt.addBatch();
-                    }
-                }
                 
                 // Clear batch array entry
                 batch[i] = null;
             }
             
-            // Execute batches
+            // Execute batch
             eventStmt.executeBatch();
-            keypairStmt.executeBatch();
             conn.commit();
             
             logger.log(Level.FINE, "Successfully wrote " + count + " events to database");
@@ -393,7 +370,6 @@ public class SQLiteAppender extends AppenderBase<ILoggingEvent> {
                 }
             }
         } finally {
-            closeQuietly(keypairStmt);
             closeQuietly(eventStmt);
             closeQuietly(conn);
         }

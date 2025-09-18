@@ -465,7 +465,6 @@ public abstract class PropertyBase {
 
         // Create file if it doesn't exist
         if (!propertyFile.exists()) {
-            logInfo("Properties file does not exist: {}. Creating new empty file.", propertyFile.getAbsolutePath());
             // Ensure parent directory exists
             File parentDir = propertyFile.getParentFile();
             if (parentDir != null && !parentDir.exists()) {
@@ -478,9 +477,7 @@ public abstract class PropertyBase {
                 throw new IOException("Parent directory is not writable: " + parentDir.getAbsolutePath());
             }
             // Create empty file
-            if (!propertyFile.createNewFile()) {
-                logWarn("Properties file already created by another process: {}", propertyFile.getAbsolutePath());
-            }
+            propertyFile.createNewFile();
             return; // Proceed with empty properties
         }
 
@@ -488,7 +485,6 @@ public abstract class PropertyBase {
         if (propertyFile.isFile() && propertyFile.canRead()) {
             // Validate file size
             if (propertyFile.length() == 0) {
-                logInfo("Properties file is empty: {}. Proceeding with empty properties.", propertyFile.getAbsolutePath());
                 return; // Empty file is valid
             }
             if (propertyFile.length() > MAX_FILE_SIZE) {
@@ -539,7 +535,7 @@ public abstract class PropertyBase {
                                     currentKey = key;
                                     if (line.endsWith("\\")) {
                                         // Start of multi-line value
-                                        multiLineValue.append(line.substring(delimiterIndex + 1), 0, line.length() - 1);
+                                        multiLineValue.append(line, delimiterIndex + 1, line.length() - 1);
                                         isMultiLine = true;
                                     } else {
                                         // Single-line property
@@ -704,8 +700,15 @@ public abstract class PropertyBase {
     private void writeMultilineProperty(BufferedWriter writer, String key, String value, int maxLineLength) throws IOException {
         // Combine key and value
         String fullProperty = key + "=" + value;
-        // Write single line if within length limit
-        if (fullProperty.length() <= maxLineLength) {
+
+        // Don't split JDBC URLs or other critical connection strings to prevent malformed paths
+        boolean shouldNotSplit = key.toLowerCase().contains("jdbc") ||
+                                key.toLowerCase().contains("connection") ||
+                                key.toLowerCase().contains("url") ||
+                                (value != null && value.toLowerCase().startsWith("jdbc:"));
+
+        // Write single line if within length limit or should not be split
+        if (shouldNotSplit || fullProperty.length() <= maxLineLength) {
             writer.write(fullProperty);
         } else {
             // Write key and start multi-line value

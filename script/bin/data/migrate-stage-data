@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+
+# JVMXRay STAGE0 to STAGE1 Data Migration Tool - Minimal Wrapper Script
+# All business logic resides in org.jvmxray.platform.shared.bin.CpStage0ToStage1
+# Script responsibilities: classpath construction, JVM configuration, execution only
+
+# Determine project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+
+# Build minimal classpath for CpStage0ToStage1
+MAVEN_REPO="$HOME/.m2/repository"
+CLASSPATH="$PROJECT_ROOT/prj-common/target/prj-common-0.0.1.jar"
+
+# Add essential dependencies
+CLASSPATH="$CLASSPATH:$MAVEN_REPO/ch/qos/logback/logback-classic/1.5.6/logback-classic-1.5.6.jar"
+CLASSPATH="$CLASSPATH:$MAVEN_REPO/ch/qos/logback/logback-core/1.5.6/logback-core-1.5.6.jar"
+CLASSPATH="$CLASSPATH:$MAVEN_REPO/org/slf4j/slf4j-api/2.0.13/slf4j-api-2.0.13.jar"
+CLASSPATH="$CLASSPATH:$MAVEN_REPO/commons-cli/commons-cli/1.5.0/commons-cli-1.5.0.jar"
+CLASSPATH="$CLASSPATH:$MAVEN_REPO/org/xerial/sqlite-jdbc/3.42.0.0/sqlite-jdbc-3.42.0.0.jar"
+CLASSPATH="$CLASSPATH:$MAVEN_REPO/com/zaxxer/HikariCP/5.0.1/HikariCP-5.0.1.jar"
+# Add Jackson dependencies for JSON parsing
+CLASSPATH="$CLASSPATH:$MAVEN_REPO/com/fasterxml/jackson/core/jackson-core/2.17.1/jackson-core-2.17.1.jar"
+CLASSPATH="$CLASSPATH:$MAVEN_REPO/com/fasterxml/jackson/core/jackson-databind/2.17.1/jackson-databind-2.17.1.jar"
+CLASSPATH="$CLASSPATH:$MAVEN_REPO/com/fasterxml/jackson/core/jackson-annotations/2.17.1/jackson-annotations-2.17.1.jar"
+
+# JVM configuration
+JVM_OPTS="-Xmx512m -XX:MaxMetaspaceSize=128m"
+JVM_OPTS="$JVM_OPTS -Dlogback.configurationFile=$PROJECT_ROOT/script/config/logback/common.xml"
+JVM_OPTS="$JVM_OPTS -Djvmxray.test.home=$PROJECT_ROOT/.jvmxray"
+
+# Execute Java application with all arguments passed through
+exec java $JVM_OPTS -cp "$CLASSPATH" org.jvmxray.platform.shared.bin.CpStage0ToStage1 "$@"

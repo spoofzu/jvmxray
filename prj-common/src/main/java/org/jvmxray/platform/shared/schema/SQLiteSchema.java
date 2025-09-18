@@ -88,14 +88,22 @@ public class SQLiteSchema extends AbstractDatabaseSchema {
             connection = getConnection();
             connection.setAutoCommit(false); // Use transaction
             
-            // Create STAGE0_EVENT table
+            // Create STAGE0_EVENT table (raw events with KEYPAIRS column)
             executeSQL(connection, SchemaConstants.SQLTemplates.CREATE_STAGE0_EVENT_SQLITE);
             logger.info("Created STAGE0_EVENT table");
             
-            // Create STAGE0_EVENT_KEYPAIR table
-            executeSQL(connection, SchemaConstants.SQLTemplates.CREATE_STAGE0_EVENT_KEYPAIR_SQLITE);
-            logger.info("Created STAGE0_EVENT_KEYPAIR table");
+            // Create STAGE1_EVENT table (processed events with IS_STABLE)
+            executeSQL(connection, SchemaConstants.SQLTemplates.CREATE_STAGE1_EVENT_SQLITE);
+            logger.info("Created STAGE1_EVENT table");
             
+            // Create STAGE1_EVENT_KEYPAIR table (normalized keypairs)
+            executeSQL(connection, SchemaConstants.SQLTemplates.CREATE_STAGE1_EVENT_KEYPAIR_SQLITE);
+            logger.info("Created STAGE1_EVENT_KEYPAIR table");
+
+            // Create API_KEY table for REST service authentication
+            executeSQL(connection, SchemaConstants.SQLTemplates.CREATE_API_KEY_SQLITE);
+            logger.info("Created API_KEY table");
+
             connection.commit();
             logger.info("Successfully created all SQLite tables");
             
@@ -127,30 +135,44 @@ public class SQLiteSchema extends AbstractDatabaseSchema {
         try {
             connection = getConnection();
             
-            // Create index on timestamp for performance
+            // STAGE0_EVENT indexes (raw events)
             executeSQL(connection, 
                 "CREATE INDEX IF NOT EXISTS idx_stage0_event_timestamp ON " + 
                 SchemaConstants.STAGE0_EVENT_TABLE + "(" + SchemaConstants.COL_TIMESTAMP + ")");
             
-            // Create index on namespace for filtering
             executeSQL(connection, 
                 "CREATE INDEX IF NOT EXISTS idx_stage0_event_namespace ON " + 
                 SchemaConstants.STAGE0_EVENT_TABLE + "(" + SchemaConstants.COL_NAMESPACE + ")");
             
-            // Create index on AID for application filtering
             executeSQL(connection, 
                 "CREATE INDEX IF NOT EXISTS idx_stage0_event_aid ON " + 
                 SchemaConstants.STAGE0_EVENT_TABLE + "(" + SchemaConstants.COL_AID + ")");
             
-            // Create index on CID for category filtering
             executeSQL(connection, 
                 "CREATE INDEX IF NOT EXISTS idx_stage0_event_cid ON " + 
                 SchemaConstants.STAGE0_EVENT_TABLE + "(" + SchemaConstants.COL_CID + ")");
             
-            // Create index on IS_STABLE for consistency queries
+            // STAGE1_EVENT indexes (processed events)
             executeSQL(connection, 
-                "CREATE INDEX IF NOT EXISTS idx_stage0_event_stable ON " + 
-                SchemaConstants.STAGE0_EVENT_TABLE + "(" + SchemaConstants.COL_IS_STABLE + ")");
+                "CREATE INDEX IF NOT EXISTS idx_stage1_event_timestamp ON " + 
+                SchemaConstants.STAGE1_EVENT_TABLE + "(" + SchemaConstants.COL_TIMESTAMP + ")");
+            
+            executeSQL(connection, 
+                "CREATE INDEX IF NOT EXISTS idx_stage1_event_namespace ON " + 
+                SchemaConstants.STAGE1_EVENT_TABLE + "(" + SchemaConstants.COL_NAMESPACE + ")");
+            
+            executeSQL(connection, 
+                "CREATE INDEX IF NOT EXISTS idx_stage1_event_aid ON " + 
+                SchemaConstants.STAGE1_EVENT_TABLE + "(" + SchemaConstants.COL_AID + ")");
+            
+            executeSQL(connection, 
+                "CREATE INDEX IF NOT EXISTS idx_stage1_event_cid ON " + 
+                SchemaConstants.STAGE1_EVENT_TABLE + "(" + SchemaConstants.COL_CID + ")");
+            
+            // Create index on IS_STABLE for consistency queries (only on STAGE1)
+            executeSQL(connection, 
+                "CREATE INDEX IF NOT EXISTS idx_stage1_event_stable ON " + 
+                SchemaConstants.STAGE1_EVENT_TABLE + "(" + SchemaConstants.COL_IS_STABLE + ")");
             
             logger.info("Successfully created all SQLite indexes");
             
@@ -167,8 +189,14 @@ public class SQLiteSchema extends AbstractDatabaseSchema {
             connection.setAutoCommit(false); // Use transaction
             
             // Drop tables in reverse order (keypair first due to relationship)
-            executeSQL(connection, SchemaConstants.SQLTemplates.DROP_STAGE0_EVENT_KEYPAIR);
-            logger.info("Dropped STAGE0_EVENT_KEYPAIR table");
+            executeSQL(connection, SchemaConstants.SQLTemplates.DROP_API_KEY);
+            logger.info("Dropped API_KEY table");
+
+            executeSQL(connection, SchemaConstants.SQLTemplates.DROP_STAGE1_EVENT_KEYPAIR);
+            logger.info("Dropped STAGE1_EVENT_KEYPAIR table");
+            
+            executeSQL(connection, SchemaConstants.SQLTemplates.DROP_STAGE1_EVENT);
+            logger.info("Dropped STAGE1_EVENT table");
             
             executeSQL(connection, SchemaConstants.SQLTemplates.DROP_STAGE0_EVENT);
             logger.info("Dropped STAGE0_EVENT table");
@@ -205,18 +233,24 @@ public class SQLiteSchema extends AbstractDatabaseSchema {
             connection = getConnection();
             
             // Check if STAGE0_EVENT table exists
-            boolean eventTableExists = checkTableExists(connection, SchemaConstants.STAGE0_EVENT_TABLE);
+            boolean stage0EventExists = checkTableExists(connection, SchemaConstants.STAGE0_EVENT_TABLE);
             
-            // Check if STAGE0_EVENT_KEYPAIR table exists
-            boolean keypairTableExists = checkTableExists(connection, SchemaConstants.STAGE0_EVENT_KEYPAIR_TABLE);
+            // Check if STAGE1_EVENT table exists
+            boolean stage1EventExists = checkTableExists(connection, SchemaConstants.STAGE1_EVENT_TABLE);
             
-            boolean allTablesExist = eventTableExists && keypairTableExists;
-            
+            // Check if STAGE1_EVENT_KEYPAIR table exists
+            boolean stage1KeypairExists = checkTableExists(connection, SchemaConstants.STAGE1_EVENT_KEYPAIR_TABLE);
+
+            // Check if API_KEY table exists
+            boolean apiKeyExists = checkTableExists(connection, SchemaConstants.API_KEY_TABLE);
+
+            boolean allTablesExist = stage0EventExists && stage1EventExists && stage1KeypairExists && apiKeyExists;
+
             if (allTablesExist) {
                 logger.info("All required SQLite tables exist");
             } else {
-                logger.warning(String.format("Missing SQLite tables - Event: %b, KeyPair: %b", 
-                    eventTableExists, keypairTableExists));
+                logger.warning(String.format("Missing SQLite tables - Stage0Event: %b, Stage1Event: %b, Stage1KeyPair: %b, ApiKey: %b",
+                    stage0EventExists, stage1EventExists, stage1KeypairExists, apiKeyExists));
             }
             
             return allTablesExist;
@@ -232,13 +266,16 @@ public class SQLiteSchema extends AbstractDatabaseSchema {
         try {
             connection = getConnection();
             
-            // Check STAGE0_EVENT table structure
-            boolean eventTableValid = validateEventTableStructure(connection);
+            // Check STAGE0_EVENT table structure (should have KEYPAIRS column, no IS_STABLE)
+            boolean stage0EventValid = validateStage0EventTableStructure(connection);
             
-            // Check STAGE0_EVENT_KEYPAIR table structure  
-            boolean keypairTableValid = validateKeypairTableStructure(connection);
+            // Check STAGE1_EVENT table structure (should have IS_STABLE column, no KEYPAIRS)
+            boolean stage1EventValid = validateStage1EventTableStructure(connection);
             
-            boolean structureValid = eventTableValid && keypairTableValid;
+            // Check STAGE1_EVENT_KEYPAIR table structure  
+            boolean stage1KeypairValid = validateStage1KeypairTableStructure(connection);
+            
+            boolean structureValid = stage0EventValid && stage1EventValid && stage1KeypairValid;
             
             if (structureValid) {
                 logger.info("SQLite table structures are valid");
@@ -254,9 +291,9 @@ public class SQLiteSchema extends AbstractDatabaseSchema {
     }
     
     /**
-     * Validate the structure of the STAGE0_EVENT table.
+     * Validate the structure of the STAGE0_EVENT table (should have KEYPAIRS column, no IS_STABLE).
      */
-    private boolean validateEventTableStructure(Connection connection) throws SQLException {
+    private boolean validateStage0EventTableStructure(Connection connection) throws SQLException {
         try {
             // Query table info to check columns
             String sql = "PRAGMA table_info(" + SchemaConstants.STAGE0_EVENT_TABLE + ")";
@@ -264,14 +301,25 @@ public class SQLiteSchema extends AbstractDatabaseSchema {
             var resultSet = statement.executeQuery(sql);
             
             int columnCount = 0;
+            boolean hasKeypairsColumn = false;
+            boolean hasIsStableColumn = false;
+            
             while (resultSet.next()) {
                 columnCount++;
                 String columnName = resultSet.getString("name");
                 logger.fine("Found column in STAGE0_EVENT: " + columnName);
+                
+                if (SchemaConstants.COL_KEYPAIRS.equals(columnName)) {
+                    hasKeypairsColumn = true;
+                }
+                if (SchemaConstants.COL_IS_STABLE.equals(columnName)) {
+                    hasIsStableColumn = true;
+                }
             }
             
-            // Should have 9 columns: EVENT_ID, CONFIG_FILE, TIMESTAMP, THREAD_ID, PRIORITY, NAMESPACE, AID, CID, IS_STABLE
-            return columnCount == 9;
+            // Should have 9 columns with KEYPAIRS but without IS_STABLE
+            // EVENT_ID, CONFIG_FILE, TIMESTAMP, THREAD_ID, PRIORITY, NAMESPACE, AID, CID, KEYPAIRS
+            return columnCount == 9 && hasKeypairsColumn && !hasIsStableColumn;
             
         } catch (SQLException e) {
             logger.log(Level.WARNING, "Failed to validate STAGE0_EVENT table structure", e);
@@ -280,12 +328,49 @@ public class SQLiteSchema extends AbstractDatabaseSchema {
     }
     
     /**
-     * Validate the structure of the STAGE0_EVENT_KEYPAIR table.
+     * Validate the structure of the STAGE1_EVENT table (should have IS_STABLE column, no KEYPAIRS).
      */
-    private boolean validateKeypairTableStructure(Connection connection) throws SQLException {
+    private boolean validateStage1EventTableStructure(Connection connection) throws SQLException {
         try {
             // Query table info to check columns
-            String sql = "PRAGMA table_info(" + SchemaConstants.STAGE0_EVENT_KEYPAIR_TABLE + ")";
+            String sql = "PRAGMA table_info(" + SchemaConstants.STAGE1_EVENT_TABLE + ")";
+            var statement = connection.createStatement();
+            var resultSet = statement.executeQuery(sql);
+            
+            int columnCount = 0;
+            boolean hasKeypairsColumn = false;
+            boolean hasIsStableColumn = false;
+            
+            while (resultSet.next()) {
+                columnCount++;
+                String columnName = resultSet.getString("name");
+                logger.fine("Found column in STAGE1_EVENT: " + columnName);
+                
+                if (SchemaConstants.COL_KEYPAIRS.equals(columnName)) {
+                    hasKeypairsColumn = true;
+                }
+                if (SchemaConstants.COL_IS_STABLE.equals(columnName)) {
+                    hasIsStableColumn = true;
+                }
+            }
+            
+            // Should have 9 columns with IS_STABLE but without KEYPAIRS
+            // EVENT_ID, CONFIG_FILE, TIMESTAMP, THREAD_ID, PRIORITY, NAMESPACE, AID, CID, IS_STABLE
+            return columnCount == 9 && !hasKeypairsColumn && hasIsStableColumn;
+            
+        } catch (SQLException e) {
+            logger.log(Level.WARNING, "Failed to validate STAGE1_EVENT table structure", e);
+            return false;
+        }
+    }
+    
+    /**
+     * Validate the structure of the STAGE1_EVENT_KEYPAIR table.
+     */
+    private boolean validateStage1KeypairTableStructure(Connection connection) throws SQLException {
+        try {
+            // Query table info to check columns
+            String sql = "PRAGMA table_info(" + SchemaConstants.STAGE1_EVENT_KEYPAIR_TABLE + ")";
             var statement = connection.createStatement();
             var resultSet = statement.executeQuery(sql);
             
@@ -293,14 +378,14 @@ public class SQLiteSchema extends AbstractDatabaseSchema {
             while (resultSet.next()) {
                 columnCount++;
                 String columnName = resultSet.getString("name");
-                logger.fine("Found column in STAGE0_EVENT_KEYPAIR: " + columnName);
+                logger.fine("Found column in STAGE1_EVENT_KEYPAIR: " + columnName);
             }
             
             // Should have 3 columns: EVENT_ID, KEY, VALUE
             return columnCount == 3;
             
         } catch (SQLException e) {
-            logger.log(Level.WARNING, "Failed to validate STAGE0_EVENT_KEYPAIR table structure", e);
+            logger.log(Level.WARNING, "Failed to validate STAGE1_EVENT_KEYPAIR table structure", e);
             return false;
         }
     }

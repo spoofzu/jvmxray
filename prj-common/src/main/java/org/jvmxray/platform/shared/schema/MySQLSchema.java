@@ -100,13 +100,17 @@ public class MySQLSchema extends AbstractDatabaseSchema {
             // Use the specific database
             executeSQL(connection, "USE " + databaseName);
             
-            // Create STAGE0_EVENT table
+            // Create STAGE0_EVENT table (raw events with KEYPAIRS column)
             executeSQL(connection, SchemaConstants.SQLTemplates.CREATE_STAGE0_EVENT_MYSQL);
             logger.info("Created STAGE0_EVENT table");
             
-            // Create STAGE0_EVENT_KEYPAIR table
-            executeSQL(connection, SchemaConstants.SQLTemplates.CREATE_STAGE0_EVENT_KEYPAIR_MYSQL);
-            logger.info("Created STAGE0_EVENT_KEYPAIR table");
+            // Create STAGE1_EVENT table (processed events with IS_STABLE)
+            executeSQL(connection, SchemaConstants.SQLTemplates.CREATE_STAGE1_EVENT_MYSQL);
+            logger.info("Created STAGE1_EVENT table");
+            
+            // Create STAGE1_EVENT_KEYPAIR table (normalized keypairs)
+            executeSQL(connection, SchemaConstants.SQLTemplates.CREATE_STAGE1_EVENT_KEYPAIR_MYSQL);
+            logger.info("Created STAGE1_EVENT_KEYPAIR table");
             
             connection.commit();
             logger.info("Successfully created all MySQL tables");
@@ -142,35 +146,52 @@ public class MySQLSchema extends AbstractDatabaseSchema {
             // Use the specific database
             executeSQL(connection, "USE " + databaseName);
             
-            // Create index on timestamp for performance
+            // STAGE0_EVENT indexes (raw events)
             executeSQL(connection, 
                 "CREATE INDEX idx_stage0_event_timestamp ON " + 
                 SchemaConstants.STAGE0_EVENT_TABLE + "(" + SchemaConstants.COL_TIMESTAMP + ")");
             
-            // Create index on namespace for filtering
             executeSQL(connection, 
                 "CREATE INDEX idx_stage0_event_namespace ON " + 
                 SchemaConstants.STAGE0_EVENT_TABLE + "(" + SchemaConstants.COL_NAMESPACE + ")");
             
-            // Create index on AID for application filtering
             executeSQL(connection, 
                 "CREATE INDEX idx_stage0_event_aid ON " + 
                 SchemaConstants.STAGE0_EVENT_TABLE + "(" + SchemaConstants.COL_AID + ")");
             
-            // Create index on CID for category filtering
             executeSQL(connection, 
                 "CREATE INDEX idx_stage0_event_cid ON " + 
                 SchemaConstants.STAGE0_EVENT_TABLE + "(" + SchemaConstants.COL_CID + ")");
             
-            // Create index on IS_STABLE for consistency queries
-            executeSQL(connection, 
-                "CREATE INDEX idx_stage0_event_stable ON " + 
-                SchemaConstants.STAGE0_EVENT_TABLE + "(" + SchemaConstants.COL_IS_STABLE + ")");
-            
-            // Create index on CONFIG_FILE for configuration filtering
             executeSQL(connection, 
                 "CREATE INDEX idx_stage0_event_config ON " + 
                 SchemaConstants.STAGE0_EVENT_TABLE + "(" + SchemaConstants.COL_CONFIG_FILE + ")");
+            
+            // STAGE1_EVENT indexes (processed events)
+            executeSQL(connection, 
+                "CREATE INDEX idx_stage1_event_timestamp ON " + 
+                SchemaConstants.STAGE1_EVENT_TABLE + "(" + SchemaConstants.COL_TIMESTAMP + ")");
+            
+            executeSQL(connection, 
+                "CREATE INDEX idx_stage1_event_namespace ON " + 
+                SchemaConstants.STAGE1_EVENT_TABLE + "(" + SchemaConstants.COL_NAMESPACE + ")");
+            
+            executeSQL(connection, 
+                "CREATE INDEX idx_stage1_event_aid ON " + 
+                SchemaConstants.STAGE1_EVENT_TABLE + "(" + SchemaConstants.COL_AID + ")");
+            
+            executeSQL(connection, 
+                "CREATE INDEX idx_stage1_event_cid ON " + 
+                SchemaConstants.STAGE1_EVENT_TABLE + "(" + SchemaConstants.COL_CID + ")");
+            
+            executeSQL(connection, 
+                "CREATE INDEX idx_stage1_event_config ON " + 
+                SchemaConstants.STAGE1_EVENT_TABLE + "(" + SchemaConstants.COL_CONFIG_FILE + ")");
+            
+            // Create index on IS_STABLE for consistency queries (only on STAGE1)
+            executeSQL(connection, 
+                "CREATE INDEX idx_stage1_event_stable ON " + 
+                SchemaConstants.STAGE1_EVENT_TABLE + "(" + SchemaConstants.COL_IS_STABLE + ")");
             
             logger.info("Successfully created all MySQL indexes");
             
@@ -190,8 +211,11 @@ public class MySQLSchema extends AbstractDatabaseSchema {
             executeSQL(connection, "USE " + databaseName);
             
             // Drop tables in reverse order (keypair first due to relationship)
-            executeSQL(connection, SchemaConstants.SQLTemplates.DROP_STAGE0_EVENT_KEYPAIR);
-            logger.info("Dropped STAGE0_EVENT_KEYPAIR table");
+            executeSQL(connection, SchemaConstants.SQLTemplates.DROP_STAGE1_EVENT_KEYPAIR);
+            logger.info("Dropped STAGE1_EVENT_KEYPAIR table");
+            
+            executeSQL(connection, SchemaConstants.SQLTemplates.DROP_STAGE1_EVENT);
+            logger.info("Dropped STAGE1_EVENT table");
             
             executeSQL(connection, SchemaConstants.SQLTemplates.DROP_STAGE0_EVENT);
             logger.info("Dropped STAGE0_EVENT table");
@@ -232,22 +256,28 @@ public class MySQLSchema extends AbstractDatabaseSchema {
             statement = connection.prepareStatement(SchemaConstants.SQLTemplates.CHECK_TABLE_EXISTS_MYSQL);
             statement.setString(1, databaseName);
             statement.setString(2, SchemaConstants.STAGE0_EVENT_TABLE);
-            int eventTableCount = executeCountQuery(connection, statement);
-            boolean eventTableExists = eventTableCount > 0;
+            int stage0EventCount = executeCountQuery(connection, statement);
+            boolean stage0EventExists = stage0EventCount > 0;
             
-            // Check if STAGE0_EVENT_KEYPAIR table exists
+            // Check if STAGE1_EVENT table exists
             statement.setString(1, databaseName);
-            statement.setString(2, SchemaConstants.STAGE0_EVENT_KEYPAIR_TABLE);
-            int keypairTableCount = executeCountQuery(connection, statement);
-            boolean keypairTableExists = keypairTableCount > 0;
+            statement.setString(2, SchemaConstants.STAGE1_EVENT_TABLE);
+            int stage1EventCount = executeCountQuery(connection, statement);
+            boolean stage1EventExists = stage1EventCount > 0;
             
-            boolean allTablesExist = eventTableExists && keypairTableExists;
+            // Check if STAGE1_EVENT_KEYPAIR table exists
+            statement.setString(1, databaseName);
+            statement.setString(2, SchemaConstants.STAGE1_EVENT_KEYPAIR_TABLE);
+            int stage1KeypairCount = executeCountQuery(connection, statement);
+            boolean stage1KeypairExists = stage1KeypairCount > 0;
+            
+            boolean allTablesExist = stage0EventExists && stage1EventExists && stage1KeypairExists;
             
             if (allTablesExist) {
                 logger.info("All required MySQL tables exist");
             } else {
-                logger.warning(String.format("Missing MySQL tables - Event: %b, KeyPair: %b", 
-                    eventTableExists, keypairTableExists));
+                logger.warning(String.format("Missing MySQL tables - Stage0Event: %b, Stage1Event: %b, Stage1KeyPair: %b", 
+                    stage0EventExists, stage1EventExists, stage1KeypairExists));
             }
             
             return allTablesExist;
@@ -282,13 +312,16 @@ public class MySQLSchema extends AbstractDatabaseSchema {
         try {
             connection = getConnection();
             
-            // Check STAGE0_EVENT table structure
-            boolean eventTableValid = validateEventTableStructure(connection);
+            // Check STAGE0_EVENT table structure (should have KEYPAIRS column, no IS_STABLE)
+            boolean stage0EventValid = validateStage0EventTableStructure(connection);
             
-            // Check STAGE0_EVENT_KEYPAIR table structure  
-            boolean keypairTableValid = validateKeypairTableStructure(connection);
+            // Check STAGE1_EVENT table structure (should have IS_STABLE column, no KEYPAIRS)
+            boolean stage1EventValid = validateStage1EventTableStructure(connection);
             
-            boolean structureValid = eventTableValid && keypairTableValid;
+            // Check STAGE1_EVENT_KEYPAIR table structure  
+            boolean stage1KeypairValid = validateStage1KeypairTableStructure(connection);
+            
+            boolean structureValid = stage0EventValid && stage1EventValid && stage1KeypairValid;
             
             if (structureValid) {
                 logger.info("MySQL table structures are valid");
@@ -304,21 +337,38 @@ public class MySQLSchema extends AbstractDatabaseSchema {
     }
     
     /**
-     * Validate the structure of the STAGE0_EVENT table.
+     * Validate the structure of the STAGE0_EVENT table (should have KEYPAIRS column, no IS_STABLE).
      */
-    private boolean validateEventTableStructure(Connection connection) throws SQLException {
+    private boolean validateStage0EventTableStructure(Connection connection) throws SQLException {
         try {
-            // Query information_schema to check columns
-            String sql = "SELECT COUNT(*) FROM information_schema.columns " +
-                        "WHERE table_schema = ? AND table_name = ?";
-            PreparedStatement statement = connection.prepareStatement(sql);
+            // Check column count
+            String countSql = "SELECT COUNT(*) FROM information_schema.columns " +
+                             "WHERE table_schema = ? AND table_name = ?";
+            PreparedStatement statement = connection.prepareStatement(countSql);
             statement.setString(1, databaseName);
             statement.setString(2, SchemaConstants.STAGE0_EVENT_TABLE);
-            
             int columnCount = executeCountQuery(connection, statement);
             
-            // Should have 9 columns: EVENT_ID, CONFIG_FILE, TIMESTAMP, THREAD_ID, PRIORITY, NAMESPACE, AID, CID, IS_STABLE
-            return columnCount == 9;
+            // Check for KEYPAIRS column
+            String keypairsSql = "SELECT COUNT(*) FROM information_schema.columns " +
+                               "WHERE table_schema = ? AND table_name = ? AND column_name = ?";
+            statement = connection.prepareStatement(keypairsSql);
+            statement.setString(1, databaseName);
+            statement.setString(2, SchemaConstants.STAGE0_EVENT_TABLE);
+            statement.setString(3, SchemaConstants.COL_KEYPAIRS);
+            boolean hasKeypairsColumn = executeCountQuery(connection, statement) > 0;
+            
+            // Check for IS_STABLE column (should NOT exist)
+            String stableSql = "SELECT COUNT(*) FROM information_schema.columns " +
+                             "WHERE table_schema = ? AND table_name = ? AND column_name = ?";
+            statement = connection.prepareStatement(stableSql);
+            statement.setString(1, databaseName);
+            statement.setString(2, SchemaConstants.STAGE0_EVENT_TABLE);
+            statement.setString(3, SchemaConstants.COL_IS_STABLE);
+            boolean hasIsStableColumn = executeCountQuery(connection, statement) > 0;
+            
+            // Should have 9 columns with KEYPAIRS but without IS_STABLE
+            return columnCount == 9 && hasKeypairsColumn && !hasIsStableColumn;
             
         } catch (SQLException e) {
             logger.log(Level.WARNING, "Failed to validate STAGE0_EVENT table structure", e);
@@ -327,16 +377,56 @@ public class MySQLSchema extends AbstractDatabaseSchema {
     }
     
     /**
-     * Validate the structure of the STAGE0_EVENT_KEYPAIR table.
+     * Validate the structure of the STAGE1_EVENT table (should have IS_STABLE column, no KEYPAIRS).
      */
-    private boolean validateKeypairTableStructure(Connection connection) throws SQLException {
+    private boolean validateStage1EventTableStructure(Connection connection) throws SQLException {
+        try {
+            // Check column count
+            String countSql = "SELECT COUNT(*) FROM information_schema.columns " +
+                             "WHERE table_schema = ? AND table_name = ?";
+            PreparedStatement statement = connection.prepareStatement(countSql);
+            statement.setString(1, databaseName);
+            statement.setString(2, SchemaConstants.STAGE1_EVENT_TABLE);
+            int columnCount = executeCountQuery(connection, statement);
+            
+            // Check for KEYPAIRS column (should NOT exist)
+            String keypairsSql = "SELECT COUNT(*) FROM information_schema.columns " +
+                               "WHERE table_schema = ? AND table_name = ? AND column_name = ?";
+            statement = connection.prepareStatement(keypairsSql);
+            statement.setString(1, databaseName);
+            statement.setString(2, SchemaConstants.STAGE1_EVENT_TABLE);
+            statement.setString(3, SchemaConstants.COL_KEYPAIRS);
+            boolean hasKeypairsColumn = executeCountQuery(connection, statement) > 0;
+            
+            // Check for IS_STABLE column
+            String stableSql = "SELECT COUNT(*) FROM information_schema.columns " +
+                             "WHERE table_schema = ? AND table_name = ? AND column_name = ?";
+            statement = connection.prepareStatement(stableSql);
+            statement.setString(1, databaseName);
+            statement.setString(2, SchemaConstants.STAGE1_EVENT_TABLE);
+            statement.setString(3, SchemaConstants.COL_IS_STABLE);
+            boolean hasIsStableColumn = executeCountQuery(connection, statement) > 0;
+            
+            // Should have 9 columns with IS_STABLE but without KEYPAIRS
+            return columnCount == 9 && !hasKeypairsColumn && hasIsStableColumn;
+            
+        } catch (SQLException e) {
+            logger.log(Level.WARNING, "Failed to validate STAGE1_EVENT table structure", e);
+            return false;
+        }
+    }
+    
+    /**
+     * Validate the structure of the STAGE1_EVENT_KEYPAIR table.
+     */
+    private boolean validateStage1KeypairTableStructure(Connection connection) throws SQLException {
         try {
             // Query information_schema to check columns
             String sql = "SELECT COUNT(*) FROM information_schema.columns " +
                         "WHERE table_schema = ? AND table_name = ?";
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setString(1, databaseName);
-            statement.setString(2, SchemaConstants.STAGE0_EVENT_KEYPAIR_TABLE);
+            statement.setString(2, SchemaConstants.STAGE1_EVENT_KEYPAIR_TABLE);
             
             int columnCount = executeCountQuery(connection, statement);
             
@@ -344,7 +434,7 @@ public class MySQLSchema extends AbstractDatabaseSchema {
             return columnCount == 3;
             
         } catch (SQLException e) {
-            logger.log(Level.WARNING, "Failed to validate STAGE0_EVENT_KEYPAIR table structure", e);
+            logger.log(Level.WARNING, "Failed to validate STAGE1_EVENT_KEYPAIR table structure", e);
             return false;
         }
     }

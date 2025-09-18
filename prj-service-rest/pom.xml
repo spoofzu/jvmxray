@@ -1,0 +1,170 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.jvmxray</groupId>
+        <artifactId>jvmxray</artifactId>
+        <version>0.0.1</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>prj-service-rest</artifactId>
+    <packaging>jar</packaging>
+    <name>prj-service-rest</name>
+    <description>JVMXRay REST Service - RESTful API for querying security events</description>
+
+    <properties>
+        <spring.boot.version>2.7.18</spring.boot.version>
+    </properties>
+
+    <dependencies>
+        <!-- Core project dependencies -->
+        <dependency>
+            <groupId>org.jvmxray</groupId>
+            <artifactId>prj-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Spring Boot dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+            <version>${spring.boot.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+            <version>${spring.boot.version}</version>
+        </dependency>
+
+        <!-- Database dependencies -->
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>5.0.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.xerial</groupId>
+            <artifactId>sqlite-jdbc</artifactId>
+        </dependency>
+
+        <!-- Apache Commons CLI for command-line parsing -->
+        <dependency>
+            <groupId>commons-cli</groupId>
+            <artifactId>commons-cli</artifactId>
+        </dependency>
+
+        <!-- Force compatible SLF4J version for Spring Boot 2.7.18 -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>1.7.36</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.2.12</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
+            <version>1.2.12</version>
+        </dependency>
+
+        <!-- Jackson for JSON (comes with Spring Boot but explicit for clarity) -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
+        <!-- Test dependencies -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <version>${spring.boot.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <!-- Create test .jvmxray/restservice structure and seed config during build -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>prepare-restservice-test-home</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <mkdir dir="${project.basedir}/../.jvmxray/restservice/config"/>
+                                <mkdir dir="${project.basedir}/../.jvmxray/restservice/logs"/>
+                                <copy file="${project.basedir}/src/main/resources/restservice-logback-production.xml2"
+                                      tofile="${project.basedir}/../.jvmxray/restservice/config/logback.xml"
+                                      overwrite="false"/>
+                                <echo message="Seeded .jvmxray/restservice with config/logs"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <!-- Compiler plugin -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.10.1</version>
+                <configuration>
+                    <source>11</source>
+                    <target>11</target>
+                </configuration>
+            </plugin>
+
+            <!-- Configure Surefire to use test jvmxray.home -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
+                <configuration>
+                    <systemPropertyVariables>
+                        <jvmxray.test.home>${project.basedir}/../.jvmxray</jvmxray.test.home>
+                        <jvmxray.restservice.logs>${project.basedir}/../.jvmxray/restservice/logs</jvmxray.restservice.logs>
+                        <jvmxray.restservice.config>${project.basedir}/../.jvmxray/restservice/config</jvmxray.restservice.config>
+                        <jvmxray.common.logs>${project.basedir}/../.jvmxray/common/logs</jvmxray.common.logs>
+                        <jvmxray.common.data>${project.basedir}/../.jvmxray/common/data</jvmxray.common.data>
+                        <logback.restservice.configurationFile>${project.basedir}/../.jvmxray/restservice/config/logback.xml</logback.restservice.configurationFile>
+                    </systemPropertyVariables>
+                </configuration>
+            </plugin>
+
+            <!-- Spring Boot Maven Plugin for executable JAR -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring.boot.version}</version>
+                <configuration>
+                    <mainClass>org.jvmxray.service.rest.bin.RestService</mainClass>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
+</project>

@@ -29,7 +29,7 @@ public class SQLSensor extends AbstractSensor implements InjectableSensor {
     private final List<String> detectedClasses = new ArrayList<>(); // Store class names instead of Class objects
 
     // Static sensor identity.
-    private static final String SENSOR_GUID = "F28391A7-C074-451C-B23A-140923479028"; // Generated via uuidgen
+    private static final String SENSOR_GUID = "2aHdO8s3lM4vU9y8Tm6Ho2";
 
     public SQLSensor(String propertySuffix) {
         super(propertySuffix);

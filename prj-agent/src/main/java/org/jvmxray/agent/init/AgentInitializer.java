@@ -173,11 +173,11 @@ public class AgentInitializer {
         File targetFile = configPath.resolve("logback.xml").toFile();
 
         // Determine which logback config to copy based on test/production mode
-        String resourceName;
-        if (isMavenTestMode()) {
-            resourceName = "agent-logback-test.xml2";
-        } else {
-            resourceName = "agent-logback-production.xml2";
+        String resourceName = isMavenTestMode() ? "agent-logback-shaded.xml2" : "agent-logback-shaded.xml2";
+
+        // In test mode, always refresh to avoid stale config from previous runs
+        if (isMavenTestMode() && targetFile.exists()) {
+            targetFile.delete();
         }
 
         // Try to copy the preferred resource, fallback to production if test resource not available
@@ -185,7 +185,6 @@ public class AgentInitializer {
             copyResourceToTarget(resourceName, targetFile);
         } catch (IOException e) {
             if (isMavenTestMode() && resourceName.equals("agent-logback-test.xml2")) {
-                // Fall back to production config if test config not found in shaded JAR
                 copyResourceToTarget("agent-logback-production.xml2", targetFile);
             } else {
                 throw e;
@@ -214,7 +213,7 @@ public class AgentInitializer {
      * Sets default properties for the agent.
      */
     private void setDefaultProperties() {
-        agentProperties.setProperty("AID", GUID.getID());
+        agentProperties.setProperty("AID", GUID.generate());
         agentProperties.setProperty("CID", "unit-test");
         agentProperties.setProperty("log.message.encoding", "true");
         agentProperties.setProperty("jvmxray.sensor.http", "org.jvmxray.agent.sensor.http.HttpSensor");
@@ -251,53 +250,53 @@ public class AgentInitializer {
      */
     private void initializeLogging() throws Exception {
         try {
-            // Create an isolated LoggerContext specifically for the agent
-            // This prevents sharing with the application and ensures true isolation
+            // Create an isolated LoggerContext specifically for the agent (uses shaded logback in the agent JAR)
             loggerContext = new LoggerContext();
             loggerContext.setName("JVMXRayAgent-Isolated");
-            
+
             // Initialize the MDC adapter for the isolated context
-            // This is required for the %X pattern in logback configuration
             loggerContext.setMDCAdapter(new ch.qos.logback.classic.util.LogbackMDCAdapter());
-            
-            // Set properties BEFORE any configuration so they're available during parsing
+
+            // Determine paths and ensure properties are set for config
             String agentLogsPath = System.getProperty("jvmxray.agent.logs");
             if (agentLogsPath == null) {
                 agentLogsPath = new File(agentProject, "logs").getAbsolutePath();
             }
-            
             String agentConfigPath = System.getProperty("jvmxray.agent.config");
             if (agentConfigPath == null) {
                 agentConfigPath = new File(agentProject, "config").getAbsolutePath();
             }
-            
-            // Load configuration from the extracted file location (not in classpath)
-            File logbackConfig = new File(agentConfigPath, "logback.xml");
-            if (logbackConfig.exists()) {
-                // Reset context FIRST to clear any existing configuration
-                loggerContext.reset();
-                
-                // THEN set properties for use in configuration
-                loggerContext.putProperty("jvmxray.agent.logs", agentLogsPath);
-                loggerContext.putProperty("jvmxray.agent.config", agentConfigPath);
-                
-                // Configure with our extracted config file
-                JoranConfigurator configurator = new JoranConfigurator();
-                configurator.setContext(loggerContext);
-                configurator.doConfigure(logbackConfig);
-                
-                // Start the isolated context
-                loggerContext.start();
+
+            // Check for system property override first
+            String logbackConfigPath = System.getProperty("logback.agent.configurationFile");
+            File logbackConfig;
+            if (logbackConfigPath != null) {
+                logbackConfig = new File(logbackConfigPath);
+            } else {
+                logbackConfig = new File(agentConfigPath, "logback.xml");
             }
             
+            if (logbackConfig.exists()) {
+                loggerContext.reset();
+                loggerContext.putProperty("jvmxray.agent.logs", agentLogsPath);
+                loggerContext.putProperty("jvmxray.agent.config", agentConfigPath);
+
+                // Load the shaded logback configuration
+                String xml = new String(java.nio.file.Files.readAllBytes(logbackConfig.toPath()), java.nio.charset.StandardCharsets.UTF_8);
+
+                JoranConfigurator configurator = new JoranConfigurator();
+                configurator.setContext(loggerContext);
+                try (java.io.ByteArrayInputStream in = new java.io.ByteArrayInputStream(xml.getBytes(java.nio.charset.StandardCharsets.UTF_8))) {
+                    configurator.doConfigure(in);
+                }
+                loggerContext.start();
+            }
+
         } catch (NoClassDefFoundError e) {
-            // Logback not available in current context - this is acceptable for the agent
+            // Logback not available in current context - acceptable fallback
             loggerContext = null;
-            // Don't print to System.err during normal agent operation - this is expected
         } catch (Exception e) {
-            // Other exceptions during logging initialization
             loggerContext = null;
-            // Don't print to System.err during normal agent operation
         }
     }
 
@@ -355,8 +354,12 @@ public class AgentInitializer {
         } else if (prodHome != null) {
             return prodHome;
         } else {
-            // Auto-detect: use current project/.jvmxray
-            return System.getProperty("user.dir") + File.separator + ".jvmxray";
+            // Auto-detect: prefer Maven project.basedir when available, otherwise user.dir
+            String baseDir = System.getProperty("project.basedir");
+            if (baseDir == null || baseDir.trim().isEmpty()) {
+                baseDir = System.getProperty("user.dir");
+            }
+            return baseDir + File.separator + ".jvmxray";
         }
     }
 

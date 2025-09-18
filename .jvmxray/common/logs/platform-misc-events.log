@@ -1,0 +1,42 @@
+C:CP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Test duration set to 1 seconds
+C:CP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Test intensity set to medium
+C:CP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Verbose mode enabled
+C:CP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Initializing Turtle integration test environment
+C:CP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Test environment initialized successfully
+C:CP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Test will run for 1 seconds with medium intensity
+C:CP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Starting file I/O test operations execution
+C:CP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Executing file I/O operations (intensity: medium)
+C:CP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Created temporary directory: /var/folders/3k/p500md7x7276dj7f9mp_rs5c0000gn/T/turtle-fileio-16378521269294593419
+C:CP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Executing 5 file write operations
+C:CP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Executing file read operations on 5 files
+C:CP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Executing 5 directory operations
+C:CP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Executing file deletion operations
+C:CP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Completed file I/O operations. Created 6 files, 2 directories
+C:CP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Cleaned up file test resources
+C:CP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Executing new sensor validation operations
+C:CP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Executing Phase 2 sensor validation operations
+C:CP | 2025.09.18 at 11:23:35 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | File I/O test operations execution completed
+C:CP | 2025.09.18 at 11:23:35 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Cleaning up test environment
+C:CP | 2025.09.18 at 11:23:35 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Test cleanup completed. Total test duration: 1032 ms
+C:CP | 2025.09.18 at 11:23:35 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Turtle integration test completed successfully
+C:CP | 2025.09.18 at 11:23:38 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Test duration set to 1 seconds
+C:CP | 2025.09.18 at 11:23:38 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Test intensity set to medium
+C:CP | 2025.09.18 at 11:23:38 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Verbose mode enabled
+C:CP | 2025.09.18 at 11:23:38 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Initializing Turtle integration test environment
+C:CP | 2025.09.18 at 11:23:38 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Test environment initialized successfully
+C:CP | 2025.09.18 at 11:23:38 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Test will run for 1 seconds with medium intensity
+C:CP | 2025.09.18 at 11:23:38 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Starting file I/O test operations execution
+C:CP | 2025.09.18 at 11:23:38 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Executing file I/O operations (intensity: medium)
+C:CP | 2025.09.18 at 11:23:38 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Created temporary directory: /var/folders/3k/p500md7x7276dj7f9mp_rs5c0000gn/T/turtle-fileio-8589503312204312238
+C:CP | 2025.09.18 at 11:23:38 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Executing 8 file write operations
+C:CP | 2025.09.18 at 11:23:38 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Executing file read operations on 8 files
+C:CP | 2025.09.18 at 11:23:38 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Executing 8 directory operations
+C:CP | 2025.09.18 at 11:23:38 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Executing file deletion operations
+C:CP | 2025.09.18 at 11:23:38 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Completed file I/O operations. Created 9 files, 3 directories
+C:CP | 2025.09.18 at 11:23:38 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Cleaned up file test resources
+C:CP | 2025.09.18 at 11:23:38 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Executing new sensor validation operations
+C:CP | 2025.09.18 at 11:23:38 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Executing Phase 2 sensor validation operations
+C:CP | 2025.09.18 at 11:23:39 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | File I/O test operations execution completed
+C:CP | 2025.09.18 at 11:23:39 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Cleaning up test environment
+C:CP | 2025.09.18 at 11:23:39 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Test cleanup completed. Total test duration: 1032 ms
+C:CP | 2025.09.18 at 11:23:39 CDT | main |  INFO | org.jvmxray.shared.integration.turtle.TurtleIntegrationTest |  | Turtle integration test completed successfully

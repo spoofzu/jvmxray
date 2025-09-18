@@ -13,6 +13,11 @@
             <unpack>true</unpack>
             <scope>runtime</scope>
         </dependencySet>
+        <dependencySet>
+            <outputDirectory>/</outputDirectory>
+            <unpack>true</unpack>
+            <scope>system</scope>
+        </dependencySet>
     </dependencySets>
     <fileSets>
         <fileSet>

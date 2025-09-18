@@ -77,7 +77,7 @@ public class AgentLogger {
     }
 
     // Default logging mode
-    private static final MODE ASSIGNEDMODE = MODE.BUFFERED;
+    private static final MODE ASSIGNEDMODE = MODE.LOGBACK;
 
     /**
      * Configuration class for {@code AgentLogger}, specifying buffer size, flush interval,

@@ -4,6 +4,7 @@ import net.bytebuddy.asm.Advice;
 import org.jvmxray.agent.proxy.LogProxy;
 import org.jvmxray.agent.proxy.ManagementProxy;
 import org.jvmxray.agent.util.SystemStateCollector;
+import org.jvmxray.platform.shared.util.GUID;
 
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.HashMap;
@@ -107,7 +108,7 @@ public class UncaughtExceptionInterceptor {
         
         // Incident tracking
         metadata.put("timestamp", String.valueOf(System.currentTimeMillis()));
-        metadata.put("incident_id", java.util.UUID.randomUUID().toString());
+        metadata.put("incident_id", GUID.generate());
         
         // === INFO LEVEL DATA ===
         if (isInfo || isDebug) {

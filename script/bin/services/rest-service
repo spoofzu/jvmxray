@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+# Script to start the JVMXRay REST Service
+# Usage: ./rest-service [options]
+# Options:
+#   -p, --port PORT    Port to run the REST service on (default: 8080)
+#   -h, --help         Show help message
+
+# Determine script directory
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/../../.." && pwd )"
+
+# Build the classpath
+REST_JAR="$PROJECT_ROOT/prj-service-rest/target/prj-service-rest-0.0.1.jar"
+
+# Check if JAR exists
+if [ ! -f "$REST_JAR" ]; then
+    echo "Error: REST service JAR not found at $REST_JAR"
+    echo "Please build the project first with: mvn clean install"
+    exit 1
+fi
+
+# Change to project root directory before starting service
+cd "$PROJECT_ROOT"
+
+# Execute the REST service with all command line arguments passed through
+# Set explicit user.dir to ensure ComponentInitializer uses correct project root
+exec java -Duser.dir="$PROJECT_ROOT" -jar "$REST_JAR" "$@"

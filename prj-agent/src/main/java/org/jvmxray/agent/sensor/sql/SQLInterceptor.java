@@ -2,6 +2,7 @@ package org.jvmxray.agent.sensor.sql;
 
 import net.bytebuddy.asm.Advice;
 import org.jvmxray.agent.proxy.LogProxy;
+import org.jvmxray.platform.shared.util.GUID;
 
 import java.sql.PreparedStatement;
 import java.util.HashMap;
@@ -27,7 +28,7 @@ public class SQLInterceptor {
     @Advice.OnMethodEnter
     public static Object[] enter(@Advice.This Object preparedStatement) {
         try {
-            String correlationId = UUID.randomUUID().toString();
+            String correlationId = GUID.generate();
             Map<String, String> metadata = new HashMap<>();
             metadata.put("correlation_id", correlationId);
             metadata.put("class", preparedStatement.getClass().getName());

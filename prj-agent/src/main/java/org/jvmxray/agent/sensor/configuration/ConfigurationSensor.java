@@ -24,7 +24,7 @@ import java.util.Map;
 public class ConfigurationSensor extends AbstractSensor implements InjectableSensor {
 
     private static final String NAMESPACE = "org.jvmxray.agent.core.configuration.ConfigurationSensor";
-    private static final String SENSOR_GUID = "4CA769A3-F605-456A-B082-9D39C953E726";
+    private static final String SENSOR_GUID = "8mK4p7Lc5xWe9gHvR2nYqF";
 
     public ConfigurationSensor(String propertySuffix) {
         super(propertySuffix);
