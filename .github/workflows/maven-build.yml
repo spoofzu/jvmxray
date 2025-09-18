@@ -36,9 +36,12 @@ jobs:
 
     - name: Build and test with Maven
       run: |
+        echo "Building with Java ${{ matrix.java-version }}"
         if [ "${{ matrix.java-version }}" = "11" ] || [ "${{ matrix.java-version }}" = "17" ]; then
-          mvn clean install -DskipMcpClient
+          echo "Skipping MCP client for Java ${{ matrix.java-version }}"
+          mvn clean install -DskipMcpClient -Dverbose
         else
+          echo "Building all modules including MCP client for Java ${{ matrix.java-version }}"
           mvn clean install
         fi
 

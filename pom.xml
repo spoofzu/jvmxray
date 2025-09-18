@@ -26,7 +26,6 @@
   <modules>
     <module>prj-common</module>
     <module>prj-agent</module>
-    <module>prj-mcp-client</module>
     <module>prj-service-log</module>
     <module>prj-service-rest</module>
   </modules>
@@ -87,19 +86,16 @@
   </dependencyManagement>
 
   <profiles>
-    <!-- Skip MCP client when skipMcpClient property is set -->
+    <!-- Include MCP client when NOT skipping it (default for Java 21+) -->
     <profile>
-      <id>skip-mcp-client</id>
+      <id>include-mcp-client</id>
       <activation>
         <property>
-          <name>skipMcpClient</name>
+          <name>!skipMcpClient</name>
         </property>
       </activation>
       <modules>
-        <module>prj-common</module>
-        <module>prj-agent</module>
-        <module>prj-service-log</module>
-        <module>prj-service-rest</module>
+        <module>prj-mcp-client</module>
       </modules>
     </profile>
   </profiles>
