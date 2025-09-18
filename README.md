@@ -1,5 +1,5 @@
 
-# JVMXRay:  AI-Enhanced Java Security Monitoring
+# JVMXRay: AI-Enhanced Java Security Monitoring
 
 [![Black Hat Arsenal](https://raw.githubusercontent.com/toolswatch/badges/master/arsenal/usa/2020.svg?sanitize=true)](https://www.toolswatch.org/blackhat-arsenal-us-2020-archive/)
 [![Java](https://img.shields.io/badge/Java-11+-orange.svg)](https://openjdk.java.net/)
