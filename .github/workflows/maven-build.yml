@@ -35,7 +35,12 @@ jobs:
       run: echo "MAVEN_OPTS=-Xmx1g -XX:MaxMetaspaceSize=256m" >> $GITHUB_ENV
 
     - name: Build and test with Maven
-      run: mvn clean install
+      run: |
+        if [ "${{ matrix.java-version }}" = "11" ] || [ "${{ matrix.java-version }}" = "17" ]; then
+          mvn clean install -DskipMcpClient
+        else
+          mvn clean install
+        fi
 
     - name: Upload test results
       uses: actions/upload-artifact@v4

@@ -87,11 +87,13 @@
   </dependencyManagement>
 
   <profiles>
-    <!-- Skip MCP client on Java 11 and 17, only build on Java 21+ -->
+    <!-- Skip MCP client when skipMcpClient property is set -->
     <profile>
       <id>skip-mcp-client</id>
       <activation>
-        <jdk>[,21)</jdk>
+        <property>
+          <name>skipMcpClient</name>
+        </property>
       </activation>
       <modules>
         <module>prj-common</module>
