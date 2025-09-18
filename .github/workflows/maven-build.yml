@@ -34,13 +34,7 @@ jobs:
     - name: Set Maven memory options
       run: echo "MAVEN_OPTS=-Xmx1g -XX:MaxMetaspaceSize=256m" >> $GITHUB_ENV
 
-    - name: Build with Maven
-      run: mvn clean compile
-
-    - name: Run tests
-      run: mvn test
-
-    - name: Run integration tests and install
+    - name: Build and test with Maven
       run: mvn clean install
 
     - name: Upload test results
