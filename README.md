@@ -231,3 +231,5 @@ JVMXRay's MCP server enables AI clients like Claude Desktop to become instant se
 Milton Smith - Project creator, leader
 
 Disclosure(s):  The JVMXRay project is not, approved, endorsed by, or affiliated with Oracle Corporation.  Oracle is a long-time supporter of secure open source software and the Online Web Application Security(OWASP) project.  Milton Smith is an active industry open source contributor, OWASP member, and an employee of Oracle.
+
+<!-- Test build with MCP dependencies -->
