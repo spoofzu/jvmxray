@@ -86,5 +86,20 @@
     </dependencies>
   </dependencyManagement>
 
+  <profiles>
+    <!-- Skip MCP client on Java 11 and 17, only build on Java 21+ -->
+    <profile>
+      <id>skip-mcp-client</id>
+      <activation>
+        <jdk>[,21)</jdk>
+      </activation>
+      <modules>
+        <module>prj-common</module>
+        <module>prj-agent</module>
+        <module>prj-service-log</module>
+        <module>prj-service-rest</module>
+      </modules>
+    </profile>
+  </profiles>
 
 </project>
