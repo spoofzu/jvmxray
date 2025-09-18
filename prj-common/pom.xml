@@ -112,6 +112,24 @@
                             </target>
                         </configuration>
                     </execution>
+                    <execution>
+                        <id>copy-agent-jar</id>
+                        <phase>pre-integration-test</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <!-- Create agent directory -->
+                                <mkdir dir="${project.build.directory}/agent"/>
+                                <!-- Copy agent JAR if it exists -->
+                                <copy file="${project.basedir}/../prj-agent/target/prj-agent-${project.version}-shaded.jar"
+                                      tofile="${project.build.directory}/agent/prj-agent-${project.version}-shaded.jar"
+                                      failonerror="false"/>
+                                <echo message="Copied agent JAR (if available) to: ${project.build.directory}/agent/"/>
+                            </target>
+                        </configuration>
+                    </execution>
                 </executions>
             </plugin>
             
@@ -147,7 +165,8 @@
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
-            
+
+
             <!-- Maven Failsafe Plugin for integration tests -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -170,6 +189,8 @@
                                 <jvmxray.test.home>${project.basedir}/../.jvmxray</jvmxray.test.home>
                                 <!-- Provide project.basedir so runtime auto-detects .jvmxray correctly -->
                                 <project.basedir>${project.basedir}/..</project.basedir>
+                                <!-- Agent JAR path for integration tests -->
+                                <jvmxray.agent.jar>${project.build.directory}/agent/prj-agent-${project.version}-shaded.jar</jvmxray.agent.jar>
                                 <!-- Set component-specific system properties -->
                                 <jvmxray.common.logs>${project.basedir}/../.jvmxray/common/logs</jvmxray.common.logs>
                                 <jvmxray.common.config>${project.basedir}/../.jvmxray/common/config</jvmxray.common.config>
