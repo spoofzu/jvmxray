@@ -1,0 +1,54 @@
+name: Maven Build
+
+on:
+  push:
+    branches: [ master, miltondev ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        java-version: [11, 17, 21]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK ${{ matrix.java-version }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ matrix.java-version }}
+        distribution: 'temurin'
+
+    - name: Cache Maven dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2
+        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-m2
+
+    - name: Set Maven memory options
+      run: echo "MAVEN_OPTS=-Xmx1g -XX:MaxMetaspaceSize=256m" >> $GITHUB_ENV
+
+    - name: Build with Maven
+      run: mvn clean compile
+
+    - name: Run tests
+      run: mvn test
+
+    - name: Run integration tests and install
+      run: mvn clean install
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results-java-${{ matrix.java-version }}
+        path: |
+          **/target/surefire-reports/
+          **/target/failsafe-reports/
+          .jvmxray/*/logs/

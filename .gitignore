@@ -104,6 +104,7 @@ memory/
 templates/
 CLAUDE.md
 .claude/
+.serena/
 
 ##############################
 ## JVMXRay
