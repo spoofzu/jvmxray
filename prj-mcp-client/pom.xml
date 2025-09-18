@@ -34,7 +34,7 @@
             <artifactId>mcp</artifactId>
             <version>0.13.0-SNAPSHOT</version>
             <scope>system</scope>
-            <systemPath>/Users/milton/github/mcp/java-sdk/mcp/target/mcp-0.13.0-SNAPSHOT.jar</systemPath>
+            <systemPath>${basedir}/../libs/mcp-0.13.0-SNAPSHOT.jar</systemPath>
         </dependency>
 
         <!-- MCP JSON Jackson mapper -->
@@ -43,7 +43,7 @@
             <artifactId>mcp-json-jackson2</artifactId>
             <version>0.13.0-SNAPSHOT</version>
             <scope>system</scope>
-            <systemPath>/Users/milton/github/mcp/java-sdk/mcp-json-jackson2/target/mcp-json-jackson2-0.13.0-SNAPSHOT.jar</systemPath>
+            <systemPath>${basedir}/../libs/mcp-json-jackson2-0.13.0-SNAPSHOT.jar</systemPath>
         </dependency>
 
         <!-- Apache HttpClient for REST bridge (legacy support) -->
