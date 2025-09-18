@@ -3,6 +3,7 @@
 
 [![Black Hat Arsenal](https://raw.githubusercontent.com/toolswatch/badges/master/arsenal/usa/2020.svg?sanitize=true)](https://www.toolswatch.org/blackhat-arsenal-us-2020-archive/)
 [![Java](https://img.shields.io/badge/Java-11+-orange.svg)](https://openjdk.java.net/)
+[![Build Status](https://github.com/spoofzu/jvmxray/actions/workflows/maven-build.yml/badge.svg)](https://github.com/spoofzu/jvmxray/actions/workflows/maven-build.yml)
 [![Contributors](https://img.shields.io/github/contributors/spoofzu/jvmxray.svg)](https://github.com/spoofzu/jvmxray/graphs/contributors)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0.txt)
 [![Development Status](https://img.shields.io/badge/Status-Alpha-red.svg)](ZREADME-ALPHA.md)
