@@ -109,5 +109,7 @@ CLAUDE.md
 ##############################
 ## JVMXRay
 ##############################
+# JVMXRay runtime directories
+.jvmxray/
 # Prevent logs from being created in source tree
 */logs/
