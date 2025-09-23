@@ -18,7 +18,7 @@
 
 **[Duke history](https://dev.java/duke/)**
 
-**JVMXRay is an AI-enhanced security monitoring platform that watches Java applications in real-time, detecting vulnerabilities and suspicious activity without requiring code changes. Intelligence analysis enriches security events with additional metadata like CWE/CVSS scoring for regulatory reporting. With simple setup and minimal performance impact, JVMXRay provides comprehensive security visibility into applications and third-party dependencies, enhanced by machine learning that improves detection accuracy over time.**
+**JVMXRay is an AI-enhanced security monitoring platform that watches Java applications in real-time, detecting vulnerabilities and suspicious activity without requiring code changes. Intelligence analysis enriches security events with AI-powered metadata and context for enhanced risk prioritization and compliance reporting. With simple setup and minimal performance impact, JVMXRay provides comprehensive security visibility into applications and third-party dependencies, enhanced by machine learning that improves detection accuracy over time.**
 
 | &nbsp;                                  | &nbsp;                                                                                                                                                                                                                                                                                                                                |
 |-----------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -44,7 +44,7 @@ JVMXRay is currently in **alpha development status** and should **NOT be deploye
 Java applications are under constant attack, but traditional security tools require code changes, create performance overhead, or generate too many false positives. JVMXRay improves upon current state by:
 
 - **Zero Code Changes**: Monitor any Java application without modifications
-- **Intelligence Analysis**: AI enriches security events with metadata like CWE/CVSS scoring for risk prioritization and compliance reporting
+- **Intelligence Analysis**: AI enriches security events with contextual metadata for risk prioritization and compliance reporting
 - **Complete Visibility**: See exactly what applications and dependencies are doing
 - **Minimal Impact**: Low performance overhead using well-proven technologies like bytecode injection and Logback enterprise logging
 - **Enterprise Ready**: Works with existing logging infrastructure and scales to any size
@@ -90,7 +90,7 @@ JVMXRay automatically generates structured security events without developer int
 - **Strategic Investment**: Comprehensive security monitoring that scales with business growth
 - **Open Source Foundation**: No vendor lock-in with enterprise support options available
 - **Supply Chain Security**: Monitor third-party libraries and detect malicious behavior
-- **Compliance Automation**: Security event data enrichment supporting compliance like automatic CWE/CVSS scoring for SOC 2, PCI DSS, and regulatory reporting
+- **Compliance Automation**: AI-enriched security event data supporting compliance automation for SOC 2, PCI DSS, and regulatory reporting
 
 <!-- TODO: // Update example
 # Deploying JVMXRay with Examples
@@ -124,15 +124,53 @@ Get up and running in **under 5 minutes** with SQLite demo data and Claude Deskt
    ```
    **Note**: This script starts a program that executes various activities designed to stimulate JVMXRay Agent's sensors. When the script finishes, a SQLite database contains sensor data for experimentation.
 
-
-5. **Explore Test Database**
+5. **Migrate Data to Enriched Format**
    ```bash
-   # SQLite test database¹ created at: .jvmxray/common/data/jvmxray-test.db
-   # Use any SQLite client to explore the test data generated during build
-   sqlite3 .jvmxray/common/data/jvmxray-test.db "SELECT * FROM STAGE0_EVENT LIMIT 10;"
+   ./script/bin/data/migrate-stage-data
+   ```
+   **Note**: Migrate raw sensor events to enriched stage1 format for AI analysis and enhanced security intelligence.
+
+6. **Optional: Generate API Key for MCP Integration**
+   ```bash
+   # Generate API key for Claude Desktop integration
+   ./script/bin/security/generate-api-key "claude-desktop"
+
+   # Start REST service (in separate terminal)
+   ./script/bin/services/rest-service --port 8080
    ```
 
-   **¹** *SQLite is used for development and testing. Production deployments support MySQL and Cassandra databases.*
+   **Configure Claude Desktop MCP:**
+   Add this configuration to your Claude Desktop settings:
+   ```json
+   {
+     "mcpServers": {
+       "jvmxray": {
+         "command": "java",
+         "args": [
+           "-jar",
+           "/Users/milton/github/jvmxray/prj-mcp-client/target/prj-mcp-client-bridge.jar",
+           "--host=localhost",
+           "--port=8080",
+           "--api-key=jvmxray_5ZKRF5GNJF1M00EGMAUT6KKWG",
+           "--debug=/tmp/jvmxray-mcp-debug.log",
+           "--workers=4",
+           "--queue=256"
+         ]
+       }
+     }
+   }
+   ```
+
+   > **💡 Optional: Explore Test Database**
+   >
+   > SQLite test database¹ created at: `.jvmxray/common/data/jvmxray-test.db`
+   >
+   > Use any SQLite client to explore the test data:
+   > ```bash
+   > sqlite3 .jvmxray/common/data/jvmxray-test.db "SELECT * FROM STAGE0_EVENT LIMIT 10;"
+   > ```
+   >
+   > **¹** *SQLite is used for development and testing. Production deployments support MySQL and Cassandra databases.*
 
 **Congratulations! You've built JVMXRay successfully!** 
 The project compiles, tests pass, and includes:
