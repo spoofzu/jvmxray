@@ -20,9 +20,6 @@ if [ ! -f "$REST_JAR" ]; then
     exit 1
 fi
 
-# Change to project root directory before starting service
-cd "$PROJECT_ROOT"
-
 # Execute the REST service with all command line arguments passed through
-# Set explicit user.dir to ensure ComponentInitializer uses correct project root
-exec java -Duser.dir="$PROJECT_ROOT" -jar "$REST_JAR" "$@"
+# Set project root system property to ensure ComponentInitializer uses correct project root
+exec java -Djvmxray.project.root="$PROJECT_ROOT" -jar "$REST_JAR" "$@"

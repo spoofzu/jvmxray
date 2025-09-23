@@ -140,7 +140,7 @@ Get up and running in **under 5 minutes** with SQLite demo data and Claude Deskt
    ```
 
    **Configure Claude Desktop MCP:**
-   Add this configuration to your Claude Desktop settings:
+   Add this configuration to your Claude Desktop settings (replace `{YOUR_PROJECT_PATH}` with your actual project directory and use your generated API key):
    ```json
    {
      "mcpServers": {
@@ -148,10 +148,10 @@ Get up and running in **under 5 minutes** with SQLite demo data and Claude Deskt
          "command": "java",
          "args": [
            "-jar",
-           "/Users/milton/github/jvmxray/prj-mcp-client/target/prj-mcp-client-bridge.jar",
+           "{YOUR_PROJECT_PATH}/prj-mcp-client/target/prj-mcp-client-bridge.jar",
            "--host=localhost",
            "--port=8080",
-           "--api-key=jvmxray_5ZKRF5GNJF1M00EGMAUT6KKWG",
+           "--api-key={YOUR_GENERATED_API_KEY}",
            "--debug=/tmp/jvmxray-mcp-debug.log",
            "--workers=4",
            "--queue=256"

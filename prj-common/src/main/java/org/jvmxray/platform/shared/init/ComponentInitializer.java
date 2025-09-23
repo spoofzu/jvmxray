@@ -158,10 +158,13 @@ public abstract class ComponentInitializer {
             // Production mode: add jvmxray subdirectory
             jvmxrayHome = Path.of(prodHome, "jvmxray");
         } else {
-            // Auto-detect: prefer Maven project.basedir when available, otherwise find project root
-            String baseDir = System.getProperty("project.basedir");
+            // Auto-detect: prefer jvmxray.project.root, then Maven project.basedir, then find project root
+            String baseDir = System.getProperty("jvmxray.project.root");
             if (baseDir == null || baseDir.trim().isEmpty()) {
-                baseDir = findProjectRoot(System.getProperty("user.dir"));
+                baseDir = System.getProperty("project.basedir");
+                if (baseDir == null || baseDir.trim().isEmpty()) {
+                    baseDir = findProjectRoot(System.getProperty("user.dir"));
+                }
             }
             jvmxrayHome = Path.of(baseDir, ".jvmxray");
         }
