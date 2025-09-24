@@ -99,6 +99,10 @@ The following provides some basic information to download and compile JVMXRay so
 [![](http://img.youtube.com/vi/QxgTiTCorow/0.jpg)](http://www.youtube.com/watch?v=QxgTiTCorow "JVMXRay Deploy")
 -->
 
+## Video Tutorial
+
+Watch a [video](https://youtu.be/HufPrUo96H8?si=CTwZ1SISg9HW39Jh) to build JVMXRay and integrate with Claude Desktop AI followed by a quick demo or jump directly to the [demo at 3:30](https://youtu.be/HufPrUo96H8?si=toqnh9hu2EgtOrNu&t=211).
+
 ## Quick Start
 
 Get up and running in **under 5 minutes** with SQLite demo data and Claude Desktop AI integration:
@@ -181,10 +185,6 @@ The project compiles, tests pass, and includes:
 
 <!-- TODO: Create Quick Start Guide -->
 **📖 For complete setup instructions, see [Quick Start Guide](docs/0002-QUICK-START-GUIDE.md)**
-
-## Video Tutorial
-
-Watch a [video](https://youtu.be/HufPrUo96H8?si=CTwZ1SISg9HW39Jh) to build JVMXRay and integrate with Claude Desktop AI followed by a quick demo or jump directly to the [demo at 3:30](https://youtu.be/HufPrUo96H8?si=toqnh9hu2EgtOrNu&t=211).
 
 ## Key Capabilities
 
