@@ -182,6 +182,10 @@ The project compiles, tests pass, and includes:
 <!-- TODO: Create Quick Start Guide -->
 **📖 For complete setup instructions, see [Quick Start Guide](docs/0002-QUICK-START-GUIDE.md)**
 
+## Video Tutorial
+
+Watch a [video](https://youtu.be/HufPrUo96H8?si=CTwZ1SISg9HW39Jh) to build JVMXRay and integrate with Claude Desktop AI followed by a quick demo or jump directly to the [demo at 3:30](https://youtu.be/HufPrUo96H8?si=toqnh9hu2EgtOrNu&t=211).
+
 ## Key Capabilities
 
 ### 🤖 AI-Enhanced Analysis
