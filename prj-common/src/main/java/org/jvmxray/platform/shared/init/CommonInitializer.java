@@ -86,7 +86,7 @@ public class CommonInitializer extends ComponentInitializer {
         Properties defaults = new Properties();
         
         // Core common properties
-        defaults.setProperty("AID", GUID.generate());
+        defaults.setProperty("AID", GUID.generateStandard());
         defaults.setProperty("CID", "common");
         defaults.setProperty("log.message.encoding", "true");
 

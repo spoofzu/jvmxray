@@ -52,11 +52,12 @@ public class ApiKeyManager {
 
     /**
      * Generates a new API key string with the standard JVMXRay prefix.
+     * Uses RFC 4122 standard UUID format (uppercase with dashes) for external compatibility.
      *
-     * @return A new API key string
+     * @return A new API key string in format: jvmxray-XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
      */
     public static String generateApiKeyString() {
-        return "jvmxray_" + GUID.generate();
+        return "jvmxray-" + GUID.generateStandard();
     }
 
     /**

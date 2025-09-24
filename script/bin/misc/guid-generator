@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+
+# Script to generate GUIDs using JVMXRay GUID utility
+# Produces RFC 4122 compliant UUIDs matching macOS uuidgen format by default
+#
+# Usage:
+#   ./guid-generator                      Generate standard UUID (default)
+#   ./guid-generator --standard           Generate standard RFC 4122 UUID
+#   ./guid-generator --compact            Generate compact Base36 format
+#   ./guid-generator --short              Generate short 8-character format
+#   ./guid-generator --count 5            Generate multiple GUIDs
+#   ./guid-generator --help               Show help
+
+# Determine script directory and project root
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/../../.." && pwd )"
+
+# Change to project root directory before starting
+cd "$PROJECT_ROOT"
+
+# Build classpath for GuidGenerator
+# Use target/classes for compiled classes and dependency classpath for libs
+CLASSPATH="prj-common/target/classes"
+
+# Check if classes directory exists
+if [ ! -d "prj-common/target/classes" ]; then
+    echo "Error: prj-common classes not found. Please run 'mvn compile' first."
+    exit 1
+fi
+
+# Add Maven dependencies to classpath
+DEPS_CLASSPATH=$(mvn dependency:build-classpath -q -Dmdep.outputFile=/dev/stdout -f prj-common/pom.xml 2>/dev/null)
+if [ $? -eq 0 ] && [ -n "$DEPS_CLASSPATH" ]; then
+    CLASSPATH="$CLASSPATH:$DEPS_CLASSPATH"
+fi
+
+# Execute the standalone GUID generator
+exec java -cp "$CLASSPATH" org.jvmxray.platform.shared.bin.GuidGenerator "$@"
