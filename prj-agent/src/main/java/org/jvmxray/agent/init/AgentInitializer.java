@@ -213,7 +213,7 @@ public class AgentInitializer {
      * Sets default properties for the agent.
      */
     private void setDefaultProperties() {
-        agentProperties.setProperty("AID", GUID.generate());
+        agentProperties.setProperty("AID", GUID.generateStandard());
         agentProperties.setProperty("CID", "unit-test");
         agentProperties.setProperty("log.message.encoding", "true");
         agentProperties.setProperty("jvmxray.sensor.http", "org.jvmxray.agent.sensor.http.HttpSensor");

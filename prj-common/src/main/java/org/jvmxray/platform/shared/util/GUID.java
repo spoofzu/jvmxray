@@ -14,7 +14,7 @@ import java.util.UUID;
  * <li><strong>Short format (8 chars)</strong>: First segment only for human-readable contexts</li>
  * </ul>
  *
- * <p>Base36 encoding uses [0-9A-Z] characters only (uppercase), making GUIDs uniform,
+ * <p>Base36 encoding uses [0-9a-z] characters only, making GUIDs uniform,
  * URL/filesystem safe, and reducing storage requirements by approximately 30%.</p>
  *
  * @author Milton Smith
@@ -22,9 +22,9 @@ import java.util.UUID;
 public class GUID {
 
     /**
-     * Base36 alphabet for encoding UUIDs (0-9, A-Z uppercase only).
+     * Base36 alphabet for encoding UUIDs (0-9, a-z lower-case only).
      */
-    private static final String BASE36_ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    private static final String BASE36_ALPHABET = "0123456789abcdefghijklmnopqrstuvwxyz";
     
     /**
      * Private constructor to prevent instantiation.
@@ -45,13 +45,14 @@ public class GUID {
     }
 
     /**
-     * Generates a standard UUID v4 format with dashes.
+     * Generates a standard UUID v4 format with dashes (RFC 4122).
+     * Uses uppercase hexadecimal letters to match macOS uuidgen format.
      * Use this when interfacing with external systems that expect standard UUID format.
      *
-     * @return A 36-character standard UUID string
+     * @return A 36-character standard UUID string (uppercase with dashes)
      */
     public static String generateStandard() {
-        return UUID.randomUUID().toString();
+        return UUID.randomUUID().toString().toUpperCase();
     }
 
     /**
