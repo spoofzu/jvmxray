@@ -112,6 +112,14 @@ public class MySQLSchema extends AbstractDatabaseSchema {
             executeSQL(connection, SchemaConstants.SQLTemplates.CREATE_STAGE1_EVENT_KEYPAIR_MYSQL);
             logger.info("Created STAGE1_EVENT_KEYPAIR table");
             
+            // Create STAGE2_LIBRARY table for library enrichment
+            executeSQL(connection, SchemaConstants.SQLTemplates.CREATE_STAGE2_LIBRARY_MYSQL);
+            logger.info("Created STAGE2_LIBRARY table");
+            
+            // Create STAGE2_LIBRARY_CVE table for CVE associations
+            executeSQL(connection, SchemaConstants.SQLTemplates.CREATE_STAGE2_LIBRARY_CVE_MYSQL);
+            logger.info("Created STAGE2_LIBRARY_CVE table");
+            
             connection.commit();
             logger.info("Successfully created all MySQL tables");
             
@@ -193,6 +201,36 @@ public class MySQLSchema extends AbstractDatabaseSchema {
                 "CREATE INDEX idx_stage1_event_stable ON " + 
                 SchemaConstants.STAGE1_EVENT_TABLE + "(" + SchemaConstants.COL_IS_STABLE + ")");
             
+            // STAGE2_LIBRARY indexes
+            executeSQL(connection,
+                "CREATE INDEX idx_stage2_library_sha256 ON " +
+                SchemaConstants.STAGE2_LIBRARY_TABLE + "(" + SchemaConstants.COL_SHA256_HASH + ")");
+            
+            executeSQL(connection,
+                "CREATE INDEX idx_stage2_library_jarpath ON " +
+                SchemaConstants.STAGE2_LIBRARY_TABLE + "(" + SchemaConstants.COL_JARPATH + "(255))");
+            
+            executeSQL(connection,
+                "CREATE INDEX idx_stage2_library_first_seen ON " +
+                SchemaConstants.STAGE2_LIBRARY_TABLE + "(" + SchemaConstants.COL_FIRST_SEEN + ")");
+            
+            executeSQL(connection,
+                "CREATE INDEX idx_stage2_library_last_seen ON " +
+                SchemaConstants.STAGE2_LIBRARY_TABLE + "(" + SchemaConstants.COL_LAST_SEEN + ")");
+            
+            // STAGE2_LIBRARY_CVE indexes (based on actual table structure)
+            executeSQL(connection,
+                "CREATE INDEX idx_stage2_library_cve_severity ON " +
+                SchemaConstants.STAGE2_LIBRARY_CVE_TABLE + "(" + SchemaConstants.COL_CVSS_SEVERITY + ")");
+            
+            executeSQL(connection,
+                "CREATE INDEX idx_stage2_library_cve_published ON " +
+                SchemaConstants.STAGE2_LIBRARY_CVE_TABLE + "(" + SchemaConstants.COL_PUBLISHED_DATE + ")");
+            
+            executeSQL(connection,
+                "CREATE INDEX idx_stage2_library_cve_cvss_v3 ON " +
+                SchemaConstants.STAGE2_LIBRARY_CVE_TABLE + "(" + SchemaConstants.COL_CVSS_V3 + ")");
+            
             logger.info("Successfully created all MySQL indexes");
             
         } finally {
@@ -210,7 +248,13 @@ public class MySQLSchema extends AbstractDatabaseSchema {
             // Use the specific database
             executeSQL(connection, "USE " + databaseName);
             
-            // Drop tables in reverse order (keypair first due to relationship)
+            // Drop tables in reverse order (keypair and CVE first due to relationships)
+            executeSQL(connection, SchemaConstants.SQLTemplates.DROP_STAGE2_LIBRARY_CVE);
+            logger.info("Dropped STAGE2_LIBRARY_CVE table");
+            
+            executeSQL(connection, SchemaConstants.SQLTemplates.DROP_STAGE2_LIBRARY);
+            logger.info("Dropped STAGE2_LIBRARY table");
+            
             executeSQL(connection, SchemaConstants.SQLTemplates.DROP_STAGE1_EVENT_KEYPAIR);
             logger.info("Dropped STAGE1_EVENT_KEYPAIR table");
             
@@ -271,13 +315,26 @@ public class MySQLSchema extends AbstractDatabaseSchema {
             int stage1KeypairCount = executeCountQuery(connection, statement);
             boolean stage1KeypairExists = stage1KeypairCount > 0;
             
-            boolean allTablesExist = stage0EventExists && stage1EventExists && stage1KeypairExists;
+            // Check if STAGE2_LIBRARY table exists
+            statement.setString(1, databaseName);
+            statement.setString(2, SchemaConstants.STAGE2_LIBRARY_TABLE);
+            int stage2LibraryCount = executeCountQuery(connection, statement);
+            boolean stage2LibraryExists = stage2LibraryCount > 0;
+            
+            // Check if STAGE2_LIBRARY_CVE table exists
+            statement.setString(1, databaseName);
+            statement.setString(2, SchemaConstants.STAGE2_LIBRARY_CVE_TABLE);
+            int stage2LibraryCveCount = executeCountQuery(connection, statement);
+            boolean stage2LibraryCveExists = stage2LibraryCveCount > 0;
+            
+            boolean allTablesExist = stage0EventExists && stage1EventExists && stage1KeypairExists && 
+                                   stage2LibraryExists && stage2LibraryCveExists;
             
             if (allTablesExist) {
                 logger.info("All required MySQL tables exist");
             } else {
-                logger.warning(String.format("Missing MySQL tables - Stage0Event: %b, Stage1Event: %b, Stage1KeyPair: %b", 
-                    stage0EventExists, stage1EventExists, stage1KeypairExists));
+                logger.warning(String.format("Missing MySQL tables - Stage0Event: %b, Stage1Event: %b, Stage1KeyPair: %b, Stage2Library: %b, Stage2LibraryCve: %b", 
+                    stage0EventExists, stage1EventExists, stage1KeypairExists, stage2LibraryExists, stage2LibraryCveExists));
             }
             
             return allTablesExist;
@@ -321,7 +378,14 @@ public class MySQLSchema extends AbstractDatabaseSchema {
             // Check STAGE1_EVENT_KEYPAIR table structure  
             boolean stage1KeypairValid = validateStage1KeypairTableStructure(connection);
             
-            boolean structureValid = stage0EventValid && stage1EventValid && stage1KeypairValid;
+            // Check STAGE2_LIBRARY table structure
+            boolean stage2LibraryValid = validateStage2LibraryTableStructure(connection);
+            
+            // Check STAGE2_LIBRARY_CVE table structure
+            boolean stage2LibraryCveValid = validateStage2LibraryCveTableStructure(connection);
+            
+            boolean structureValid = stage0EventValid && stage1EventValid && stage1KeypairValid && 
+                                   stage2LibraryValid && stage2LibraryCveValid;
             
             if (structureValid) {
                 logger.info("MySQL table structures are valid");
@@ -435,6 +499,52 @@ public class MySQLSchema extends AbstractDatabaseSchema {
             
         } catch (SQLException e) {
             logger.log(Level.WARNING, "Failed to validate STAGE1_EVENT_KEYPAIR table structure", e);
+            return false;
+        }
+    }
+
+    /**
+     * Validate the structure of the STAGE2_LIBRARY table.
+     */
+    private boolean validateStage2LibraryTableStructure(Connection connection) throws SQLException {
+        try {
+            // Query information_schema to check columns
+            String sql = "SELECT COUNT(*) FROM information_schema.columns " +
+                        "WHERE table_schema = ? AND table_name = ?";
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, databaseName);
+            statement.setString(2, SchemaConstants.STAGE2_LIBRARY_TABLE);
+            
+            int columnCount = executeCountQuery(connection, statement);
+            
+            // Should have 12 columns based on SchemaConstants definition
+            return columnCount == 12;
+            
+        } catch (SQLException e) {
+            logger.log(Level.WARNING, "Failed to validate STAGE2_LIBRARY table structure", e);
+            return false;
+        }
+    }
+    
+    /**
+     * Validate the structure of the STAGE2_LIBRARY_CVE table.
+     */
+    private boolean validateStage2LibraryCveTableStructure(Connection connection) throws SQLException {
+        try {
+            // Query information_schema to check columns
+            String sql = "SELECT COUNT(*) FROM information_schema.columns " +
+                        "WHERE table_schema = ? AND table_name = ?";
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setString(1, databaseName);
+            statement.setString(2, SchemaConstants.STAGE2_LIBRARY_CVE_TABLE);
+            
+            int columnCount = executeCountQuery(connection, statement);
+            
+            // Should have 11 columns based on SchemaConstants definition
+            return columnCount == 11;
+            
+        } catch (SQLException e) {
+            logger.log(Level.WARNING, "Failed to validate STAGE2_LIBRARY_CVE table structure", e);
             return false;
         }
     }

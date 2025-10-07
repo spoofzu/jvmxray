@@ -23,6 +23,7 @@
 | &nbsp;                                  | &nbsp;                                                                                                                                                                                                                                                                                                                                |
 |-----------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **NEWS**                                | &nbsp;                                                                                                                                                                                                                                                                                                                                |
+| **Oct 7, 2024** Minor Fixes             | Sensor meta improvements, developing AI service (work in progress) OWASP Dependency Check integration (NVD metadata, CVSS scoring, etc) for 3rd party libraries (not operational at the moment).                                                                                                                                      |                                                                                                                                                                                                                                                                                       |                                                                                                                                                                                                                                                                                                         |
 | **Sep 18, 2024** Major Update           | Significant milestone release featuring AI-powered vulnerability analysis, online/offline integration support with AI MCP clients like Claude Desktop, 15+ sensor types and growing, enhanced documentation suite, multi-database support (SQLite/MySQL/Cassandra), and complete CI/CD pipeline. Suitable for testing and evaluation. |
 | **Apr 23, 2024** Platform rearchitected | Architecture improved to remove deprecated SecurityManager and move to byte code injection approach.                                                                                                                                                                                                                                  |
 | **Feb 20, 2024** Improved architecture  | Improved documentation for new architecture. Site docs forthcoming.                                                                                                                                                                                                                                                                   |
@@ -105,7 +106,7 @@ Watch a [video](https://youtu.be/HufPrUo96H8?si=CTwZ1SISg9HW39Jh) to build JVMXR
 
 ## Quick Start
 
-Get up and running in **under 5 minutes** with SQLite demo data and Claude Desktop AI integration:
+Get up and running in **under 5 minutes**:
 
 1. **Change to GitHub Repository Folder**
    ```bash
@@ -124,67 +125,33 @@ Get up and running in **under 5 minutes** with SQLite demo data and Claude Deskt
 
 4. **Generate Test Data**
    ```bash
-   ./script/bin/data/generate-test-data
+   ./script/data/generate-test-data
    ```
-   **Note**: This script starts a program that executes various activities designed to stimulate JVMXRay Agent's sensors. When the script finishes, a SQLite database contains sensor data for experimentation.
+   **Note**: This script executes various activities to stimulate JVMXRay Agent's sensors. When finished, a SQLite database contains sensor data for experimentation.
 
-5. **Migrate Data to Enriched Format**
+   **Explore the test data:**
    ```bash
-   ./script/bin/data/migrate-stage-data
-   ```
-   **Note**: Migrate raw sensor events to enriched stage1 format for AI analysis and enhanced security intelligence.
-
-6. **Optional: Generate API Key for MCP Integration**
-   ```bash
-   # Generate API key for Claude Desktop integration
-   ./script/bin/security/generate-api-key "claude-desktop"
-
-   # Start REST service (in separate terminal)
-   ./script/bin/services/rest-service --port 8080
+   sqlite3 .jvmxray/common/data/jvmxray-test.db "SELECT EVENT_ID, TIMESTAMP, NAMESPACE, KEYPAIRS FROM STAGE0_EVENT LIMIT 10;"
    ```
 
-   **Configure Claude Desktop MCP:**
-   Add this configuration to your Claude Desktop settings (replace `{YOUR_PROJECT_PATH}` with your actual project directory and use your generated API key):
-   ```json
-   {
-     "mcpServers": {
-       "jvmxray": {
-         "command": "java",
-         "args": [
-           "-jar",
-           "{YOUR_PROJECT_PATH}/prj-mcp-client/target/prj-mcp-client-bridge.jar",
-           "--host=localhost",
-           "--port=8080",
-           "--api-key={YOUR_GENERATED_API_KEY}",
-           "--debug=/tmp/jvmxray-mcp-debug.log",
-           "--workers=4",
-           "--queue=256"
-         ]
-       }
-     }
-   }
-   ```
+**Congratulations! You've built JVMXRay successfully!**
 
-   > **💡 Optional: Explore Test Database**
-   >
-   > SQLite test database¹ created at: `.jvmxray/common/data/jvmxray-test.db`
-   >
-   > Use any SQLite client to explore the test data:
-   > ```bash
-   > sqlite3 .jvmxray/common/data/jvmxray-test.db "SELECT * FROM STAGE0_EVENT LIMIT 10;"
-   > ```
-   >
-   > **¹** *SQLite is used for development and testing. Production deployments support MySQL and Cassandra databases.*
-
-**Congratulations! You've built JVMXRay successfully!** 
 The project compiles, tests pass, and includes:
 - Complete sensor framework with 15+ monitoring capabilities
-- Multi-database support (SQLite/MySQL/Cassandra) 
+- Multi-database support (SQLite/MySQL/Cassandra)
 - AI-enhanced security event analysis
 - Enterprise logging integration
 
-<!-- TODO: Create Quick Start Guide -->
-**📖 For complete setup instructions, see [Quick Start Guide](docs/0002-QUICK-START-GUIDE.md)**
+### Continue Optional Setup
+
+Ready for advanced features? Continue with:
+
+**📖 [Continue Setup →](docs/setup-continued.md)** - Security event enrichment, AI integration, and vulnerability analysis
+
+**Optional features include:**
+- Step 5: Migrate data to enriched format for AI analysis
+- Step 6: MCP integration for Claude Desktop AI-powered queries
+- Step 7: AI Service for vulnerability analysis and library tracking
 
 ## Key Capabilities
 

@@ -2,7 +2,7 @@
 <configuration debug="false" scan="false" scanPeriod="1 minutes">
 
     <property name="LOG_HOME" value="${jvmxray.agent.logs}" />
-    <property name="MSG_FMT_LG" value="C:AP | %d{YYYY.MM.dd 'at' HH:mm:ss z} | %thread | %5level | %logger | %X | %msg%n" />
+    <property name="MSG_FMT_LG" value="%d{yyyy-MM-dd HH:mm:ss} | %5level | %logger{30} | %msg%n" />
 
     <appender name="IOEVENTS" class="agent.shadow.logback.core.rolling.RollingFileAppender">
         <file>${LOG_HOME}/agent-IO-events.log</file>
@@ -251,7 +251,8 @@
     <logger name="org.jvmxray.events.api" level="DEBUG" additivity="false">
         <appender-ref ref="APIEVENTS" />
     </logger>
-    <logger name="org.jvmxray.events.data" level="DEBUG" additivity="false">
+    <!-- Data transfer events now handled by file I/O aggregate statistics -->
+    <logger name="org.jvmxray.events.data" level="OFF" additivity="false">
         <appender-ref ref="DATAEVENTS" />
     </logger>
     <logger name="org.jvmxray.events.reflection" level="DEBUG" additivity="false">

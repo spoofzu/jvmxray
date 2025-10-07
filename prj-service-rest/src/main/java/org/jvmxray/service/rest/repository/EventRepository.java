@@ -252,7 +252,7 @@ public class EventRepository {
         event.setEventId(rs.getString(SchemaConstants.COL_EVENT_ID));
         event.setConfigFile(rs.getString(SchemaConstants.COL_CONFIG_FILE));
         event.setTimestamp(rs.getLong(SchemaConstants.COL_TIMESTAMP));
-        event.setThreadId(rs.getString(SchemaConstants.COL_THREAD_ID));
+        event.setThreadId(rs.getString(SchemaConstants.COL_CURRENT_THREAD_ID));
         event.setPriority(rs.getString(SchemaConstants.COL_PRIORITY));
         event.setNamespace(rs.getString(SchemaConstants.COL_NAMESPACE));
         event.setAid(rs.getString(SchemaConstants.COL_AID));

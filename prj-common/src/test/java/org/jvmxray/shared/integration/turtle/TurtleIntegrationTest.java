@@ -333,9 +333,9 @@ public class TurtleIntegrationTest {
      */
     private void printUsage(Options options) {
         HelpFormatter formatter = new HelpFormatter();
-        formatter.printHelp("java -javaagent:prj-agent-0.0.1-shaded.jar TurtleIntegrationTest [options]", 
-                           "Turtle Integration Test Application - Exercises JVMXRay File I/O sensor", 
-                           options, 
+        formatter.printHelp("java -javaagent:prj-agent-0.0.1-shaded.jar TurtleIntegrationTest [options]",
+                           "Turtle Integration Test Application - Exercises JVMXRay File I/O sensor",
+                           options,
                            "Example: java -javaagent:prj-agent-0.0.1-shaded.jar TurtleIntegrationTest -d 60 -i high -v");
     }
 
@@ -344,9 +344,9 @@ public class TurtleIntegrationTest {
      */
     private void initializeTest() {
         logger.info("Initializing Turtle integration test environment");
-        
+
         // Integration component initialization now handled by static block
-        
+
         // Set test start time and running flag
         testStartTime = System.currentTimeMillis();
         testRunning = true;
@@ -914,9 +914,9 @@ public class TurtleIntegrationTest {
      */
     private void cleanupTest() {
         logger.info("Cleaning up test environment");
-        
+
         testRunning = false;
-        
+
         if (verbose) {
             long testDuration = System.currentTimeMillis() - testStartTime;
             logger.info("Test cleanup completed. Total test duration: {} ms", testDuration);

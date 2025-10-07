@@ -77,6 +77,17 @@ public class jvmxrayagent {
             // Configure AgentLogger with properties-based settings
             AgentLogger.configure(properties);
             logProxy = LogProxy.getInstance();
+            // Inject advice classes into bootstrap classloader for ByteBuddy instrumentation
+            // This allows sensors to inject advice into bootstrap-loaded classes
+            try {
+                SensorUtils.injectClasses(instrumentation, NAMESPACE,
+                    org.jvmxray.platform.shared.util.MCC.class,
+                    org.jvmxray.platform.shared.util.MCCScope.class,
+                    org.jvmxray.platform.shared.util.GUID.class);
+                logProxy.logMessage(NAMESPACE, "INFO", "Successfully injected advice classes into bootstrap classloader");
+            } catch (Exception e) {
+                logProxy.logMessage(NAMESPACE, "ERROR", "Failed to inject advice classes: " + e.getMessage());
+            }
             // ********************
             // *** END SECTION
             // ********************
@@ -157,7 +168,9 @@ public class jvmxrayagent {
                         .ignore(ElementMatchers.nameStartsWith("agent.shadow.slf4j"))
                         .ignore(ElementMatchers.nameStartsWith("ch.qos.logback"))
                         .ignore(ElementMatchers.nameStartsWith("org.slf4j"))
-                        .ignore(ElementMatchers.nameStartsWith("org.jvmxray.platform.shared.log"));
+                        .ignore(ElementMatchers.nameStartsWith("org.jvmxray.platform.shared.log"))
+                        // Exclude MCC to prevent instrumentation of correlation context operations
+                        .ignore(ElementMatchers.nameStartsWith("org.jvmxray.platform.shared.util"));
 
                 // Add transformations for each injectable sensor to the single builder
                 for (InjectableSensor sensor : injectableSensors) {

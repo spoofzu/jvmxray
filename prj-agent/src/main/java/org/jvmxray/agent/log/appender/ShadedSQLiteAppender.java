@@ -56,7 +56,7 @@ public class ShadedSQLiteAppender extends AppenderBase<ILoggingEvent> {
     
     // Prepared statement for inserting events
     private static final String INSERT_EVENT_SQL = 
-        "INSERT OR REPLACE INTO STAGE0_EVENT (EVENT_ID, CONFIG_FILE, TIMESTAMP, THREAD_ID, PRIORITY, NAMESPACE, AID, CID, KEYPAIRS) " +
+        "INSERT OR REPLACE INTO STAGE0_EVENT (EVENT_ID, CONFIG_FILE, TIMESTAMP, CURRENT_THREAD_ID, PRIORITY, NAMESPACE, AID, CID, KEYPAIRS) " +
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
     
     @Override
@@ -227,7 +227,7 @@ protected void append(ILoggingEvent eventObject) {
             "EVENT_ID TEXT PRIMARY KEY, " +
             "CONFIG_FILE TEXT, " +
             "TIMESTAMP INTEGER, " +
-            "THREAD_ID TEXT, " +
+            "CURRENT_THREAD_ID TEXT, " +
             "PRIORITY TEXT, " +
             "NAMESPACE TEXT, " +
             "AID TEXT, " +

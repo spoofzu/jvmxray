@@ -1,24 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration debug="true" scan="false">
+<configuration debug="false" scan="false" scanPeriod="1 minutes">
 
-    <!-- System properties for flexible configuration -->
+    <property name="LOG_HOME" value="${jvmxray.agent.logs}" />
     <property name="DB_PATH" value="${jvmxray.test.home}/common/data/jvmxray-test.db" />
-    <property name="LOG_HOME" value="${jvmxray.test.home}/../script/generate-events-agent.log" />
-    
-    <!-- Agent message format - matches production agent format -->
     <property name="MSG_FMT_LG" value="C:AP | %d{YYYY.MM.dd 'at' HH:mm:ss z} | %thread | %5level | %logger | %X | %msg%n" />
 
-    <!-- Console appender for immediate feedback (optional) -->
-    <appender name="CONSOLE" class="agent.shadow.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>${MSG_FMT_LG}</pattern>
-        </encoder>
-        <filter class="agent.shadow.logback.classic.filter.ThresholdFilter">
-            <level>WARN</level>
-        </filter>
-    </appender>
-
-    <!-- Shaded SQLite appender for persisting agent events to test database -->
+    <!-- SQLite Database Appender for JVMXRay Events (Shaded version for agent) -->
     <appender name="DATABASE" class="org.jvmxray.agent.log.appender.ShadedSQLiteAppender">
         <databasePath>${DB_PATH}</databasePath>
         <batchSize>50</batchSize>
@@ -26,45 +13,73 @@
         <queueSize>5000</queueSize>
     </appender>
 
-    <!-- Optional file appender for debugging (can be removed in production) -->
-    <appender name="DEBUG_FILE" class="agent.shadow.logback.core.FileAppender">
-        <file>${LOG_HOME}</file>
-        <immediateFlush>true</immediateFlush>
-        <append>false</append>
+    <!-- Console appender for debugging (optional) -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>${MSG_FMT_LG}</pattern>
         </encoder>
-        <filter class="agent.shadow.logback.classic.filter.ThresholdFilter">
-            <level>DEBUG</level>
-        </filter>
     </appender>
 
-    <!-- 
-    Agent-specific sensor loggers - route all agent sensor events to database
-    These correspond to the sensor namespaces in the JVMXRay agent
-    -->
-    
-    <!-- All agent sensor events -->
-    <logger name="org.jvmxray.agent.sensor" level="DEBUG" additivity="false">
-        <appender-ref ref="CONSOLE" />
-        <appender-ref ref="DEBUG_FILE" />
+    <!-- Event loggers - all route to database for test data generation -->
+    <logger name="org.jvmxray.events.io" level="DEBUG" additivity="false">
         <appender-ref ref="DATABASE" />
     </logger>
-    
-    <!-- All JVMXRay event messages from sensors -->
-    <logger name="org.jvmxray.events" level="DEBUG" additivity="false">
-        <appender-ref ref="CONSOLE" />
-        <appender-ref ref="DEBUG_FILE" />
+    <logger name="org.jvmxray.events.http" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+    </logger>
+    <logger name="org.jvmxray.events.monitor" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+    </logger>
+    <logger name="org.jvmxray.events.sql" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+    </logger>
+    <logger name="org.jvmxray.events.system" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+    </logger>
+    <logger name="org.jvmxray.events.net" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+    </logger>
+    <logger name="org.jvmxray.events.system.uncaughtexception" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+    </logger>
+    <logger name="org.jvmxray.events.crypto" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+    </logger>
+    <logger name="org.jvmxray.events.config" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+    </logger>
+    <logger name="org.jvmxray.events.auth" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+    </logger>
+    <logger name="org.jvmxray.events.serialization" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+    </logger>
+    <logger name="org.jvmxray.events.script" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+    </logger>
+    <logger name="org.jvmxray.events.api" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+    </logger>
+    <logger name="org.jvmxray.events.data" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+    </logger>
+    <logger name="org.jvmxray.events.reflection" level="DEBUG" additivity="false">
         <appender-ref ref="DATABASE" />
     </logger>
 
-    <!-- 
-    Root logger configuration for agent context.  Captures messages from the
-     agent platform.
-    -->
-    <root level="INFO">
+    <!-- Catch-all for other jvmxray events -->
+    <logger name="org.jvmxray.events" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+    </logger>
+
+    <!-- Platform logging goes to console only for debugging -->
+    <logger name="org.jvmxray" level="INFO" additivity="false">
         <appender-ref ref="CONSOLE" />
-        <appender-ref ref="DEBUG_FILE" />
+    </logger>
+
+    <!-- Root logger - minimal output to avoid noise -->
+    <root level="WARN">
+        <appender-ref ref="CONSOLE" />
     </root>
 
 </configuration>

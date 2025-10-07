@@ -2,6 +2,7 @@ package org.jvmxray.agent.sensor.net;
 
 import net.bytebuddy.asm.Advice;
 import org.jvmxray.agent.proxy.LogProxy;
+import org.jvmxray.platform.shared.util.MCCScope;
 
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -38,6 +39,8 @@ public class ConnectInterceptor {
             @Advice.This Socket socket,
             @Advice.Argument(0) SocketAddress endpoint,
             @Advice.Argument(1) int timeout) {
+        // Enter MCC correlation scope
+        MCCScope.enter("Network");
         // Record the start time of the connect operation
         startTime.set(System.currentTimeMillis());
     }
@@ -55,22 +58,26 @@ public class ConnectInterceptor {
             @Advice.This Socket socket,
             @Advice.Argument(0) SocketAddress endpoint,
             @Advice.Thrown Throwable thrown) {
-        // Cast endpoint to InetSocketAddress for address and port details
-        InetSocketAddress remoteAddr = (InetSocketAddress) endpoint;
-        // Determine local address, defaulting to localhost if not bound
-        String local = socket.isBound() ? socket.getLocalAddress().getHostAddress() + ":" + socket.getLocalPort() : "localhost:0";
+        try {
+            // Cast endpoint to InetSocketAddress for address and port details
+            InetSocketAddress remoteAddr = (InetSocketAddress) endpoint;
+            // Determine local address, defaulting to localhost if not bound
+            String local = socket.isBound() ? socket.getLocalAddress().getHostAddress() + ":" + socket.getLocalPort() : "localhost:0";
 
-        // Initialize metadata for logging
-        Map<String, String> metadata = new HashMap<>();
-        metadata.put("bind_src", local);
-        metadata.put("dst", remoteAddr.getAddress().getHostAddress() + ":" + remoteAddr.getPort());
-        metadata.put("status", thrown != null ?
-                "threw " + thrown.getClass().getSimpleName() + ": " + thrown.getMessage() : "connected");
+            // Initialize metadata for logging
+            Map<String, String> metadata = new HashMap<>();
+            metadata.put("bind_src", local);
+            metadata.put("dst", remoteAddr.getAddress().getHostAddress() + ":" + remoteAddr.getPort());
+            metadata.put("status", thrown != null ?
+                    "threw " + thrown.getClass().getSimpleName() + ": " + thrown.getMessage() : "connected");
 
-        // Log the socket connect event
-        logProxy.logMessage(NAMESPACE, "INFO", metadata);
+            // Log the socket connect event
+            logProxy.logMessage(NAMESPACE, "INFO", metadata);
 
-        // Clean up thread-local storage
-        startTime.remove();
+            // Clean up thread-local storage
+            startTime.remove();
+        } finally {
+            MCCScope.exit("Network");
+        }
     }
 }

@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+
+# JVMXRay STAGE1 to STAGE2 Library Data Enrichment Tool - Minimal Wrapper Script
+# All business logic resides in org.jvmxray.platform.shared.bin.CpStage1ToStage2
+# Script responsibilities: classpath construction, JVM configuration, execution only
+
+# Determine project root
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# Change to project root to run Maven commands
+cd "$PROJECT_ROOT" || {
+    echo "Error: Cannot change to project root: $PROJECT_ROOT"
+    exit 1
+}
+
+# Ensure prj-common is compiled
+if [ ! -f "prj-common/target/prj-common-0.0.1.jar" ]; then
+    echo "Building prj-common module..."
+    mvn -q clean compile -pl prj-common || {
+        echo "Error: Failed to compile prj-common module"
+        exit 1
+    }
+fi
+
+# Build classpath using Maven dependency plugin
+echo "Building classpath..."
+CLASSPATH=$(mvn -q dependency:build-classpath -Dmdep.outputFile=/dev/stdout -pl prj-common)
+if [ $? -ne 0 ] || [ -z "$CLASSPATH" ]; then
+    echo "Error: Failed to build classpath using Maven"
+    exit 1
+fi
+
+# Add prj-common JAR to classpath
+CLASSPATH="$PROJECT_ROOT/prj-common/target/prj-common-0.0.1.jar:$CLASSPATH"
+
+# JVM configuration
+JVM_OPTS="-Xmx512m -XX:MaxMetaspaceSize=128m"
+JVM_OPTS="$JVM_OPTS -Djvmxray.test.home=$PROJECT_ROOT/.jvmxray"
+
+# Set logback configuration if available
+if [ -f "$PROJECT_ROOT/.jvmxray/common/config/logback.xml" ]; then
+    JVM_OPTS="$JVM_OPTS -Dlogback.common.configurationFile=$PROJECT_ROOT/.jvmxray/common/config/logback.xml"
+fi
+
+# Execute Java application with all arguments passed through
+exec java $JVM_OPTS -cp "$CLASSPATH" org.jvmxray.platform.shared.bin.CpStage1ToStage2 "$@"

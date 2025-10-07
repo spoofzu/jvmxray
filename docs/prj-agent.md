@@ -289,6 +289,38 @@ java -Djvmxray.home=/opt/security -javaagent:/opt/jvmxray/prj-agent-0.0.1-shaded
 | jvmxray.sensor.script | Script engine execution | org.jvmxray.agent.sensor.script.ScriptEngineSensor | No |
 | jvmxray.sensor.uncaughtexception | Uncaught exceptions | org.jvmxray.agent.sensor.uncaughtexception.UncaughtExceptionSensor | No |
 
+**File I/O Aggregate Statistics Configuration:**
+
+The File I/O sensor uses a three-tier filtering strategy to reduce log noise while maintaining visibility into security-relevant file operations.
+
+| Property | Description | Default Value | Required |
+|----------|-------------|---------------|----------|
+| jvmxray.agent.sensor.fileio.captures | Operations to capture: C=Create, R=Read, U=Update, D=Delete | CUD | No |
+| jvmxray.io.threshold.bytes.read | Minimum bytes read to log (Tier 3) | 10485760 (10MB) | No |
+| jvmxray.io.threshold.bytes.write | Minimum bytes written to log (Tier 3) | 10485760 (10MB) | No |
+| jvmxray.io.monitor.patterns | Case-insensitive regex for sensitive files (Tier 2 - always logged) | (?i).\*(password\|credential\|secret\|token\|key\|auth\|private).\* | No |
+| jvmxray.io.ignore.patterns | Case-insensitive regex for files to ignore (Tier 1 - never logged) | (?i).\*[\\\\\\/](temp\|tmp\|cache)[\\\\\\/].\*\|.\*\\.(tmp\|cache\|swp)$ | No |
+
+**Filtering Strategy:**
+1. **Tier 1 (Ignore)**: Files matching `jvmxray.io.ignore.patterns` are never tracked or logged (e.g., temp files, cache files)
+2. **Tier 2 (Monitor)**: Files matching `jvmxray.io.monitor.patterns` are always logged regardless of size (e.g., credential files, private keys)
+3. **Tier 3 (Threshold)**: All other files are logged only if they exceed read/write thresholds
+
+**Platform-Agnostic Patterns:**
+- Patterns use `[\\\\\\/]` to match both Windows (`\`) and Unix (`/`) path separators
+- Case-insensitive matching with `(?i)` prefix ensures consistent behavior across operating systems
+- Default patterns cover common temporary and cache file locations on all platforms
+
+**Aggregate Statistics:**
+Instead of logging every byte read/write operation, the sensor tracks:
+- Total bytes read/written
+- Number of read/write operations
+- Operation duration (from file open to close)
+- File operation type (create, read, write, read_write, open)
+- Sensitive file flag based on monitor patterns
+
+Events are logged when files are closed, providing complete operation statistics in a single log entry.
+
 **LogProxy Configuration:**
 
 | Property | Description | Default Value | Required |
@@ -316,7 +348,6 @@ java -Djvmxray.home=/opt/security -javaagent:/opt/jvmxray/prj-agent-0.0.1-shaded
 | AUTHEVENTS | Authentication events | agent-AUTH-events.log |
 | APILEVENTS | API calls | agent-API-events.log |
 | CONFIGEVENTS | Configuration access | agent-CONFIG-events.log |
-| DATAEVENTS | Data transfer | agent-DATA-events.log |
 | EXCEPTIONEVENTS | Exception handling | agent-EXCEPTION-events.log |
 | REFLECTIONEVENTS | Reflection operations | agent-REFLECTION-events.log |
 | SCRIPTEVENTS | Script execution | agent-SCRIPT-events.log |

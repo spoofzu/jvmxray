@@ -3,6 +3,7 @@ package org.jvmxray.agent.sensor.sql;
 import net.bytebuddy.asm.Advice;
 import org.jvmxray.agent.proxy.LogProxy;
 import org.jvmxray.platform.shared.util.GUID;
+import org.jvmxray.platform.shared.util.MCCScope;
 
 import java.sql.PreparedStatement;
 import java.util.HashMap;
@@ -27,6 +28,9 @@ public class SQLInterceptor {
      */
     @Advice.OnMethodEnter
     public static Object[] enter(@Advice.This Object preparedStatement) {
+        // Enter MCC correlation scope
+        MCCScope.enter("SQL");
+
         try {
             String correlationId = GUID.generate();
             Map<String, String> metadata = new HashMap<>();
@@ -127,6 +131,8 @@ public class SQLInterceptor {
             errorMetadata.put("error", "Failed to process SQL query exit: " + e.getMessage());
             errorMetadata.put("class", preparedStatement.getClass().getName());
             logProxy.logMessage(SQL_NAMESPACE, "ERROR", errorMetadata);
+        } finally {
+            MCCScope.exit("SQL");
         }
     }
 

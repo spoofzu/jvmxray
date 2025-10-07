@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!-- Define system properties that can be used in this configuration -->
+    <property name="LOG_HOME" value="${jvmxray.aiservice.logs:-./logs}" />
+
+    <!-- Console appender for interactive mode -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>INFO</level>
+        </filter>
+    </appender>
+
+    <!-- File appender for general AI service logs -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/aiservice.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/aiservice.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>5GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- File appender for library enrichment processing -->
+    <appender name="LIBRARY_ENRICHMENT" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/library-enrichment.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/library-enrichment.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>100MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>3GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- File appender for CVE correlation logs -->
+    <appender name="CVE_MATCHING" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/cve-matching.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/cve-matching.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>2GB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Async appender wrapper for better performance -->
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <discardingThreshold>0</discardingThreshold>
+        <queueSize>1000</queueSize>
+        <includeCallerData>false</includeCallerData>
+        <appender-ref ref="FILE" />
+    </appender>
+
+    <appender name="ASYNC_LIBRARY_ENRICHMENT" class="ch.qos.logback.classic.AsyncAppender">
+        <discardingThreshold>0</discardingThreshold>
+        <queueSize>1000</queueSize>
+        <includeCallerData>false</includeCallerData>
+        <appender-ref ref="LIBRARY_ENRICHMENT" />
+    </appender>
+
+    <!-- Logger for library enrichment processor -->
+    <logger name="org.jvmxray.service.ai.processor.LibraryEnrichmentProcessor" level="INFO" additivity="false">
+        <appender-ref ref="ASYNC_LIBRARY_ENRICHMENT" />
+        <appender-ref ref="CONSOLE" />
+    </logger>
+
+    <!-- Logger for CVE matching -->
+    <logger name="org.jvmxray.service.ai.util.CVEMatcher" level="INFO" additivity="false">
+        <appender-ref ref="CVE_MATCHING" />
+        <appender-ref ref="CONSOLE" />
+    </logger>
+
+    <!-- Logger for hash calculator -->
+    <logger name="org.jvmxray.service.ai.util.LibraryHashCalculator" level="WARN" additivity="false">
+        <appender-ref ref="ASYNC_LIBRARY_ENRICHMENT" />
+    </logger>
+
+    <!-- Logger for temporal tracker -->
+    <logger name="org.jvmxray.service.ai.util.LibraryTemporalTracker" level="INFO" additivity="false">
+        <appender-ref ref="ASYNC_LIBRARY_ENRICHMENT" />
+    </logger>
+
+    <!-- Logger for main service -->
+    <logger name="org.jvmxray.service.ai.bin.AiService" level="INFO" additivity="false">
+        <appender-ref ref="ASYNC_FILE" />
+        <appender-ref ref="CONSOLE" />
+    </logger>
+
+    <!-- Database related logging -->
+    <logger name="org.jvmxray.platform.shared.database" level="WARN" additivity="false">
+        <appender-ref ref="ASYNC_FILE" />
+    </logger>
+
+    <!-- Reduce noise from third-party libraries -->
+    <logger name="com.fasterxml.jackson" level="WARN" />
+    <logger name="org.apache.commons" level="WARN" />
+
+    <!-- OWASP Dependency Check logging -->
+    <logger name="org.owasp.dependencycheck" level="INFO" />
+    <logger name="org.owasp.dependencycheck.analyzer.OssIndexAnalyzer" level="ERROR" />
+    <logger name="io.github.jeremylong.openvulnerability" level="WARN" />
+
+    <!-- Suppress Lucene noise -->
+    <logger name="org.apache.lucene" level="ERROR" />
+
+    <!-- Root logger configuration -->
+    <root level="INFO">
+        <appender-ref ref="ASYNC_FILE" />
+        <appender-ref ref="CONSOLE" />
+    </root>
+
+</configuration>

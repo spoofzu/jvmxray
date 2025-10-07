@@ -136,6 +136,18 @@ public class CassandraSchema extends AbstractDatabaseSchema {
             cqlSession.execute(createStage1KeypairTableQuery);
             logger.info("Created STAGE1_EVENT_KEYPAIR table in Cassandra");
             
+            // Create STAGE2_LIBRARY table for library enrichment
+            String createStage2LibraryTableQuery = String.format(
+                SchemaConstants.SQLTemplates.CREATE_STAGE2_LIBRARY_CASSANDRA, databaseName);
+            cqlSession.execute(createStage2LibraryTableQuery);
+            logger.info("Created STAGE2_LIBRARY table in Cassandra");
+            
+            // Create STAGE2_LIBRARY_CVE table for CVE associations
+            String createStage2LibraryCveTableQuery = String.format(
+                SchemaConstants.SQLTemplates.CREATE_STAGE2_LIBRARY_CVE_CASSANDRA, databaseName);
+            cqlSession.execute(createStage2LibraryCveTableQuery);
+            logger.info("Created STAGE2_LIBRARY_CVE table in Cassandra");
+            
             logger.info("Successfully created all Cassandra tables");
             
         } finally {
@@ -207,6 +219,43 @@ public class CassandraSchema extends AbstractDatabaseSchema {
                 databaseName, SchemaConstants.STAGE1_EVENT_TABLE, SchemaConstants.COL_IS_STABLE);
             cqlSession.execute(createStableIndex);
             
+            // STAGE2_LIBRARY indexes
+            String createStage2LibrarySha256Index = String.format(
+                "CREATE INDEX IF NOT EXISTS idx_stage2_library_sha256 ON %s.%s (%s)",
+                databaseName, SchemaConstants.STAGE2_LIBRARY_TABLE, SchemaConstants.COL_SHA256_HASH);
+            cqlSession.execute(createStage2LibrarySha256Index);
+            
+            String createStage2LibraryJarpathIndex = String.format(
+                "CREATE INDEX IF NOT EXISTS idx_stage2_library_jarpath ON %s.%s (%s)",
+                databaseName, SchemaConstants.STAGE2_LIBRARY_TABLE, SchemaConstants.COL_JARPATH);
+            cqlSession.execute(createStage2LibraryJarpathIndex);
+            
+            String createStage2LibraryFirstSeenIndex = String.format(
+                "CREATE INDEX IF NOT EXISTS idx_stage2_library_first_seen ON %s.%s (%s)",
+                databaseName, SchemaConstants.STAGE2_LIBRARY_TABLE, SchemaConstants.COL_FIRST_SEEN);
+            cqlSession.execute(createStage2LibraryFirstSeenIndex);
+            
+            String createStage2LibraryLastSeenIndex = String.format(
+                "CREATE INDEX IF NOT EXISTS idx_stage2_library_last_seen ON %s.%s (%s)",
+                databaseName, SchemaConstants.STAGE2_LIBRARY_TABLE, SchemaConstants.COL_LAST_SEEN);
+            cqlSession.execute(createStage2LibraryLastSeenIndex);
+            
+            // STAGE2_LIBRARY_CVE indexes (based on actual table structure)
+            String createStage2LibraryCveSeverityIndex = String.format(
+                "CREATE INDEX IF NOT EXISTS idx_stage2_library_cve_severity ON %s.%s (%s)",
+                databaseName, SchemaConstants.STAGE2_LIBRARY_CVE_TABLE, SchemaConstants.COL_CVSS_SEVERITY);
+            cqlSession.execute(createStage2LibraryCveSeverityIndex);
+            
+            String createStage2LibraryCvePublishedIndex = String.format(
+                "CREATE INDEX IF NOT EXISTS idx_stage2_library_cve_published ON %s.%s (%s)",
+                databaseName, SchemaConstants.STAGE2_LIBRARY_CVE_TABLE, SchemaConstants.COL_PUBLISHED_DATE);
+            cqlSession.execute(createStage2LibraryCvePublishedIndex);
+            
+            String createStage2LibraryCveCvssV3Index = String.format(
+                "CREATE INDEX IF NOT EXISTS idx_stage2_library_cve_cvss_v3 ON %s.%s (%s)",
+                databaseName, SchemaConstants.STAGE2_LIBRARY_CVE_TABLE, SchemaConstants.COL_CVSS_V3);
+            cqlSession.execute(createStage2LibraryCveCvssV3Index);
+            
             logger.info("Successfully created all Cassandra indexes");
             
         } finally {
@@ -221,6 +270,16 @@ public class CassandraSchema extends AbstractDatabaseSchema {
             cqlSession = getCqlSession();
             
             // Drop tables (order doesn't matter much in Cassandra since no foreign keys)
+            String dropStage2LibraryCveTable = String.format(
+                SchemaConstants.SQLTemplates.DROP_STAGE2_LIBRARY_CVE_CASSANDRA, databaseName);
+            cqlSession.execute(dropStage2LibraryCveTable);
+            logger.info("Dropped STAGE2_LIBRARY_CVE table from Cassandra");
+            
+            String dropStage2LibraryTable = String.format(
+                SchemaConstants.SQLTemplates.DROP_STAGE2_LIBRARY_CASSANDRA, databaseName);
+            cqlSession.execute(dropStage2LibraryTable);
+            logger.info("Dropped STAGE2_LIBRARY table from Cassandra");
+            
             String dropStage1KeypairTable = String.format(
                 SchemaConstants.SQLTemplates.DROP_STAGE1_EVENT_KEYPAIR_CASSANDRA, databaseName);
             cqlSession.execute(dropStage1KeypairTable);
@@ -272,13 +331,24 @@ public class CassandraSchema extends AbstractDatabaseSchema {
                 keyspaceMetadata.get().getTable(SchemaConstants.STAGE1_EVENT_KEYPAIR_TABLE);
             boolean stage1KeypairExists = stage1KeypairMetadata.isPresent();
             
-            boolean allTablesExist = stage0EventExists && stage1EventExists && stage1KeypairExists;
+            // Check if STAGE2_LIBRARY table exists
+            Optional<TableMetadata> stage2LibraryMetadata = 
+                keyspaceMetadata.get().getTable(SchemaConstants.STAGE2_LIBRARY_TABLE);
+            boolean stage2LibraryExists = stage2LibraryMetadata.isPresent();
+            
+            // Check if STAGE2_LIBRARY_CVE table exists
+            Optional<TableMetadata> stage2LibraryCveMetadata = 
+                keyspaceMetadata.get().getTable(SchemaConstants.STAGE2_LIBRARY_CVE_TABLE);
+            boolean stage2LibraryCveExists = stage2LibraryCveMetadata.isPresent();
+            
+            boolean allTablesExist = stage0EventExists && stage1EventExists && stage1KeypairExists && 
+                                   stage2LibraryExists && stage2LibraryCveExists;
             
             if (allTablesExist) {
                 logger.info("All required Cassandra tables exist");
             } else {
-                logger.warning(String.format("Missing Cassandra tables - Stage0Event: %b, Stage1Event: %b, Stage1KeyPair: %b", 
-                    stage0EventExists, stage1EventExists, stage1KeypairExists));
+                logger.warning(String.format("Missing Cassandra tables - Stage0Event: %b, Stage1Event: %b, Stage1KeyPair: %b, Stage2Library: %b, Stage2LibraryCve: %b", 
+                    stage0EventExists, stage1EventExists, stage1KeypairExists, stage2LibraryExists, stage2LibraryCveExists));
             }
             
             return allTablesExist;
@@ -311,7 +381,14 @@ public class CassandraSchema extends AbstractDatabaseSchema {
             // Check STAGE1_EVENT_KEYPAIR table structure  
             boolean stage1KeypairValid = validateStage1KeypairTableStructure(keyspaceMetadata.get());
             
-            boolean structureValid = stage0EventValid && stage1EventValid && stage1KeypairValid;
+            // Check STAGE2_LIBRARY table structure
+            boolean stage2LibraryValid = validateStage2LibraryTableStructure(keyspaceMetadata.get());
+            
+            // Check STAGE2_LIBRARY_CVE table structure
+            boolean stage2LibraryCveValid = validateStage2LibraryCveTableStructure(keyspaceMetadata.get());
+            
+            boolean structureValid = stage0EventValid && stage1EventValid && stage1KeypairValid && 
+                                   stage2LibraryValid && stage2LibraryCveValid;
             
             if (structureValid) {
                 logger.info("Cassandra table structures are valid");
@@ -406,6 +483,54 @@ public class CassandraSchema extends AbstractDatabaseSchema {
             
         } catch (Exception e) {
             logger.log(Level.WARNING, "Failed to validate STAGE1_EVENT_KEYPAIR table structure", e);
+            return false;
+        }
+    }
+
+    /**
+     * Validate the structure of the STAGE2_LIBRARY table.
+     */
+    private boolean validateStage2LibraryTableStructure(KeyspaceMetadata keyspaceMetadata) {
+        try {
+            Optional<TableMetadata> tableMetadata = 
+                keyspaceMetadata.getTable(SchemaConstants.STAGE2_LIBRARY_TABLE);
+            
+            if (tableMetadata.isEmpty()) {
+                return false;
+            }
+            
+            TableMetadata table = tableMetadata.get();
+            int columnCount = table.getColumns().size();
+            
+            // Should have 12 columns based on SchemaConstants definition
+            return columnCount == 12;
+            
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Failed to validate STAGE2_LIBRARY table structure", e);
+            return false;
+        }
+    }
+    
+    /**
+     * Validate the structure of the STAGE2_LIBRARY_CVE table.
+     */
+    private boolean validateStage2LibraryCveTableStructure(KeyspaceMetadata keyspaceMetadata) {
+        try {
+            Optional<TableMetadata> tableMetadata = 
+                keyspaceMetadata.getTable(SchemaConstants.STAGE2_LIBRARY_CVE_TABLE);
+            
+            if (tableMetadata.isEmpty()) {
+                return false;
+            }
+            
+            TableMetadata table = tableMetadata.get();
+            int columnCount = table.getColumns().size();
+            
+            // Should have 11 columns based on SchemaConstants definition
+            return columnCount == 11;
+            
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Failed to validate STAGE2_LIBRARY_CVE table structure", e);
             return false;
         }
     }

@@ -1,43 +1,58 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration debug="true" scan="false">
+<configuration debug="false" scan="false" scanPeriod="1 minutes">
 
-    <!-- System properties for flexible configuration -->
-    <property name="LOG_HOME" value="/Users/milton/github/jvmxray/script/generate-events-common.log" />
-    
-    <!-- Agent message format - matches production agent format -->
-    <property name="MSG_FMT_LG" value="C:AP | %d{YYYY.MM.dd 'at' HH:mm:ss z} | %thread | %5level | %logger | %X | %msg%n" />
+    <property name="LOG_HOME" value="${jvmxray.common.logs}" />
+    <property name="DB_PATH" value="${jvmxray.test.home}/common/data/jvmxray-test.db" />
+    <property name="MSG_FMT_LG" value="C:CP | %d{YYYY.MM.dd 'at' HH:mm:ss z} | %thread | %5level | %logger | %X | %msg%n" />
 
-    <!-- Console appender for immediate feedback (optional) -->
+    <!-- Console appender for immediate feedback -->
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
             <pattern>${MSG_FMT_LG}</pattern>
         </encoder>
-        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-            <level>WARN</level>
-        </filter>
     </appender>
 
-    <!-- Optional file appender for debugging (can be removed in production) -->
-    <appender name="DEBUG_FILE" class="ch.qos.logback.core.FileAppender">
-        <file>${LOG_HOME}</file>
+    <!-- File appender for common platform logs -->
+    <appender name="PLATFORM" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/platform-misc-events.log</file>
         <immediateFlush>true</immediateFlush>
-        <append>false</append>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/platform-misc-events.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
         <encoder>
             <pattern>${MSG_FMT_LG}</pattern>
         </encoder>
-        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-            <level>DEBUG</level>
-        </filter>
     </appender>
 
-    <!-- 
-    Root logger configuration
-    Set to WARN to minimize noise, but capture important events
-    All agent sensor events should be handled by specific loggers above
-    -->
-    <root level="DEBUG">
+    <!-- Platform logging -->
+    <logger name="org.jvmxray.platform" level="INFO" additivity="false">
+        <appender-ref ref="PLATFORM" />
         <appender-ref ref="CONSOLE" />
-        <appender-ref ref="DEBUG_FILE" />
+    </logger>
+
+    <!-- Common module logging -->
+    <logger name="org.jvmxray.shared" level="INFO" additivity="false">
+        <appender-ref ref="PLATFORM" />
+        <appender-ref ref="CONSOLE" />
+    </logger>
+
+    <!-- Test data generator logging -->
+    <logger name="org.jvmxray.platform.shared.bin.TestDataGenerator" level="INFO" additivity="false">
+        <appender-ref ref="PLATFORM" />
+        <appender-ref ref="CONSOLE" />
+    </logger>
+
+    <!-- Turtle integration test logging -->
+    <logger name="org.jvmxray.shared.integration.turtle.TurtleIntegrationTest" level="INFO" additivity="false">
+        <appender-ref ref="PLATFORM" />
+        <appender-ref ref="CONSOLE" />
+    </logger>
+
+    <!-- Root logger -->
+    <root level="WARN">
+        <appender-ref ref="CONSOLE" />
     </root>
 
 </configuration>
