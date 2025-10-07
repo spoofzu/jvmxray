@@ -55,7 +55,7 @@ public class SQLiteAppender extends AppenderBase<ILoggingEvent> {
         SchemaConstants.COL_EVENT_ID + ", " +
         SchemaConstants.COL_CONFIG_FILE + ", " +
         SchemaConstants.COL_TIMESTAMP + ", " +
-        SchemaConstants.COL_THREAD_ID + ", " +
+        SchemaConstants.COL_CURRENT_THREAD_ID + ", " +
         SchemaConstants.COL_PRIORITY + ", " +
         SchemaConstants.COL_NAMESPACE + ", " +
         SchemaConstants.COL_AID + ", " +

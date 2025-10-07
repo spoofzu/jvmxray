@@ -72,12 +72,25 @@ public class FileIOSensor extends AbstractSensor implements InjectableSensor {
                 org.jvmxray.platform.shared.property.AgentProperties.class,
                 org.jvmxray.platform.shared.property.PropertyBase.class,
                 org.jvmxray.platform.shared.property.IProperties.class,
+                // Utility classes
+                org.jvmxray.platform.shared.util.MCCScope.class,
+                org.jvmxray.platform.shared.util.MCC.class,
+                // File statistics tracking
+                FileStats.class,
                 // Unified file I/O interceptor and inner classes
                 FileIOInterceptor.class,
                 FileIOInterceptor.FileOps.class,
                 FileIOInterceptor.FilesOps.class,
                 FileIOInterceptor.Read.class,
-                FileIOInterceptor.Update.class
+                FileIOInterceptor.Update.class,
+                FileIOInterceptor.InputStreamReadByte.class,
+                FileIOInterceptor.InputStreamReadArray.class,
+                FileIOInterceptor.InputStreamReadArrayOffset.class,
+                FileIOInterceptor.InputStreamClose.class,
+                FileIOInterceptor.OutputStreamWriteByte.class,
+                FileIOInterceptor.OutputStreamWriteArray.class,
+                FileIOInterceptor.OutputStreamWriteArrayOffset.class,
+                FileIOInterceptor.OutputStreamClose.class
         };
     }
 
@@ -113,17 +126,57 @@ public class FileIOSensor extends AbstractSensor implements InjectableSensor {
                         new MethodSpec("deleteIfExists", java.nio.file.Path.class),
                         new MethodSpec("copy", java.nio.file.Path.class, java.nio.file.Path.class, java.nio.file.CopyOption[].class)
                 ),
-                // Instrument FileInputStream constructor - Read operation
+                // Instrument FileInputStream constructor and operations
                 new Transform(
                         java.io.FileInputStream.class,
                         FileIOInterceptor.Read.class,
                         new MethodSpec("<init>", java.io.File.class)
                 ),
-                // Instrument FileOutputStream constructor - Update operation
+                new Transform(
+                        java.io.FileInputStream.class,
+                        FileIOInterceptor.InputStreamReadByte.class,
+                        new MethodSpec("read")
+                ),
+                new Transform(
+                        java.io.FileInputStream.class,
+                        FileIOInterceptor.InputStreamReadArray.class,
+                        new MethodSpec("read", byte[].class)
+                ),
+                new Transform(
+                        java.io.FileInputStream.class,
+                        FileIOInterceptor.InputStreamReadArrayOffset.class,
+                        new MethodSpec("read", byte[].class, int.class, int.class)
+                ),
+                new Transform(
+                        java.io.FileInputStream.class,
+                        FileIOInterceptor.InputStreamClose.class,
+                        new MethodSpec("close")
+                ),
+                // Instrument FileOutputStream constructor and operations
                 new Transform(
                         java.io.FileOutputStream.class,
                         FileIOInterceptor.Update.class,
                         new MethodSpec("<init>", java.io.File.class)
+                ),
+                new Transform(
+                        java.io.FileOutputStream.class,
+                        FileIOInterceptor.OutputStreamWriteByte.class,
+                        new MethodSpec("write", int.class)
+                ),
+                new Transform(
+                        java.io.FileOutputStream.class,
+                        FileIOInterceptor.OutputStreamWriteArray.class,
+                        new MethodSpec("write", byte[].class)
+                ),
+                new Transform(
+                        java.io.FileOutputStream.class,
+                        FileIOInterceptor.OutputStreamWriteArrayOffset.class,
+                        new MethodSpec("write", byte[].class, int.class, int.class)
+                ),
+                new Transform(
+                        java.io.FileOutputStream.class,
+                        FileIOInterceptor.OutputStreamClose.class,
+                        new MethodSpec("close")
                 )
         };
     }

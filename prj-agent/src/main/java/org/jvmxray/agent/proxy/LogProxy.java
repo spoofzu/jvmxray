@@ -21,11 +21,11 @@ public class LogProxy {
     private static final String AGENT_PACKAGE = "org.jvmxray";
     // Framework prefixes to filter out from stack traces
     private static final Set<String> FRAMEWORK_PREFIXES = new HashSet<>(Set.of(
-            "java.lang.reflect",
-            "sun.reflect",
-            "jdk.internal.reflect",
-            "net.bytebuddy",
-            "org.jvmxray"
+            "java.",
+            "javax.",
+            "sun.",
+            "jdk.",
+            "net.bytebuddy"
     ));
 
     // Reference to AgentLogger class
@@ -173,7 +173,10 @@ public class LogProxy {
 
     /**
      * Logs an event using the AgentLogger instance.  Log messages are enriched with caller information,
-     * application id, and category id.
+     * application id, category id, and MCC (Mapped Correlation Context) data.
+     *
+     * <p>MCC integration: All correlation context from the current thread (trace_id, user_id, session_id, etc.)
+     * is automatically merged into the event metadata, enabling event correlation across execution paths.</p>
      *
      * @param namespace The logging namespace.
      * @param level The log level (e.g., DEBUG, INFO, ERROR).
@@ -186,6 +189,33 @@ public class LogProxy {
             // Enrich metadata with caller info
             Map<String, String> enrichedMetadata = new HashMap<>(metadata);
             enrichedMetadata.put("caller", caller);
+
+            // Merge MCC (Mapped Correlation Context) data
+            // MCC provides correlation fields like trace_id, user_id, session_id, parent_thread_id
+            // These enable event correlation for security analysis and forensics
+            // Note: Sensors manage MCC lifecycle via enterScope/exitScope - LogProxy only reads context
+            try {
+                Class<?> mccClass = Class.forName("org.jvmxray.platform.shared.util.MCC");
+
+                // Get MCC context and merge into event metadata (passive read only)
+                java.lang.reflect.Method getCopyOfContextMethod = mccClass.getMethod("getCopyOfContext");
+                @SuppressWarnings("unchecked")
+                Map<String, String> mccContext = (Map<String, String>) getCopyOfContextMethod.invoke(null);
+
+                if (mccContext != null && !mccContext.isEmpty()) {
+                    // MCC values do not override explicit sensor metadata
+                    // This allows sensors to provide specific values that take precedence
+                    for (Map.Entry<String, String> entry : mccContext.entrySet()) {
+                        enrichedMetadata.putIfAbsent(entry.getKey(), entry.getValue());
+                    }
+                }
+            } catch (ClassNotFoundException e) {
+                // MCC not available - this is expected in minimal deployments
+                // No action needed, events will just lack correlation context
+            } catch (Exception e) {
+                // MCC integration failed - log but don't fail the event
+                System.err.println("LogProxy: Warning - Failed to merge MCC context: " + e.getMessage());
+            }
 
             // Invoke logEvent method if initialized
             if (logEventMethod != null && agentLoggerInstance != null) {
@@ -229,6 +259,15 @@ public class LogProxy {
     /**
      * Captures caller information from the stack trace, excluding framework and agent classes.
      *
+     * Filters out:
+     * - JDK packages (java.*, javax.*, sun.*, jdk.*)
+     * - ByteBuddy framework (net.bytebuddy.*)
+     * - JVMXRay agent code (org.jvmxray.* except test/integration packages)
+     *
+     * Keeps:
+     * - User application code
+     * - Test code (org.jvmxray packages containing .test. or .integration.)
+     *
      * @param namespace The logging namespace (for context, not used in logic).
      * @return A string in the format "className:lineNumber" representing the caller, or "unknown:0" if not found.
      */
@@ -239,15 +278,28 @@ public class LogProxy {
         for (StackTraceElement element : stack) {
             String className = element.getClassName();
             boolean isFrameworkFrame = false;
-            // Check if the class belongs to a framework or agent package
+
+            // Check if the class belongs to a framework package
             for (String prefix : FRAMEWORK_PREFIXES) {
                 if (className.startsWith(prefix)) {
                     isFrameworkFrame = true;
                     break;
                 }
             }
-            // Select the first non-framework, non-agent class
-            if (!isFrameworkFrame && !className.startsWith(AGENT_PACKAGE)) {
+
+            // Check if it's JVMXRay code
+            boolean isJvmxrayCode = className.startsWith(AGENT_PACKAGE);
+            boolean isTestCode = false;
+
+            if (isJvmxrayCode) {
+                // Keep test and integration packages
+                isTestCode = className.contains(".test.") || className.contains(".integration.");
+            }
+
+            // Select the first non-framework class that is either:
+            // 1. Not JVMXRay code, OR
+            // 2. JVMXRay test/integration code
+            if (!isFrameworkFrame && (!isJvmxrayCode || isTestCode)) {
                 result = className + ":" + element.getLineNumber();
                 break;
             }

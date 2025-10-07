@@ -28,6 +28,7 @@
     <module>prj-agent</module>
     <module>prj-service-log</module>
     <module>prj-service-rest</module>
+    <module>prj-service-ai</module>
   </modules>
   <properties>
     <maven.compiler.source>11</maven.compiler.source>

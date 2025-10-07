@@ -5,6 +5,7 @@ import org.jvmxray.agent.proxy.LogProxy;
 import org.jvmxray.agent.sensor.AbstractSensor;
 import org.jvmxray.agent.init.AgentInitializer;
 import org.jvmxray.platform.shared.property.AgentProperties;
+import org.jvmxray.platform.shared.util.MCCScope;
 
 import java.io.File;
 import java.util.HashMap;
@@ -80,21 +81,26 @@ public class ProcessInterceptor {
     public static class ProcessBuilderStart {
         @Advice.OnMethodEnter
         public static void enter(@Advice.This ProcessBuilder pb) {
-            if (shouldCapture('E')) {
-                try {
-                    List<String> command = pb.command();
-                    if (command != null && !command.isEmpty()) {
-                        String executable = command.get(0);
-                        String[] args = command.size() > 1 ? 
-                            command.subList(1, command.size()).toArray(new String[0]) : 
-                            new String[0];
-                        File workingDir = pb.directory();
-                        String workingDirPath = workingDir != null ? workingDir.getAbsolutePath() : null;
-                        logProcessExecution(executable, args, workingDirPath);
+            MCCScope.enter("Process");
+            try {
+                if (shouldCapture('E')) {
+                    try {
+                        List<String> command = pb.command();
+                        if (command != null && !command.isEmpty()) {
+                            String executable = command.get(0);
+                            String[] args = command.size() > 1 ?
+                                command.subList(1, command.size()).toArray(new String[0]) :
+                                new String[0];
+                            File workingDir = pb.directory();
+                            String workingDirPath = workingDir != null ? workingDir.getAbsolutePath() : null;
+                            logProcessExecution(executable, args, workingDirPath);
+                        }
+                    } catch (Exception e) {
+                        // Silently ignore errors in logging to avoid breaking the application
                     }
-                } catch (Exception e) {
-                    // Silently ignore errors in logging to avoid breaking the application
                 }
+            } finally {
+                MCCScope.exit("Process");
             }
         }
     }
@@ -103,34 +109,39 @@ public class ProcessInterceptor {
     public static class RuntimeExec {
         @Advice.OnMethodEnter
         public static void enter(@Advice.AllArguments Object[] args) {
-            if (shouldCapture('E')) {
-                try {
-                    if (args.length >= 1) {
-                        if (args[0] instanceof String) {
-                            // Runtime.exec(String command) or Runtime.exec(String command, String[] envp) 
-                            // or Runtime.exec(String command, String[] envp, File dir)
-                            String command = (String) args[0];
-                            File workingDir = args.length >= 3 && args[2] instanceof File ? (File) args[2] : null;
-                            String workingDirPath = workingDir != null ? workingDir.getAbsolutePath() : null;
-                            logProcessExecution(command, null, workingDirPath);
-                        } else if (args[0] instanceof String[]) {
-                            // Runtime.exec(String[] cmdarray) or Runtime.exec(String[] cmdarray, String[] envp) 
-                            // or Runtime.exec(String[] cmdarray, String[] envp, File dir)
-                            String[] cmdarray = (String[]) args[0];
-                            if (cmdarray.length > 0) {
-                                String executable = cmdarray[0];
-                                String[] processArgs = cmdarray.length > 1 ? 
-                                    java.util.Arrays.copyOfRange(cmdarray, 1, cmdarray.length) : 
-                                    new String[0];
+            MCCScope.enter("Process");
+            try {
+                if (shouldCapture('E')) {
+                    try {
+                        if (args.length >= 1) {
+                            if (args[0] instanceof String) {
+                                // Runtime.exec(String command) or Runtime.exec(String command, String[] envp)
+                                // or Runtime.exec(String command, String[] envp, File dir)
+                                String command = (String) args[0];
                                 File workingDir = args.length >= 3 && args[2] instanceof File ? (File) args[2] : null;
                                 String workingDirPath = workingDir != null ? workingDir.getAbsolutePath() : null;
-                                logProcessExecution(executable, processArgs, workingDirPath);
+                                logProcessExecution(command, null, workingDirPath);
+                            } else if (args[0] instanceof String[]) {
+                                // Runtime.exec(String[] cmdarray) or Runtime.exec(String[] cmdarray, String[] envp)
+                                // or Runtime.exec(String[] cmdarray, String[] envp, File dir)
+                                String[] cmdarray = (String[]) args[0];
+                                if (cmdarray.length > 0) {
+                                    String executable = cmdarray[0];
+                                    String[] processArgs = cmdarray.length > 1 ?
+                                        java.util.Arrays.copyOfRange(cmdarray, 1, cmdarray.length) :
+                                        new String[0];
+                                    File workingDir = args.length >= 3 && args[2] instanceof File ? (File) args[2] : null;
+                                    String workingDirPath = workingDir != null ? workingDir.getAbsolutePath() : null;
+                                    logProcessExecution(executable, processArgs, workingDirPath);
+                                }
                             }
                         }
+                    } catch (Exception e) {
+                        // Silently ignore errors in logging to avoid breaking the application
                     }
-                } catch (Exception e) {
-                    // Silently ignore errors in logging to avoid breaking the application
                 }
+            } finally {
+                MCCScope.exit("Process");
             }
         }
     }

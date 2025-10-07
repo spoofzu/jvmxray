@@ -23,12 +23,14 @@ public final class SchemaConstants {
     public static final String STAGE1_EVENT_TABLE = "STAGE1_EVENT";
     public static final String STAGE1_EVENT_KEYPAIR_TABLE = "STAGE1_EVENT_KEYPAIR";
     public static final String API_KEY_TABLE = "API_KEY";
+    public static final String STAGE2_LIBRARY_TABLE = "STAGE2_LIBRARY";
+    public static final String STAGE2_LIBRARY_CVE_TABLE = "STAGE2_LIBRARY_CVE";
     
     // Common Column Names
     public static final String COL_EVENT_ID = "EVENT_ID";
     public static final String COL_CONFIG_FILE = "CONFIG_FILE";
     public static final String COL_TIMESTAMP = "TIMESTAMP";
-    public static final String COL_THREAD_ID = "THREAD_ID";
+    public static final String COL_CURRENT_THREAD_ID = "CURRENT_THREAD_ID";
     public static final String COL_PRIORITY = "PRIORITY";
     public static final String COL_NAMESPACE = "NAMESPACE";
     public static final String COL_AID = "AID";
@@ -47,6 +49,36 @@ public final class SchemaConstants {
     public static final String COL_CREATED_AT = "CREATED_AT";
     public static final String COL_LAST_USED = "LAST_USED";
 
+    // STAGE2_LIBRARY table column names
+    public static final String COL_LIBRARY_ID = "LIBRARY_ID";
+    public static final String COL_JARPATH = "JARPATH";
+    public static final String COL_LIBRARY_NAME = "LIBRARY_NAME";
+    public static final String COL_SHA256_HASH = "SHA256_HASH";
+    public static final String COL_METHOD = "METHOD";
+    public static final String COL_GROUP_ID = "GROUP_ID";
+    public static final String COL_ARTIFACT_ID = "ARTIFACT_ID";
+    public static final String COL_VERSION = "VERSION";
+    public static final String COL_IMPL_TITLE = "IMPL_TITLE";
+    public static final String COL_IMPL_VENDOR = "IMPL_VENDOR";
+    public static final String COL_PACKAGE_NAMES = "PACKAGE_NAMES";
+    public static final String COL_FIRST_SEEN = "FIRST_SEEN";
+    public static final String COL_LAST_SEEN = "LAST_SEEN";
+    public static final String COL_REMOVED_ON = "REMOVED_ON";
+    public static final String COL_IS_ACTIVE = "IS_ACTIVE";
+
+    // STAGE2_LIBRARY_CVE table column names
+    public static final String COL_CVE_ID = "CVE_ID";
+    public static final String COL_CVE_NAME = "CVE_NAME";
+    public static final String COL_CVSS_SEVERITY = "CVSS_SEVERITY";
+    public static final String COL_CVSS_V3 = "CVSS_V3";
+    public static final String COL_DESCRIPTION = "DESCRIPTION";
+    public static final String COL_PUBLISHED_DATE = "PUBLISHED_DATE";
+    public static final String COL_LAST_MODIFIED = "LAST_MODIFIED";
+    public static final String COL_AFFECTED_LIBRARIES = "AFFECTED_LIBRARIES";
+    public static final String COL_FIXED_VERSIONS = "FIXED_VERSIONS";
+    public static final String COL_REFERENCE_URLS = "REFERENCE_URLS";
+    public static final String COL_CWE_IDS = "CWE_IDS";
+
     // Data Type Mappings
     public static final class DataTypes {
         // Common data types across databases
@@ -62,6 +94,7 @@ public final class SchemaConstants {
             public static final String BIGINT = "BIGINT";
             public static final String BOOLEAN = "BOOLEAN";
             public static final String VARCHAR = "VARCHAR";
+            public static final String DECIMAL_3_1 = "DECIMAL";
         }
         
         // MySQL-specific types
@@ -70,6 +103,7 @@ public final class SchemaConstants {
             public static final String TEXT = "TEXT";
             public static final String BIGINT = "BIGINT";
             public static final String BOOLEAN = "BOOLEAN";
+            public static final String DECIMAL_3_1 = "DECIMAL(3,1)";
         }
         
         // SQLite-specific types
@@ -77,6 +111,7 @@ public final class SchemaConstants {
             public static final String TEXT = "TEXT";
             public static final String INTEGER = "INTEGER";
             public static final String BOOLEAN = "INTEGER"; // SQLite uses INTEGER for boolean
+            public static final String DECIMAL_3_1 = "REAL"; // SQLite uses REAL for decimals
         }
     }
     
@@ -89,7 +124,7 @@ public final class SchemaConstants {
             COL_EVENT_ID + " " + DataTypes.MySQL.VARCHAR_255 + " PRIMARY KEY, " +
             COL_CONFIG_FILE + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
             COL_TIMESTAMP + " " + DataTypes.MySQL.BIGINT + ", " +
-            COL_THREAD_ID + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
+            COL_CURRENT_THREAD_ID + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
             COL_PRIORITY + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
             COL_NAMESPACE + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
             COL_AID + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
@@ -102,7 +137,7 @@ public final class SchemaConstants {
             COL_EVENT_ID + " " + DataTypes.SQLite.TEXT + " PRIMARY KEY, " +
             COL_CONFIG_FILE + " " + DataTypes.SQLite.TEXT + ", " +
             COL_TIMESTAMP + " " + DataTypes.SQLite.INTEGER + ", " +
-            COL_THREAD_ID + " " + DataTypes.SQLite.TEXT + ", " +
+            COL_CURRENT_THREAD_ID + " " + DataTypes.SQLite.TEXT + ", " +
             COL_PRIORITY + " " + DataTypes.SQLite.TEXT + ", " +
             COL_NAMESPACE + " " + DataTypes.SQLite.TEXT + ", " +
             COL_AID + " " + DataTypes.SQLite.TEXT + ", " +
@@ -115,7 +150,7 @@ public final class SchemaConstants {
             COL_EVENT_ID + " " + DataTypes.Cassandra.TEXT + " PRIMARY KEY, " +
             COL_CONFIG_FILE + " " + DataTypes.Cassandra.TEXT + ", " +
             COL_TIMESTAMP + " " + DataTypes.Cassandra.BIGINT + ", " +
-            COL_THREAD_ID + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_CURRENT_THREAD_ID + " " + DataTypes.Cassandra.TEXT + ", " +
             COL_PRIORITY + " " + DataTypes.Cassandra.TEXT + ", " +
             COL_NAMESPACE + " " + DataTypes.Cassandra.TEXT + ", " +
             COL_AID + " " + DataTypes.Cassandra.TEXT + ", " +
@@ -124,42 +159,45 @@ public final class SchemaConstants {
             ")";
         
         // STAGE1_EVENT table creation templates (processed events with IS_STABLE)
-        public static final String CREATE_STAGE1_EVENT_MYSQL = 
+        public static final String CREATE_STAGE1_EVENT_MYSQL =
             "CREATE TABLE IF NOT EXISTS " + STAGE1_EVENT_TABLE + " (" +
             COL_EVENT_ID + " " + DataTypes.MySQL.VARCHAR_255 + " PRIMARY KEY, " +
             COL_CONFIG_FILE + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
             COL_TIMESTAMP + " " + DataTypes.MySQL.BIGINT + ", " +
-            COL_THREAD_ID + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
+            COL_CURRENT_THREAD_ID + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
             COL_PRIORITY + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
             COL_NAMESPACE + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
             COL_AID + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
             COL_CID + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
+            COL_KEYPAIRS + " " + DataTypes.MySQL.TEXT + ", " +
             COL_IS_STABLE + " " + DataTypes.MySQL.BOOLEAN + " DEFAULT TRUE" +
             ")";
             
-        public static final String CREATE_STAGE1_EVENT_SQLITE = 
+        public static final String CREATE_STAGE1_EVENT_SQLITE =
             "CREATE TABLE IF NOT EXISTS " + STAGE1_EVENT_TABLE + " (" +
             COL_EVENT_ID + " " + DataTypes.SQLite.TEXT + " PRIMARY KEY, " +
             COL_CONFIG_FILE + " " + DataTypes.SQLite.TEXT + ", " +
             COL_TIMESTAMP + " " + DataTypes.SQLite.INTEGER + ", " +
-            COL_THREAD_ID + " " + DataTypes.SQLite.TEXT + ", " +
+            COL_CURRENT_THREAD_ID + " " + DataTypes.SQLite.TEXT + ", " +
             COL_PRIORITY + " " + DataTypes.SQLite.TEXT + ", " +
             COL_NAMESPACE + " " + DataTypes.SQLite.TEXT + ", " +
             COL_AID + " " + DataTypes.SQLite.TEXT + ", " +
             COL_CID + " " + DataTypes.SQLite.TEXT + ", " +
+            COL_KEYPAIRS + " " + DataTypes.SQLite.TEXT + ", " +
             COL_IS_STABLE + " " + DataTypes.SQLite.BOOLEAN + " DEFAULT 1" +
             ")";
             
-        public static final String CREATE_STAGE1_EVENT_CASSANDRA = 
+        public static final String CREATE_STAGE1_EVENT_CASSANDRA =
             "CREATE TABLE IF NOT EXISTS %s." + STAGE1_EVENT_TABLE + " (" +
             COL_EVENT_ID + " " + DataTypes.Cassandra.TEXT + " PRIMARY KEY, " +
             COL_CONFIG_FILE + " " + DataTypes.Cassandra.TEXT + ", " +
             COL_TIMESTAMP + " " + DataTypes.Cassandra.BIGINT + ", " +
-            COL_THREAD_ID + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_CURRENT_THREAD_ID + " " + DataTypes.Cassandra.TEXT + ", " +
             COL_PRIORITY + " " + DataTypes.Cassandra.TEXT + ", " +
             COL_NAMESPACE + " " + DataTypes.Cassandra.TEXT + ", " +
             COL_AID + " " + DataTypes.Cassandra.TEXT + ", " +
             COL_CID + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_KEYPAIRS + " " + DataTypes.Cassandra.TEXT + ", " +
             COL_IS_STABLE + " " + DataTypes.Cassandra.BOOLEAN +
             ")";
         
@@ -206,7 +244,7 @@ public final class SchemaConstants {
             COL_LAST_USED + " " + DataTypes.SQLite.INTEGER +
             ")";
             
-        public static final String CREATE_API_KEY_CASSANDRA = 
+        public static final String CREATE_API_KEY_CASSANDRA =
             "CREATE TABLE IF NOT EXISTS %s." + API_KEY_TABLE + " (" +
             COL_API_KEY + " " + DataTypes.Cassandra.TEXT + " PRIMARY KEY, " +
             COL_APP_NAME + " " + DataTypes.Cassandra.TEXT + ", " +
@@ -214,14 +252,140 @@ public final class SchemaConstants {
             COL_CREATED_AT + " " + DataTypes.Cassandra.BIGINT + ", " +
             COL_LAST_USED + " " + DataTypes.Cassandra.BIGINT +
             ")";
-            
+
+        // STAGE2_LIBRARY table creation templates
+        public static final String CREATE_STAGE2_LIBRARY_MYSQL =
+            "CREATE TABLE IF NOT EXISTS " + STAGE2_LIBRARY_TABLE + " (" +
+            COL_LIBRARY_ID + " " + DataTypes.MySQL.VARCHAR_255 + " PRIMARY KEY, " +
+            COL_EVENT_ID + " " + DataTypes.MySQL.VARCHAR_255 + " NOT NULL, " +
+            COL_AID + " " + DataTypes.MySQL.VARCHAR_255 + " NOT NULL, " +
+            COL_CID + " " + DataTypes.MySQL.VARCHAR_255 + " NOT NULL, " +
+            COL_JARPATH + " " + DataTypes.MySQL.TEXT + " NOT NULL, " +
+            COL_LIBRARY_NAME + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
+            COL_SHA256_HASH + " " + DataTypes.MySQL.VARCHAR_255 + " NOT NULL, " +
+            COL_METHOD + " " + DataTypes.MySQL.VARCHAR_255 + " NOT NULL, " +
+            COL_GROUP_ID + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
+            COL_ARTIFACT_ID + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
+            COL_VERSION + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
+            COL_IMPL_TITLE + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
+            COL_IMPL_VENDOR + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
+            COL_PACKAGE_NAMES + " " + DataTypes.MySQL.TEXT + ", " +
+            COL_FIRST_SEEN + " " + DataTypes.MySQL.BIGINT + " NOT NULL, " +
+            COL_LAST_SEEN + " " + DataTypes.MySQL.BIGINT + " NOT NULL, " +
+            COL_REMOVED_ON + " " + DataTypes.MySQL.BIGINT + ", " +
+            COL_IS_ACTIVE + " " + DataTypes.MySQL.BOOLEAN + " DEFAULT TRUE, " +
+            "INDEX idx_aid_active (" + COL_AID + ", " + COL_IS_ACTIVE + "), " +
+            "INDEX idx_event_id (" + COL_EVENT_ID + "), " +
+            "INDEX idx_sha256_hash (" + COL_SHA256_HASH + "), " +
+            "INDEX idx_maven_coords (" + COL_GROUP_ID + ", " + COL_ARTIFACT_ID + ", " + COL_VERSION + "), " +
+            "INDEX idx_first_seen (" + COL_FIRST_SEEN + "), " +
+            "INDEX idx_jarpath (" + COL_JARPATH + "(255))" +
+            ")";
+
+        public static final String CREATE_STAGE2_LIBRARY_SQLITE =
+            "CREATE TABLE IF NOT EXISTS " + STAGE2_LIBRARY_TABLE + " (" +
+            COL_LIBRARY_ID + " " + DataTypes.SQLite.TEXT + " PRIMARY KEY, " +
+            COL_EVENT_ID + " " + DataTypes.SQLite.TEXT + " NOT NULL, " +
+            COL_AID + " " + DataTypes.SQLite.TEXT + " NOT NULL, " +
+            COL_CID + " " + DataTypes.SQLite.TEXT + " NOT NULL, " +
+            COL_JARPATH + " " + DataTypes.SQLite.TEXT + " NOT NULL, " +
+            COL_LIBRARY_NAME + " " + DataTypes.SQLite.TEXT + ", " +
+            COL_SHA256_HASH + " " + DataTypes.SQLite.TEXT + " NOT NULL, " +
+            COL_METHOD + " " + DataTypes.SQLite.TEXT + " NOT NULL, " +
+            COL_GROUP_ID + " " + DataTypes.SQLite.TEXT + ", " +
+            COL_ARTIFACT_ID + " " + DataTypes.SQLite.TEXT + ", " +
+            COL_VERSION + " " + DataTypes.SQLite.TEXT + ", " +
+            COL_IMPL_TITLE + " " + DataTypes.SQLite.TEXT + ", " +
+            COL_IMPL_VENDOR + " " + DataTypes.SQLite.TEXT + ", " +
+            COL_PACKAGE_NAMES + " " + DataTypes.SQLite.TEXT + ", " +
+            COL_FIRST_SEEN + " " + DataTypes.SQLite.INTEGER + " NOT NULL, " +
+            COL_LAST_SEEN + " " + DataTypes.SQLite.INTEGER + " NOT NULL, " +
+            COL_REMOVED_ON + " " + DataTypes.SQLite.INTEGER + ", " +
+            COL_IS_ACTIVE + " " + DataTypes.SQLite.BOOLEAN + " DEFAULT 1" +
+            ")";
+
+        public static final String CREATE_STAGE2_LIBRARY_CASSANDRA =
+            "CREATE TABLE IF NOT EXISTS %s." + STAGE2_LIBRARY_TABLE + " (" +
+            COL_LIBRARY_ID + " " + DataTypes.Cassandra.TEXT + " PRIMARY KEY, " +
+            COL_EVENT_ID + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_AID + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_CID + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_JARPATH + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_LIBRARY_NAME + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_SHA256_HASH + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_METHOD + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_GROUP_ID + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_ARTIFACT_ID + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_VERSION + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_IMPL_TITLE + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_IMPL_VENDOR + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_PACKAGE_NAMES + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_FIRST_SEEN + " " + DataTypes.Cassandra.BIGINT + ", " +
+            COL_LAST_SEEN + " " + DataTypes.Cassandra.BIGINT + ", " +
+            COL_REMOVED_ON + " " + DataTypes.Cassandra.BIGINT + ", " +
+            COL_IS_ACTIVE + " " + DataTypes.Cassandra.BOOLEAN +
+            ")";
+
+        // STAGE2_LIBRARY_CVE table creation templates
+        public static final String CREATE_STAGE2_LIBRARY_CVE_MYSQL =
+            "CREATE TABLE IF NOT EXISTS " + STAGE2_LIBRARY_CVE_TABLE + " (" +
+            COL_CVE_ID + " " + DataTypes.MySQL.VARCHAR_255 + " PRIMARY KEY, " +
+            COL_CVE_NAME + " " + DataTypes.MySQL.VARCHAR_255 + " NOT NULL, " +
+            COL_CVSS_SEVERITY + " " + DataTypes.MySQL.VARCHAR_255 + " NOT NULL, " +
+            COL_CVSS_V3 + " " + DataTypes.MySQL.DECIMAL_3_1 + " NOT NULL, " +
+            COL_DESCRIPTION + " " + DataTypes.MySQL.TEXT + " NOT NULL, " +
+            COL_PUBLISHED_DATE + " " + DataTypes.MySQL.BIGINT + ", " +
+            COL_LAST_MODIFIED + " " + DataTypes.MySQL.BIGINT + ", " +
+            COL_AFFECTED_LIBRARIES + " " + DataTypes.MySQL.TEXT + ", " +
+            COL_FIXED_VERSIONS + " " + DataTypes.MySQL.TEXT + ", " +
+            COL_REFERENCE_URLS + " " + DataTypes.MySQL.TEXT + ", " +
+            COL_CWE_IDS + " " + DataTypes.MySQL.VARCHAR_255 + ", " +
+            "INDEX idx_cvss_severity (" + COL_CVSS_SEVERITY + "), " +
+            "INDEX idx_cvss_v3 (" + COL_CVSS_V3 + "), " +
+            "INDEX idx_published_date (" + COL_PUBLISHED_DATE + ")" +
+            ")";
+
+        public static final String CREATE_STAGE2_LIBRARY_CVE_SQLITE =
+            "CREATE TABLE IF NOT EXISTS " + STAGE2_LIBRARY_CVE_TABLE + " (" +
+            COL_CVE_ID + " " + DataTypes.SQLite.TEXT + " PRIMARY KEY, " +
+            COL_CVE_NAME + " " + DataTypes.SQLite.TEXT + " NOT NULL, " +
+            COL_CVSS_SEVERITY + " " + DataTypes.SQLite.TEXT + " NOT NULL, " +
+            COL_CVSS_V3 + " " + DataTypes.SQLite.DECIMAL_3_1 + " NOT NULL, " +
+            COL_DESCRIPTION + " " + DataTypes.SQLite.TEXT + " NOT NULL, " +
+            COL_PUBLISHED_DATE + " " + DataTypes.SQLite.INTEGER + ", " +
+            COL_LAST_MODIFIED + " " + DataTypes.SQLite.INTEGER + ", " +
+            COL_AFFECTED_LIBRARIES + " " + DataTypes.SQLite.TEXT + ", " +
+            COL_FIXED_VERSIONS + " " + DataTypes.SQLite.TEXT + ", " +
+            COL_REFERENCE_URLS + " " + DataTypes.SQLite.TEXT + ", " +
+            COL_CWE_IDS + " " + DataTypes.SQLite.TEXT +
+            ")";
+
+        public static final String CREATE_STAGE2_LIBRARY_CVE_CASSANDRA =
+            "CREATE TABLE IF NOT EXISTS %s." + STAGE2_LIBRARY_CVE_TABLE + " (" +
+            COL_CVE_ID + " " + DataTypes.Cassandra.TEXT + " PRIMARY KEY, " +
+            COL_CVE_NAME + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_CVSS_SEVERITY + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_CVSS_V3 + " " + DataTypes.Cassandra.DECIMAL_3_1 + ", " +
+            COL_DESCRIPTION + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_PUBLISHED_DATE + " " + DataTypes.Cassandra.BIGINT + ", " +
+            COL_LAST_MODIFIED + " " + DataTypes.Cassandra.BIGINT + ", " +
+            COL_AFFECTED_LIBRARIES + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_FIXED_VERSIONS + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_REFERENCE_URLS + " " + DataTypes.Cassandra.TEXT + ", " +
+            COL_CWE_IDS + " " + DataTypes.Cassandra.TEXT +
+            ")";
+
         // Drop table statements
         public static final String DROP_STAGE0_EVENT = "DROP TABLE IF EXISTS " + STAGE0_EVENT_TABLE;
         public static final String DROP_STAGE1_EVENT = "DROP TABLE IF EXISTS " + STAGE1_EVENT_TABLE;
         public static final String DROP_STAGE1_EVENT_KEYPAIR = "DROP TABLE IF EXISTS " + STAGE1_EVENT_KEYPAIR_TABLE;
+        public static final String DROP_STAGE2_LIBRARY = "DROP TABLE IF EXISTS " + STAGE2_LIBRARY_TABLE;
+        public static final String DROP_STAGE2_LIBRARY_CVE = "DROP TABLE IF EXISTS " + STAGE2_LIBRARY_CVE_TABLE;
         public static final String DROP_STAGE0_EVENT_CASSANDRA = "DROP TABLE IF EXISTS %s." + STAGE0_EVENT_TABLE;
         public static final String DROP_STAGE1_EVENT_CASSANDRA = "DROP TABLE IF EXISTS %s." + STAGE1_EVENT_TABLE;
         public static final String DROP_STAGE1_EVENT_KEYPAIR_CASSANDRA = "DROP TABLE IF EXISTS %s." + STAGE1_EVENT_KEYPAIR_TABLE;
+        public static final String DROP_STAGE2_LIBRARY_CASSANDRA = "DROP TABLE IF EXISTS %s." + STAGE2_LIBRARY_TABLE;
+        public static final String DROP_STAGE2_LIBRARY_CVE_CASSANDRA = "DROP TABLE IF EXISTS %s." + STAGE2_LIBRARY_CVE_TABLE;
         public static final String DROP_API_KEY = "DROP TABLE IF EXISTS " + API_KEY_TABLE;
         public static final String DROP_API_KEY_CASSANDRA = "DROP TABLE IF EXISTS %s." + API_KEY_TABLE;
         

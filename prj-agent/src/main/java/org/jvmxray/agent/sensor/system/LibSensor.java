@@ -3,9 +3,15 @@ package org.jvmxray.agent.sensor.system;
 import org.jvmxray.agent.proxy.LogProxy;
 import org.jvmxray.agent.sensor.AbstractSensor;
 import org.jvmxray.agent.sensor.*;
+import org.jvmxray.agent.util.JarMetadataExtractor;
+import org.jvmxray.agent.util.JarMetadataExtractor.JarMetadata;
 import org.jvmxray.platform.shared.property.AgentProperties;
 
+import java.io.FileInputStream;
+import java.io.IOException;
 import java.lang.instrument.Instrumentation;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -111,6 +117,43 @@ public class LibSensor extends AbstractSensor implements Sensor {
     }
 
     /**
+     * Calculates SHA-256 hash of a file.
+     *
+     * @param filePath Path to the file to hash
+     * @return SHA-256 hash as hexadecimal string, or null if calculation fails
+     */
+    private String calculateSHA256(String filePath) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            try (FileInputStream fis = new FileInputStream(filePath)) {
+                byte[] buffer = new byte[8192];
+                int bytesRead;
+                while ((bytesRead = fis.read(buffer)) != -1) {
+                    digest.update(buffer, 0, bytesRead);
+                }
+            }
+
+            byte[] hashBytes = digest.digest();
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : hashBytes) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) {
+                    hexString.append('0');
+                }
+                hexString.append(hex);
+            }
+            return hexString.toString();
+
+        } catch (NoSuchAlgorithmException | IOException e) {
+            // Log error but don't fail the entire event
+            logProxy.logMessage(NAMESPACE, "WARN", Map.of(
+                    "message", "Failed to calculate SHA-256 for " + filePath + ": " + e.getMessage()
+            ));
+            return null;
+        }
+    }
+
+    /**
      * Checks the static classpath for JAR files and logs their presence.
      */
     private void checkStaticClasspath() {
@@ -119,10 +162,45 @@ public class LibSensor extends AbstractSensor implements Sensor {
         String[] entries = classpath.split(System.getProperty("path.separator"));
         for (String entry : entries) {
             if (entry.endsWith(".jar") && !knownJars.containsKey(entry)) {
-                // Log new JAR file
+                // Calculate SHA-256 hash for the JAR file
+                String sha256Hash = calculateSHA256(entry);
+
+                // Extract JAR metadata for OWASP Dependency Check analysis
+                JarMetadata metadata = JarMetadataExtractor.extractMetadata(entry);
+
+                // Log new JAR file with metadata
                 Map<String, String> eventData = new HashMap<>();
                 eventData.put("method", "static");
                 eventData.put("jarPath", entry);
+                if (sha256Hash != null) {
+                    eventData.put("sha256", sha256Hash);
+                }
+
+                // Add Maven coordinates if available
+                if (metadata != null && metadata.hasMavenCoordinates()) {
+                    eventData.put("groupId", metadata.groupId);
+                    eventData.put("artifactId", metadata.artifactId);
+                    eventData.put("version", metadata.version);
+                }
+
+                // Add manifest evidence if available
+                if (metadata != null && metadata.hasManifestEvidence()) {
+                    if (metadata.implementationTitle != null) {
+                        eventData.put("implTitle", metadata.implementationTitle);
+                    }
+                    if (metadata.implementationVersion != null) {
+                        eventData.put("implVersion", metadata.implementationVersion);
+                    }
+                    if (metadata.implementationVendor != null) {
+                        eventData.put("implVendor", metadata.implementationVendor);
+                    }
+                }
+
+                // Add package names if available
+                if (metadata != null && !metadata.packageNames.isEmpty()) {
+                    eventData.put("packages", String.join(",", metadata.packageNames));
+                }
+
                 logProxy.logMessage(NAMESPACE, "INFO", eventData);
                 // Cache JAR to avoid duplicate logging
                 knownJars.put(entry, true);
@@ -146,10 +224,45 @@ public class LibSensor extends AbstractSensor implements Sensor {
                             .toURI()
                             .getPath();
                     if (jarPath.endsWith(".jar") && !knownJars.containsKey(jarPath)) {
-                        // Log new dynamically loaded JAR
+                        // Calculate SHA-256 hash for the JAR file
+                        String sha256Hash = calculateSHA256(jarPath);
+
+                        // Extract JAR metadata for OWASP Dependency Check analysis
+                        JarMetadata metadata = JarMetadataExtractor.extractMetadata(jarPath);
+
+                        // Log new dynamically loaded JAR with metadata
                         Map<String, String> eventData = new HashMap<>();
                         eventData.put("method", "dynamic");
                         eventData.put("jarPath", jarPath);
+                        if (sha256Hash != null) {
+                            eventData.put("sha256", sha256Hash);
+                        }
+
+                        // Add Maven coordinates if available
+                        if (metadata != null && metadata.hasMavenCoordinates()) {
+                            eventData.put("groupId", metadata.groupId);
+                            eventData.put("artifactId", metadata.artifactId);
+                            eventData.put("version", metadata.version);
+                        }
+
+                        // Add manifest evidence if available
+                        if (metadata != null && metadata.hasManifestEvidence()) {
+                            if (metadata.implementationTitle != null) {
+                                eventData.put("implTitle", metadata.implementationTitle);
+                            }
+                            if (metadata.implementationVersion != null) {
+                                eventData.put("implVersion", metadata.implementationVersion);
+                            }
+                            if (metadata.implementationVendor != null) {
+                                eventData.put("implVendor", metadata.implementationVendor);
+                            }
+                        }
+
+                        // Add package names if available
+                        if (metadata != null && !metadata.packageNames.isEmpty()) {
+                            eventData.put("packages", String.join(",", metadata.packageNames));
+                        }
+
                         logProxy.logMessage(NAMESPACE, "INFO", eventData);
                         // Cache JAR to avoid duplicate logging
                         knownJars.put(jarPath, true);

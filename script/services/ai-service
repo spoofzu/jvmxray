@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+# JVMXRay AI Service Launcher - Minimal Wrapper Script
+# All logic resides in org.jvmxray.service.ai.bin.AiService
+# Author: JVMXRay Development Team
+
+# Determine script directory and project root
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
+
+# AI Service shaded JAR location
+AI_JAR="$PROJECT_ROOT/prj-service-ai/target/prj-service-ai-0.0.1-shaded.jar"
+
+# Check if JAR exists
+if [ ! -f "$AI_JAR" ]; then
+    echo "Error: AI Service JAR not found at $AI_JAR"
+    echo "Please build the project first with: mvn clean install"
+    exit 1
+fi
+
+# JVM options to suppress warnings
+JVM_OPTS="-Djvmxray.project.root=$PROJECT_ROOT"
+JVM_OPTS="$JVM_OPTS --add-opens=java.base/java.lang=ALL-UNNAMED"
+JVM_OPTS="$JVM_OPTS --enable-native-access=ALL-UNNAMED"
+
+# Execute the AI service with all command line arguments passed through
+exec java $JVM_OPTS -jar "$AI_JAR" "$@"

@@ -2,7 +2,7 @@
 <configuration debug="true" scan="false" scanPeriod="1 minutes">
 
     <property name="LOG_HOME" value="${jvmxray.agent.logs}" />
-    <property name="MSG_FMT_LG" value="C:AP | %d{YYYY.MM.dd 'at' HH:mm:ss z} | %thread | %5level | %logger | %X | %msg%n" />
+    <property name="MSG_FMT_LG" value="%d{yyyy-MM-dd HH:mm:ss} | %5level | %logger{30} | %msg%n" />
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
@@ -181,19 +181,7 @@
         </encoder>
     </appender>
 
-    <appender name="DATAEVENTS" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${LOG_HOME}/agent-DATA-events.log</file>
-        <immediateFlush>true</immediateFlush>
-        <append>true</append>
-        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${LOG_HOME}/agent-DATA-events.%d{yyyy-MM-dd}.log</fileNamePattern>
-            <maxHistory>30</maxHistory>
-        </rollingPolicy>
-        <encoder>
-            <pattern>${MSG_FMT_LG}</pattern>
-        </encoder>
-    </appender>
-
+    <!-- DATAEVENTS appender removed - data transfer tracking now handled by file I/O aggregate statistics -->
     <!-- THREADEVENTS appender removed - ThreadSensor disabled due to recursive logging issues -->
 
     <appender name="REFLECTIONEVENTS" class="ch.qos.logback.core.rolling.RollingFileAppender">
@@ -286,10 +274,7 @@
         <appender-ref ref="APIEVENTS" />
         <!-- <appender-ref ref="LOGSERVER" /> -->
     </logger>
-    <logger name="org.jvmxray.events.data" level="DEBUG" additivity="false">
-        <appender-ref ref="DATAEVENTS" />
-        <!-- <appender-ref ref="LOGSERVER" /> -->
-    </logger>
+    <!-- Data transfer events now handled by file I/O aggregate statistics - logger removed -->
     <!-- Thread events logger removed - ThreadSensor disabled -->
     <logger name="org.jvmxray.events.reflection" level="OFF" additivity="false">
         <appender-ref ref="REFLECTIONEVENTS" />

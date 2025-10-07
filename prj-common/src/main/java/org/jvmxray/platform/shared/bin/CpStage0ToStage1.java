@@ -16,11 +16,17 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * CpStage0ToStage1 - Data migration tool for copying STAGE0_EVENT to STAGE1_EVENT tables.
- * 
- * This tool migrates data from STAGE0_EVENT to STAGE1_EVENT tables while maintaining data integrity
- * using the IS_STABLE flag. It reads the database connection from common.properties and supports
- * all database types (SQLite, MySQL, Cassandra) via JDBC connection strings.
- * 
+ *
+ * <p><b>DEPRECATED:</b> This standalone tool has been superseded by the AI Service's integrated
+ * Stage0Processor, which automatically migrates data from STAGE0→STAGE1 as part of the
+ * multi-stage data pipeline. Use the AI Service instead for automated processing:
+ * <pre>{@code
+ * ./script/services/ai-service --start --interval 60
+ * }</pre>
+ * </p>
+ *
+ * <p>This tool is maintained for manual/one-time migrations and backward compatibility.</p>
+ *
  * <p>Migration Process:</p>
  * <ul>
  *   <li>Reads records from STAGE0_EVENT in batches</li>
@@ -33,7 +39,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  *   </li>
  *   <li>Uses transactions to ensure atomicity</li>
  * </ul>
- * 
+ *
  * <p><b>Command-Line Options:</b></p>
  * <ul>
  *   <li>{@code -b, --batch-size <size>}: Number of records to process per batch (default: 100)</li>
@@ -41,27 +47,29 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  *   <li>{@code --dry-run}: Show what would be migrated without making changes</li>
  *   <li>{@code -h, --help}: Display help information</li>
  * </ul>
- * 
+ *
  * <p><b>Database Configuration:</b></p>
  * The tool reads the JDBC connection string from {@code common.properties}:
  * <pre>{@code
  * jvmxray.common.database.jdbc.connection=jdbc:sqlite:/path/to/database.db
  * }</pre>
- * 
+ *
  * <p><b>Usage Examples:</b></p>
  * <pre>{@code
  * # Basic migration
  * java org.jvmxray.platform.shared.bin.CpStage0ToStage1
- * 
+ *
  * # Larger batch size with verbose output
  * java org.jvmxray.platform.shared.bin.CpStage0ToStage1 -b 500 -v
- * 
+ *
  * # Dry run to test migration
  * java org.jvmxray.platform.shared.bin.CpStage0ToStage1 --dry-run
  * }</pre>
- * 
+ *
  * @author JVMXRay Development Team
+ * @deprecated Use AI Service's integrated Stage0Processor instead
  */
+@Deprecated
 public class CpStage0ToStage1 {
 
     private static final Logger logger = LoggerFactory.getLogger(CpStage0ToStage1.class);
@@ -90,7 +98,7 @@ public class CpStage0ToStage1 {
         "SELECT " + SchemaConstants.COL_EVENT_ID + ", " + 
                     SchemaConstants.COL_CONFIG_FILE + ", " +
                     SchemaConstants.COL_TIMESTAMP + ", " +
-                    SchemaConstants.COL_THREAD_ID + ", " +
+                    SchemaConstants.COL_CURRENT_THREAD_ID + ", " +
                     SchemaConstants.COL_PRIORITY + ", " +
                     SchemaConstants.COL_NAMESPACE + ", " +
                     SchemaConstants.COL_AID + ", " +
@@ -104,7 +112,7 @@ public class CpStage0ToStage1 {
         SchemaConstants.COL_EVENT_ID + ", " +
         SchemaConstants.COL_CONFIG_FILE + ", " +
         SchemaConstants.COL_TIMESTAMP + ", " +
-        SchemaConstants.COL_THREAD_ID + ", " +
+        SchemaConstants.COL_CURRENT_THREAD_ID + ", " +
         SchemaConstants.COL_PRIORITY + ", " +
         SchemaConstants.COL_NAMESPACE + ", " +
         SchemaConstants.COL_AID + ", " +
@@ -499,7 +507,7 @@ public class CpStage0ToStage1 {
                     record.setEventId(rs.getString(SchemaConstants.COL_EVENT_ID));
                     record.setConfigFile(rs.getString(SchemaConstants.COL_CONFIG_FILE));
                     record.setTimestamp(rs.getLong(SchemaConstants.COL_TIMESTAMP));
-                    record.setThreadId(rs.getString(SchemaConstants.COL_THREAD_ID));
+                    record.setThreadId(rs.getString(SchemaConstants.COL_CURRENT_THREAD_ID));
                     record.setPriority(rs.getString(SchemaConstants.COL_PRIORITY));
                     record.setNamespace(rs.getString(SchemaConstants.COL_NAMESPACE));
                     record.setAid(rs.getString(SchemaConstants.COL_AID));

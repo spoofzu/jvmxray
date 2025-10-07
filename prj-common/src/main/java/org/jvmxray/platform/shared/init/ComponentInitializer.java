@@ -413,12 +413,20 @@ public abstract class ComponentInitializer {
             System.setProperty("jvmxray.common.data", baseDir + "/common/data");
         }
 
-        // Set logservice properties early if not already set  
+        // Set logservice properties early if not already set
         if (System.getProperty("jvmxray.logservice.logs") == null) {
             System.setProperty("jvmxray.logservice.logs", baseDir + "/logservice/logs");
         }
         if (System.getProperty("jvmxray.logservice.config") == null) {
             System.setProperty("jvmxray.logservice.config", baseDir + "/logservice/config");
+        }
+
+        // Set aiservice properties early if not already set
+        if (System.getProperty("jvmxray.aiservice.logs") == null) {
+            System.setProperty("jvmxray.aiservice.logs", baseDir + "/aiservice/logs");
+        }
+        if (System.getProperty("jvmxray.aiservice.config") == null) {
+            System.setProperty("jvmxray.aiservice.config", baseDir + "/aiservice/config");
         }
     }
 }

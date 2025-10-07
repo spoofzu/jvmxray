@@ -1,4 +1,4 @@
-<configuration debug="true" scan="false" scanPeriod="1 minutes">
+<configuration debug="false" scan="false" scanPeriod="1 minutes">
 
     <property name="LOG_HOME" value="${jvmxray.common.logs}" />
     <property name="MSG_FMT_LG" value="C:CP | %d{YYYY.MM.dd 'at' HH:mm:ss z} | %thread | %5level | %logger | %X | %msg%n" />

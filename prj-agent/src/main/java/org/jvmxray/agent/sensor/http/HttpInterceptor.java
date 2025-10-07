@@ -25,6 +25,8 @@ public class HttpInterceptor {
 
     /**
      * Intercepts the entry of an HTTP servlet method to log request details.
+     * Initializes MCC (Mapped Correlation Context) with trace_id and request metadata
+     * for event correlation across the entire request execution path.
      *
      * @param servlet The servlet instance being intercepted.
      * @param request The HTTP request object.
@@ -34,8 +36,89 @@ public class HttpInterceptor {
         try {
             // todo Consider ramifications and protections to support sensitive cookie values.
 
-            // Generate a unique request ID
-            String requestId = GUID.generateShort(); // Short format for readability
+            // Enter HTTP correlation scope
+            // If this is the first sensor to fire, generates new trace_id
+            // If called within existing scope (e.g., from scheduled task), inherits trace_id
+            try {
+                Class<?> mccClass = Class.forName("org.jvmxray.platform.shared.util.MCC");
+                java.lang.reflect.Method enterScopeMethod = mccClass.getMethod("enterScope", String.class);
+                java.lang.reflect.Method putMethod = mccClass.getMethod("put", String.class, String.class);
+
+                enterScopeMethod.invoke(null, "HTTP");
+
+                // Enrich MCC with HTTP-specific correlation fields
+                // Extract and set user_id (authenticated user)
+                try {
+                    Object principal = invokeMethod(request, "getUserPrincipal");
+                    if (principal != null) {
+                        String userName = (String) invokeMethod(principal, "getName");
+                        if (userName != null && !userName.isEmpty()) {
+                            putMethod.invoke(null, "user_id", userName);
+                        }
+                    } else {
+                        // Fallback to getRemoteUser()
+                        String remoteUser = (String) invokeMethod(request, "getRemoteUser");
+                        if (remoteUser != null && !remoteUser.isEmpty()) {
+                            putMethod.invoke(null, "user_id", remoteUser);
+                        }
+                    }
+                } catch (Exception e) {
+                    // User principal not available - not an error
+                }
+
+                // Extract and set session_id
+                try {
+                    Object session = invokeMethod(request, "getSession", false); // false = don't create
+                    if (session != null) {
+                        String sessionId = (String) invokeMethod(session, "getId");
+                        if (sessionId != null && !sessionId.isEmpty()) {
+                            putMethod.invoke(null, "session_id", sessionId);
+                        }
+                    }
+                } catch (Exception e) {
+                    // Session not available - not an error
+                }
+
+                // Set client_ip
+                try {
+                    String clientIp = (String) invokeMethod(request, "getRemoteAddr");
+                    if (clientIp != null && !clientIp.isEmpty()) {
+                        putMethod.invoke(null, "client_ip", clientIp);
+                    }
+                } catch (Exception e) {
+                    // Client IP not available
+                }
+
+                // Set request_uri
+                try {
+                    String requestUri = (String) invokeMethod(request, "getRequestURI");
+                    if (requestUri != null && !requestUri.isEmpty()) {
+                        putMethod.invoke(null, "request_uri", requestUri);
+                    }
+                } catch (Exception e) {
+                    // Request URI not available
+                }
+
+                // Set request_method
+                try {
+                    String method = (String) invokeMethod(request, "getMethod");
+                    if (method != null && !method.isEmpty()) {
+                        putMethod.invoke(null, "request_method", method);
+                    }
+                } catch (Exception e) {
+                    // Request method not available
+                }
+
+            } catch (ClassNotFoundException e) {
+                // MCC not available - this is okay for minimal deployments
+            } catch (Exception e) {
+                System.err.println("HttpInterceptor: Failed to enter MCC scope: " + e.getMessage());
+            }
+
+            // Generate request ID for backward compatibility with RequestContextHolder
+            String requestId = GUID.generateShort();
+
+            // Also maintain RequestContextHolder for backward compatibility
             RequestContextHolder.clearContext();
             Map<String, String> metadata = RequestContextHolder.getContext();
             metadata.put("request_id", requestId);
@@ -78,6 +161,8 @@ public class HttpInterceptor {
 
     /**
      * Intercepts the exit of an HTTP servlet method to log response details.
+     * Clears MCC (Mapped Correlation Context) to prevent correlation data leakage
+     * in thread pool environments where threads are reused.
      *
      * @param response The HTTP response object.
      */
@@ -116,6 +201,19 @@ public class HttpInterceptor {
             Map<String, String> errorMetadata = new HashMap<>();
             errorMetadata.put("error", "Failed to process response: " + e.getMessage());
             logProxy.logMessage(RES_NAMESPACE, "ERROR", errorMetadata);
+        } finally {
+            // Exit HTTP correlation scope
+            // If this is the last scope, clears all correlation context (thread pool safety)
+            // If nested within other scopes, preserves correlation for parent scope
+            try {
+                Class<?> mccClass = Class.forName("org.jvmxray.platform.shared.util.MCC");
+                java.lang.reflect.Method exitScopeMethod = mccClass.getMethod("exitScope", String.class);
+                exitScopeMethod.invoke(null, "HTTP");
+            } catch (ClassNotFoundException e) {
+                // MCC not available - this is okay
+            } catch (Exception e) {
+                System.err.println("HttpInterceptor: Failed to exit MCC scope: " + e.getMessage());
+            }
         }
     }
 
@@ -196,4 +294,5 @@ public class HttpInterceptor {
         Method method = obj.getClass().getMethod(methodName, parameterTypes);
         return method.invoke(obj, args);
     }
+
 }
