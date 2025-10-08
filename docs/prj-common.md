@@ -762,6 +762,65 @@ GitHub Source: https://github.com/spoofzu/jvmxray/commit/c0d2187
 
 ---
 
+### Convenience Scripts
+
+#### versions
+**Purpose:** Display version information for all JVMXRay subproject JARs at once.
+
+**Location:** `script/misc/versions`
+
+**Usage:**
+```bash
+# Display versions for all subprojects
+./script/misc/versions
+
+# Show help
+./script/misc/versions --help
+```
+
+**Prerequisites:**
+- Run `mvn clean install` to build all JARs
+
+**Sample Output:**
+```
+JVMXRay Subproject Versions
+===========================
+
+📦 prj-common
+   JAR: prj-common/target/prj-common-0.0.1-shaded.jar
+   Git Commit: c0d2187
+   GitHub: https://github.com/spoofzu/jvmxray/commit/c0d2187
+   Build Time: 2025-10-08T19:16:33Z
+
+📦 prj-agent
+   JAR: prj-agent/target/prj-agent-0.0.1-shaded.jar
+   Git Commit: c0d2187
+   GitHub: https://github.com/spoofzu/jvmxray/commit/c0d2187
+   Build Time: 2025-10-08T19:11:18Z
+
+📦 prj-service-log
+   JAR: prj-service-log/target/prj-service-log-0.0.1-shaded.jar
+   Git Commit: c0d2187
+   GitHub: https://github.com/spoofzu/jvmxray/commit/c0d2187
+   Build Time: 2025-10-08T19:14:52Z
+
+Found 6 subproject JAR(s)
+```
+
+**Features:**
+- Automatically discovers all subproject JARs (shaded and regular)
+- Displays version, git commit, and build time for each
+- Shows clickable GitHub source links
+- Convenient single command to audit all deployed components
+
+**Use Cases:**
+- Quick overview of all built subprojects
+- Verify all modules built from same git commit
+- Audit build consistency across modules
+- Development workflow to check build status
+
+---
+
 ## Properties
 
 ### Environment Variables
