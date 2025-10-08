@@ -710,6 +710,58 @@ java SchemaManager --validate-schema --database-type sqlite --connection-url jdb
 
 ---
 
+#### VersionTool
+**Purpose:** Display version information from JVMXRay JAR files including git commit, build time, and implementation version.
+
+**Usage:**
+```bash
+# Run standalone with shaded JAR
+java -jar prj-common/target/prj-common-0.0.1-shaded.jar --target <jar-file>
+```
+
+**Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| --target | Path to JAR file to inspect | required |
+| --help | Display usage information | none |
+
+**Examples:**
+```bash
+# Display version info from agent JAR
+java -jar prj-common/target/prj-common-0.0.1-shaded.jar --target prj-agent/target/prj-agent-0.0.1-shaded.jar
+
+# Display help
+java -jar prj-common/target/prj-common-0.0.1-shaded.jar --help
+```
+
+**Sample Output:**
+```
+JVMXRay Version Information
+===========================
+
+JAR File: prj-agent/target/prj-agent-0.0.1-shaded.jar
+
+  Version           : 0.0.1
+  Git Commit        : c0d2187
+  Build Time        : 2025-10-08T19:11:18Z
+  Agent Class       : org.jvmxray.agent.bootstrap.AgentBootstrap
+  Can Redefine      : true
+  Can Retransform   : true
+  Build JDK         : 21
+  Created By        : Maven Jar Plugin 3.2.0
+
+GitHub Source: https://github.com/spoofzu/jvmxray/commit/c0d2187
+```
+
+**Use Cases:**
+- Verify deployed JAR version matches expected source code
+- Trace production issues back to exact git commit
+- Audit deployment history and build timestamps
+- Confirm agent capabilities (redefine/retransform)
+
+---
+
 ## Properties
 
 ### Environment Variables

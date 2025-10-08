@@ -86,6 +86,30 @@
     </dependencies>
   </dependencyManagement>
 
+  <build>
+    <plugins>
+      <!-- Git commit ID plugin for version tracking -->
+      <plugin>
+        <groupId>io.github.git-commit-id</groupId>
+        <artifactId>git-commit-id-maven-plugin</artifactId>
+        <version>5.0.0</version>
+        <executions>
+          <execution>
+            <id>get-the-git-infos</id>
+            <goals>
+              <goal>revision</goal>
+            </goals>
+            <phase>initialize</phase>
+          </execution>
+        </executions>
+        <configuration>
+          <generateGitPropertiesFile>false</generateGitPropertiesFile>
+          <failOnNoGitDirectory>false</failOnNoGitDirectory>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
   <profiles>
     <!-- Include MCP client when NOT skipping it (default for Java 21+) -->
     <profile>
