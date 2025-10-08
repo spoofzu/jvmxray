@@ -16,7 +16,7 @@
     <description>JVMXRay REST Service - RESTful API for querying security events</description>
 
     <properties>
-        <spring.boot.version>2.7.18</spring.boot.version>
+        <spring.boot.version>3.4.10</spring.boot.version>
     </properties>
 
     <dependencies>
@@ -56,21 +56,18 @@
             <artifactId>commons-cli</artifactId>
         </dependency>
 
-        <!-- Force compatible SLF4J version for Spring Boot 2.7.18 -->
+        <!-- Logging dependencies - inherit parent versions (SLF4J 2.0.13, Logback 1.5.19) -->
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>1.7.36</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-classic</artifactId>
-            <version>1.2.12</version>
         </dependency>
         <dependency>
             <groupId>ch.qos.logback</groupId>
             <artifactId>logback-core</artifactId>
-            <version>1.2.12</version>
         </dependency>
 
         <!-- Jackson for JSON (comes with Spring Boot but explicit for clarity) -->
