@@ -12,6 +12,12 @@
 
     <artifactId>prj-common</artifactId>
 
+    <properties>
+        <!-- Common must stay at Java 11 to support prj-agent -->
+        <maven.compiler.source>11</maven.compiler.source>
+        <maven.compiler.target>11</maven.compiler.target>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>junit</groupId>
