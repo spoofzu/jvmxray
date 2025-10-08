@@ -146,6 +146,22 @@
                 </configuration>
             </plugin>
 
+            <!-- Maven JAR Plugin - Add git metadata to MANIFEST.MF -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.2.0</version>
+                <configuration>
+                    <archive>
+                        <manifestEntries>
+                            <Implementation-Version>${project.version}</Implementation-Version>
+                            <Git-Commit>${git.commit.id.abbrev}</Git-Commit>
+                            <Build-Time>${maven.build.timestamp}</Build-Time>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+
             <!-- Spring Boot Maven Plugin for executable JAR -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>

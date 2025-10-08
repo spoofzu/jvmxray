@@ -710,6 +710,117 @@ java SchemaManager --validate-schema --database-type sqlite --connection-url jdb
 
 ---
 
+#### VersionTool
+**Purpose:** Display version information from JVMXRay JAR files including git commit, build time, and implementation version.
+
+**Usage:**
+```bash
+# Run standalone with shaded JAR
+java -jar prj-common/target/prj-common-0.0.1-shaded.jar --target <jar-file>
+```
+
+**Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| --target | Path to JAR file to inspect | required |
+| --help | Display usage information | none |
+
+**Examples:**
+```bash
+# Display version info from agent JAR
+java -jar prj-common/target/prj-common-0.0.1-shaded.jar --target prj-agent/target/prj-agent-0.0.1-shaded.jar
+
+# Display help
+java -jar prj-common/target/prj-common-0.0.1-shaded.jar --help
+```
+
+**Sample Output:**
+```
+JVMXRay Version Information
+===========================
+
+JAR File: prj-agent/target/prj-agent-0.0.1-shaded.jar
+
+  Version           : 0.0.1
+  Git Commit        : c0d2187
+  Build Time        : 2025-10-08T19:11:18Z
+  Agent Class       : org.jvmxray.agent.bootstrap.AgentBootstrap
+  Can Redefine      : true
+  Can Retransform   : true
+  Build JDK         : 21
+  Created By        : Maven Jar Plugin 3.2.0
+
+GitHub Source: https://github.com/spoofzu/jvmxray/commit/c0d2187
+```
+
+**Use Cases:**
+- Verify deployed JAR version matches expected source code
+- Trace production issues back to exact git commit
+- Audit deployment history and build timestamps
+- Confirm agent capabilities (redefine/retransform)
+
+---
+
+### Convenience Scripts
+
+#### versions
+**Purpose:** Display version information for all JVMXRay subproject JARs at once.
+
+**Location:** `script/misc/versions`
+
+**Usage:**
+```bash
+# Display versions for all subprojects
+./script/misc/versions
+
+# Show help
+./script/misc/versions --help
+```
+
+**Prerequisites:**
+- Run `mvn clean install` to build all JARs
+
+**Sample Output:**
+```
+JVMXRay Subproject Versions
+===========================
+
+📦 prj-common
+   JAR: prj-common/target/prj-common-0.0.1-shaded.jar
+   Git Commit: c0d2187
+   GitHub: https://github.com/spoofzu/jvmxray/commit/c0d2187
+   Build Time: 2025-10-08T19:16:33Z
+
+📦 prj-agent
+   JAR: prj-agent/target/prj-agent-0.0.1-shaded.jar
+   Git Commit: c0d2187
+   GitHub: https://github.com/spoofzu/jvmxray/commit/c0d2187
+   Build Time: 2025-10-08T19:11:18Z
+
+📦 prj-service-log
+   JAR: prj-service-log/target/prj-service-log-0.0.1-shaded.jar
+   Git Commit: c0d2187
+   GitHub: https://github.com/spoofzu/jvmxray/commit/c0d2187
+   Build Time: 2025-10-08T19:14:52Z
+
+Found 6 subproject JAR(s)
+```
+
+**Features:**
+- Automatically discovers all subproject JARs (shaded and regular)
+- Displays version, git commit, and build time for each
+- Shows clickable GitHub source links
+- Convenient single command to audit all deployed components
+
+**Use Cases:**
+- Quick overview of all built subprojects
+- Verify all modules built from same git commit
+- Audit build consistency across modules
+- Development workflow to check build status
+
+---
+
 ## Properties
 
 ### Environment Variables

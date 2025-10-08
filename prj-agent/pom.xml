@@ -115,6 +115,9 @@
                             <Premain-Class>org.jvmxray.agent.bootstrap.AgentBootstrap</Premain-Class>
                             <Can-Redefine-Classes>true</Can-Redefine-Classes>
                             <Can-Retransform-Classes>true</Can-Retransform-Classes>
+                            <Implementation-Version>${project.version}</Implementation-Version>
+                            <Git-Commit>${git.commit.id.abbrev}</Git-Commit>
+                            <Build-Time>${maven.build.timestamp}</Build-Time>
                         </manifestEntries>
                     </archive>
                 </configuration>
@@ -172,6 +175,9 @@
                                         <Premain-Class>org.jvmxray.agent.bootstrap.AgentBootstrap</Premain-Class>
                                         <Can-Redefine-Classes>true</Can-Redefine-Classes>
                                         <Can-Retransform-Classes>true</Can-Retransform-Classes>
+                                        <Implementation-Version>${project.version}</Implementation-Version>
+                                        <Git-Commit>${git.commit.id.abbrev}</Git-Commit>
+                                        <Build-Time>${maven.build.timestamp}</Build-Time>
                                     </manifestEntries>
                                 </transformer>
                             </transformers>
