@@ -127,6 +127,11 @@
                             <classpathPrefix>lib/</classpathPrefix>
                             <mainClass>org.jvmxray.platform.client.mcp.bridge.JvmxrayMcpClient</mainClass>
                         </manifest>
+                        <manifestEntries>
+                            <Implementation-Version>${project.version}</Implementation-Version>
+                            <Git-Commit>${git.commit.id.abbrev}</Git-Commit>
+                            <Build-Time>${maven.build.timestamp}</Build-Time>
+                        </manifestEntries>
                     </archive>
                 </configuration>
             </plugin>
