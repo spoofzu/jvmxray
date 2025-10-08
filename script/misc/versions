@@ -1,0 +1,123 @@
+#!/usr/bin/env bash
+
+# Script to display version information for all JVMXRay subproject JARs
+# Uses VersionTool to extract git commit, build time, and version from MANIFEST.MF
+#
+# Usage:
+#   ./versions                Show versions for all subprojects
+#   ./versions --help         Show this help message
+#
+# Prerequisites:
+#   - Run 'mvn clean install' to build all JARs
+
+# Determine script directory and project root
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
+
+# Change to project root directory
+cd "$PROJECT_ROOT"
+
+# Show help if requested
+if [[ "$1" == "--help" ]] || [[ "$1" == "-h" ]]; then
+    echo "JVMXRay Version Display Script"
+    echo "=============================="
+    echo ""
+    echo "Usage:"
+    echo "  ./versions         Show versions for all subprojects"
+    echo "  ./versions --help  Show this help message"
+    echo ""
+    echo "Prerequisites:"
+    echo "  Run 'mvn clean install' to build all JARs"
+    echo ""
+    exit 0
+fi
+
+# Define subprojects to check
+SUBPROJECTS=(
+    "prj-common"
+    "prj-agent"
+    "prj-service-log"
+    "prj-service-rest"
+    "prj-service-ai"
+    "prj-mcp-client"
+)
+
+# Path to VersionTool JAR
+VERSION_TOOL_JAR="prj-common/target/prj-common-0.0.1-shaded.jar"
+
+# Check if VersionTool JAR exists
+if [ ! -f "$VERSION_TOOL_JAR" ]; then
+    echo "Error: VersionTool not found at $VERSION_TOOL_JAR"
+    echo "Please run 'mvn clean install' to build all JARs"
+    exit 1
+fi
+
+echo ""
+echo "JVMXRay Subproject Versions"
+echo "==========================="
+echo ""
+
+# Track if any JARs were found
+FOUND_JARS=0
+
+# Iterate through each subproject
+for PROJECT in "${SUBPROJECTS[@]}"; do
+    # Skip if project directory doesn't exist
+    if [ ! -d "$PROJECT" ]; then
+        continue
+    fi
+
+    # Look for shaded JAR first, then regular JAR
+    JAR_FILE=""
+
+    # Check for shaded JAR
+    if ls ${PROJECT}/target/*-shaded.jar 1> /dev/null 2>&1; then
+        JAR_FILE=$(ls ${PROJECT}/target/*-shaded.jar | head -1)
+    # Check for regular JAR (excluding shaded and original)
+    elif ls ${PROJECT}/target/*.jar 1> /dev/null 2>&1; then
+        JAR_FILE=$(ls ${PROJECT}/target/*.jar | grep -v "shaded" | grep -v "original" | head -1)
+    fi
+
+    # If JAR found, display version
+    if [ -n "$JAR_FILE" ] && [ -f "$JAR_FILE" ]; then
+        FOUND_JARS=$((FOUND_JARS + 1))
+        echo "📦 $PROJECT"
+        echo "   JAR: $JAR_FILE"
+
+        # Extract version info using VersionTool
+        OUTPUT=$(java -jar "$VERSION_TOOL_JAR" --target "$JAR_FILE" 2>/dev/null)
+
+        # Parse and display key fields
+        if [ $? -eq 0 ]; then
+            VERSION=$(echo "$OUTPUT" | grep "Version" | head -1 | awk -F: '{print $2}' | xargs)
+            GIT_COMMIT=$(echo "$OUTPUT" | grep "Git Commit" | awk -F: '{print $2}' | xargs)
+            BUILD_TIME=$(echo "$OUTPUT" | grep "Build Time" | awk -F: '{print $2}' | xargs)
+
+            if [ -n "$VERSION" ]; then
+                echo "   Version: $VERSION"
+            fi
+            if [ -n "$GIT_COMMIT" ]; then
+                echo "   Git Commit: $GIT_COMMIT"
+                echo "   GitHub: https://github.com/spoofzu/jvmxray/commit/$GIT_COMMIT"
+            fi
+            if [ -n "$BUILD_TIME" ]; then
+                echo "   Build Time: $BUILD_TIME"
+            fi
+        else
+            echo "   ⚠ Could not read version information"
+        fi
+        echo ""
+    fi
+done
+
+# Show message if no JARs were found
+if [ $FOUND_JARS -eq 0 ]; then
+    echo "⚠ No JAR files found."
+    echo ""
+    echo "Please run 'mvn clean install' to build all subprojects."
+    echo ""
+    exit 1
+fi
+
+echo "Found $FOUND_JARS subproject JAR(s)"
+echo ""
