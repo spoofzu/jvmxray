@@ -99,6 +99,63 @@ Each component follows the pattern:
 - **CommonInitializer**: Manages common module logging and database connections
 - **AgentInitializer**: Special case - manages agent-specific configuration without standard logging
 
+### MCC (Mapped Correlation Context) Memory Management
+
+MCC provides thread-scoped correlation context for security events, enabling event tracking across execution paths.
+
+#### **Memory Cleanup Strategy**
+- **Primary Cleanup**: Scope-based cleanup when sensor stack empties (thread pool safe)
+  - Sensors call `MCC.enterScope("SensorName")` on entry
+  - Sensors call `MCC.exitScope("SensorName")` on exit (in finally block)
+  - When last scope exits, all ThreadLocals are cleaned up automatically
+- **Defensive Cleanup**: TTL-based cleanup for leaked scopes (default: 5 minutes)
+  - Lightweight check throttled to once per 100ms per thread
+  - Prevents memory leaks from sensor bugs where exitScope() isn't called
+  - Logs diagnostic warnings when cleanup triggers
+
+#### **Configuration**
+- **Property**: `org.jvmxray.agent.mcc.ttl.seconds` - TTL for defensive cleanup (default: 300 seconds)
+- Set via system property: `-Dorg.jvmxray.agent.mcc.ttl.seconds=600`
+
+#### **Monitoring Metrics**
+MonitorSensor logs MCC statistics via StatsRegistry:
+- `mcc_contexts_created`: Total correlation contexts created (lifetime counter)
+- `mcc_active_contexts`: Current active contexts across all threads
+- `mcc_max_context_size`: Largest context size ever seen (max fields in any context)
+- `mcc_ttl_cleanups`: Defensive cleanups triggered (should be 0 in healthy systems)
+- `mcc_ttl_seconds`: Configured TTL value
+
+#### **Best Practices**
+- **Always use try/finally**: Ensure `exitScope()` called even if sensor throws exception
+- **Watch `mcc_ttl_cleanups` metric**: Non-zero value indicates sensor bugs
+- **Thread pool environments**: MCC automatically handles thread reuse safely
+- **Nested sensors**: Inner sensors inherit parent's trace_id automatically
+
+### StatsRegistry Architecture
+
+Centralized, thread-safe registry for sensor statistics monitoring.
+
+#### **Design Pattern**
+- **Location**: `prj-agent/src/main/java/org/jvmxray/agent/util/StatsRegistry.java`
+- **Thread Safety**: Uses `ConcurrentHashMap` for lock-free updates
+- **Update Pattern**: Sensors update stats on each lifecycle event (enter/exit)
+- **Read Pattern**: MonitorSensor reads snapshot periodically (default: 60 seconds)
+
+#### **Integration**
+```java
+// Sensor updates stats
+StatsRegistry.register("sensor_metric_name", String.valueOf(counter.get()));
+
+// MonitorSensor collects all stats
+Map<String, String> allStats = StatsRegistry.getSnapshot();
+logProxy.logMessage(NAMESPACE, "INFO", allStats);
+```
+
+#### **Available Metrics**
+- **MCC**: Correlation context lifecycle and health metrics
+- **LibSensor**: JAR loading statistics (static, dynamic, packages, cache size)
+- **Custom Sensors**: Can register additional metrics as needed
+
 ## Integration Testing
 
 Integration tests run automatically with Maven build via `mvn clean install`. The Turtle integration test:

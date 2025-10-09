@@ -5,6 +5,7 @@ import org.jvmxray.agent.sensor.AbstractSensor;
 import org.jvmxray.agent.sensor.*;
 import org.jvmxray.agent.util.JarMetadataExtractor;
 import org.jvmxray.agent.util.JarMetadataExtractor.JarMetadata;
+import org.jvmxray.agent.util.StatsRegistry;
 import org.jvmxray.platform.shared.property.AgentProperties;
 
 import java.io.FileInputStream;
@@ -13,7 +14,9 @@ import java.lang.instrument.Instrumentation;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Sensor implementation for detecting and logging JAR files loaded in the JVM.
@@ -30,12 +33,22 @@ public class LibSensor extends AbstractSensor implements Sensor {
     private static final LogProxy logProxy = LogProxy.getInstance();
     // Background thread for dynamic JAR detection
     private Thread libDetectionThread;
-    // Cache of known JARs to avoid duplicate logging
-    private final Map<String, Boolean> knownJars = new HashMap<>();
+    // Cache of known JARs to avoid duplicate logging (bounded to 10,000 entries)
+    private final Map<String, Boolean> knownJars = new LinkedHashMap<String, Boolean>(1000, 0.75f, true) {
+        @Override
+        protected boolean removeEldestEntry(Map.Entry<String, Boolean> eldest) {
+            return size() > 10000;
+        }
+    };
     // Interval for checking dynamic JARs (in seconds)
     private int checkIntervalSeconds = 60; // Default to 60 seconds
     // Instrumentation instance for accessing loaded classes
     private Instrumentation instrumentation;
+
+    // Metrics tracking
+    private final AtomicInteger staticJarsLoaded = new AtomicInteger(0);
+    private final AtomicInteger dynamicJarsLoaded = new AtomicInteger(0);
+    private final AtomicInteger totalPackages = new AtomicInteger(0);
 
     // Static sensor identity.
     private static final String SENSOR_GUID = "D2F1DE24-EA0F-44F8-8D0E-E23398ECB537"; // Generated via uuidgen
@@ -204,6 +217,13 @@ public class LibSensor extends AbstractSensor implements Sensor {
                 logProxy.logMessage(NAMESPACE, "INFO", eventData);
                 // Cache JAR to avoid duplicate logging
                 knownJars.put(entry, true);
+
+                // Update metrics
+                staticJarsLoaded.incrementAndGet();
+                if (metadata != null && !metadata.packageNames.isEmpty()) {
+                    totalPackages.addAndGet(metadata.packageNames.size());
+                }
+                updateStats();
             }
         }
     }
@@ -266,11 +286,30 @@ public class LibSensor extends AbstractSensor implements Sensor {
                         logProxy.logMessage(NAMESPACE, "INFO", eventData);
                         // Cache JAR to avoid duplicate logging
                         knownJars.put(jarPath, true);
+
+                        // Update metrics
+                        dynamicJarsLoaded.incrementAndGet();
+                        if (metadata != null && !metadata.packageNames.isEmpty()) {
+                            totalPackages.addAndGet(metadata.packageNames.size());
+                        }
+                        updateStats();
                     }
                 }
             } catch (Exception e) {
                 // Skip classes with invalid code sources
             }
+        }
+    }
+
+    /**
+     * Updates statistics in the StatsRegistry for monitoring.
+     */
+    private void updateStats() {
+        synchronized (knownJars) {  // Brief lock for HashMap.size()
+            StatsRegistry.register("lib_static_loaded", String.valueOf(staticJarsLoaded.get()));
+            StatsRegistry.register("lib_dynamic_loaded", String.valueOf(dynamicJarsLoaded.get()));
+            StatsRegistry.register("lib_total_packages", String.valueOf(totalPackages.get()));
+            StatsRegistry.register("lib_cache_size", String.valueOf(knownJars.size()));
         }
     }
 }

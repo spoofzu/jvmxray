@@ -202,6 +202,9 @@ public class HttpInterceptor {
             errorMetadata.put("error", "Failed to process response: " + e.getMessage());
             logProxy.logMessage(RES_NAMESPACE, "ERROR", errorMetadata);
         } finally {
+            // Clean up RequestContextHolder ThreadLocal
+            RequestContextHolder.clearContext();
+
             // Exit HTTP correlation scope
             // If this is the last scope, clears all correlation context (thread pool safety)
             // If nested within other scopes, preserves correlation for parent scope
