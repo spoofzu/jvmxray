@@ -6,6 +6,8 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * MCC - Mapped Correlation Context
@@ -114,6 +116,52 @@ public class MCC {
         ThreadLocal.withInitial(ArrayDeque::new);
 
     /**
+     * Thread-local storage for last access time (milliseconds).
+     * Used for TTL-based defensive cleanup of leaked scopes.
+     */
+    private static final ThreadLocal<Long> lastAccessTime =
+        ThreadLocal.withInitial(System::currentTimeMillis);
+
+    /**
+     * Thread-local storage for last TTL check time (milliseconds).
+     * Used to throttle TTL checks to once per 100ms per thread for performance.
+     */
+    private static final ThreadLocal<Long> lastTTLCheck =
+        ThreadLocal.withInitial(() -> 0L);
+
+    /**
+     * TTL for defensive cleanup of leaked scopes (milliseconds).
+     * Configurable via system property org.jvmxray.agent.mcc.ttl.seconds (default: 300 seconds = 5 minutes).
+     * If a thread's MCC context hasn't been accessed for longer than this TTL, it will be cleaned up
+     * defensively to prevent memory leaks from sensors that fail to call exitScope().
+     */
+    private static volatile long ttlMillis = 300_000; // 5 minutes default
+
+    /**
+     * Throttle interval for TTL checks (milliseconds).
+     * TTL cleanup checks are performed at most once per this interval to reduce overhead.
+     */
+    private static final long TTL_CHECK_THROTTLE_MS = 100;
+
+    // Metrics tracking
+    private static final AtomicLong totalContextsCreated = new AtomicLong(0);
+    private static final AtomicLong totalTTLCleanups = new AtomicLong(0);
+    private static final AtomicInteger maxContextSizeEverSeen = new AtomicInteger(0);
+    private static final AtomicInteger currentActiveContexts = new AtomicInteger(0);
+
+    // Static initializer to load TTL configuration
+    static {
+        try {
+            String ttlProp = System.getProperty("org.jvmxray.agent.mcc.ttl.seconds", "300");
+            long ttlSeconds = Long.parseLong(ttlProp);
+            ttlMillis = ttlSeconds * 1000;
+        } catch (Exception e) {
+            // Fallback to default if property is invalid
+            ttlMillis = 300_000;
+        }
+    }
+
+    /**
      * Private constructor to prevent instantiation.
      * MCC is a utility class with only static methods.
      */
@@ -138,7 +186,15 @@ public class MCC {
         if (value == null) {
             throw new IllegalArgumentException("MCC value cannot be null");
         }
-        context.get().put(key, value);
+        Map<String, String> ctx = context.get();
+        ctx.put(key, value);
+
+        // Track max context size for monitoring
+        int currentSize = ctx.size();
+        int currentMax = maxContextSizeEverSeen.get();
+        if (currentSize > currentMax) {
+            maxContextSizeEverSeen.compareAndSet(currentMax, currentSize);
+        }
     }
 
     /**
@@ -303,13 +359,109 @@ public class MCC {
     }
 
     /**
+     * Checks TTL and performs defensive cleanup if needed.
+     *
+     * <p>This method is called at the start of scope lifecycle methods (enterScope/exitScope)
+     * to defensively cleanup leaked scopes. It is throttled to check at most once per 100ms
+     * per thread to minimize performance overhead.</p>
+     *
+     * <p>If the TTL has elapsed since the last MCC access on this thread, and the scope stack
+     * or context is not empty, a WARNING is logged with diagnostic information to help identify
+     * the sensor bug causing the leak. The ThreadLocals are then forcibly cleaned up.</p>
+     *
+     * <p><strong>Note:</strong> This is a defensive mechanism for sensor bugs. In healthy systems,
+     * sensors should always call exitScope() in finally blocks, and this cleanup should never
+     * trigger (mcc_ttl_cleanups metric should remain 0).</p>
+     */
+    private static void checkTTLIfNeeded() {
+        // Throttle: only check once per 100ms per thread for performance
+        long now = System.currentTimeMillis();
+        Long lastCheck = lastTTLCheck.get();
+
+        if (lastCheck == null || (now - lastCheck) > TTL_CHECK_THROTTLE_MS) {
+            checkAndCleanupTTL();
+            lastTTLCheck.set(now);
+        }
+    }
+
+    /**
+     * Performs TTL check and cleanup for the current thread.
+     *
+     * <p>If the TTL has elapsed, logs diagnostic information about the leaked scope
+     * and forcibly cleans up all ThreadLocals. This helps prevent memory leaks in
+     * thread pool environments where threads are reused.</p>
+     */
+    private static void checkAndCleanupTTL() {
+        long now = System.currentTimeMillis();
+        Long lastAccess = lastAccessTime.get();
+
+        if (lastAccess != null && (now - lastAccess) > ttlMillis) {
+            // TTL expired - perform defensive cleanup
+            Deque<String> stack = ownerStack.get();
+            Map<String, String> ctx = context.get();
+
+            // Log WARNING only if there's actually leaked data
+            if (!stack.isEmpty() || !ctx.isEmpty()) {
+                System.err.println(String.format(
+                    "[MCC-TTL-CLEANUP] Defensive cleanup triggered | Thread: %s | Elapsed: %dms | " +
+                    "Stack: %s | Context size: %d | Context keys: %s",
+                    Thread.currentThread().getName(),
+                    (now - lastAccess),
+                    stack.isEmpty() ? "[]" : stack.toString(),
+                    ctx.size(),
+                    ctx.isEmpty() ? "[]" : ctx.keySet().toString()
+                ));
+
+                // Update metrics
+                totalTTLCleanups.incrementAndGet();
+                if (!stack.isEmpty()) {
+                    currentActiveContexts.decrementAndGet();
+                }
+            }
+
+            // Force cleanup of all ThreadLocals
+            context.remove();
+            ownerStack.remove();
+            lastAccessTime.remove();
+        }
+
+        // Update last access time
+        lastAccessTime.set(now);
+    }
+
+    /**
+     * Updates statistics in the StatsRegistry (if available).
+     *
+     * <p>This method uses reflection to avoid creating a hard dependency on the agent module.
+     * If StatsRegistry is not available (e.g., in minimal deployments), updates are silently skipped.</p>
+     */
+    private static void updateStats() {
+        try {
+            Class<?> statsRegistryClass = Class.forName("org.jvmxray.agent.util.StatsRegistry");
+            java.lang.reflect.Method registerMethod = statsRegistryClass.getMethod("register", String.class, String.class);
+
+            registerMethod.invoke(null, "mcc_contexts_created", String.valueOf(totalContextsCreated.get()));
+            registerMethod.invoke(null, "mcc_ttl_cleanups", String.valueOf(totalTTLCleanups.get()));
+            registerMethod.invoke(null, "mcc_max_context_size", String.valueOf(maxContextSizeEverSeen.get()));
+            registerMethod.invoke(null, "mcc_active_contexts", String.valueOf(currentActiveContexts.get()));
+            registerMethod.invoke(null, "mcc_ttl_seconds", String.valueOf(ttlMillis / 1000));
+        } catch (ClassNotFoundException e) {
+            // StatsRegistry not available - this is okay for minimal deployments
+        } catch (Exception e) {
+            // Silently ignore errors in stats reporting - shouldn't affect core functionality
+        }
+    }
+
+    /**
      * Enters a new correlation scope for a sensor or component.
      *
      * <p>This method implements the entry point for sensor-managed MCC lifecycle:</p>
      * <ul>
+     * <li>Performs defensive TTL-based cleanup check (throttled to once per 100ms)</li>
      * <li>If this is the FIRST scope (stack empty), initializes correlation context with new trace_id</li>
      * <li>If scopes already exist, inherits existing trace_id (nested sensor)</li>
      * <li>Pushes scope ID onto owner stack for proper cleanup on exit</li>
+     * <li>Updates metrics for monitoring</li>
      * </ul>
      *
      * <p><strong>Usage Pattern:</strong></p>
@@ -334,16 +486,26 @@ public class MCC {
             throw new IllegalArgumentException("Scope ID cannot be null or empty");
         }
 
+        // Defensive TTL check (throttled)
+        checkTTLIfNeeded();
+
         Deque<String> stack = ownerStack.get();
 
         if (stack.isEmpty()) {
             // First entry point - initialize correlation context
             context.get().clear();
             put("trace_id", GUID.generate());
+
+            // Update metrics
+            totalContextsCreated.incrementAndGet();
+            currentActiveContexts.incrementAndGet();
         }
         // If stack not empty, context already initialized - inherit trace_id
 
         stack.push(scopeId);
+
+        // Update stats registry
+        updateStats();
     }
 
     /**
@@ -351,10 +513,12 @@ public class MCC {
      *
      * <p>This method implements the exit point for sensor-managed MCC lifecycle:</p>
      * <ul>
+     * <li>Performs defensive TTL-based cleanup check (throttled to once per 100ms)</li>
      * <li>Verifies scope ID matches top of stack (safety check for proper pairing)</li>
      * <li>Pops scope ID from owner stack</li>
-     * <li>If this was the LAST scope (stack now empty), clears ALL correlation context</li>
+     * <li>If this was the LAST scope (stack now empty), clears ALL correlation context and ThreadLocals</li>
      * <li>If scopes remain (nested sensors), preserves correlation context for parent scopes</li>
+     * <li>Updates metrics for monitoring</li>
      * </ul>
      *
      * <p><strong>Usage Pattern:</strong></p>
@@ -367,7 +531,8 @@ public class MCC {
      * }</pre>
      *
      * <p><strong>Thread Pool Safety:</strong> When last scope exits, context is completely cleared
-     * to prevent correlation data leakage when threads are reused across logical transactions.</p>
+     * including ThreadLocal cleanup to prevent correlation data leakage when threads are reused
+     * across logical transactions.</p>
      *
      * @param scopeId Unique identifier for this scope (must match enterScope call)
      * @throws IllegalArgumentException if scopeId is null or empty
@@ -377,18 +542,30 @@ public class MCC {
             throw new IllegalArgumentException("Scope ID cannot be null or empty");
         }
 
+        // Defensive TTL check (throttled)
+        checkTTLIfNeeded();
+
         Deque<String> stack = ownerStack.get();
 
         if (!stack.isEmpty() && scopeId.equals(stack.peek())) {
             stack.pop();
 
             if (stack.isEmpty()) {
-                // Last exit - clear all correlation context
+                // Last exit - clear all correlation context and ThreadLocals
                 context.get().clear();
+                context.remove();         // Clean up ThreadLocal
+                ownerStack.remove();      // Clean up ThreadLocal
+                lastAccessTime.remove();  // Clean up ThreadLocal
+
+                // Update metrics
+                currentActiveContexts.decrementAndGet();
             }
             // If stack not empty, keep context for parent scopes
         }
         // If scope mismatch or stack empty, do nothing (defensive - shouldn't happen with proper instrumentation)
+
+        // Update stats registry
+        updateStats();
     }
 
     /**

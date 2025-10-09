@@ -245,6 +245,7 @@ java -Djvmxray.home=/opt/security -javaagent:/opt/jvmxray/prj-agent-0.0.1-shaded
 | -Djvmxray.agent.logs | Agent logs directory path | auto-detected | No |
 | -Djvmxray.agent.config | Agent config directory path | auto-detected | No |
 | -Dlogback.agent.configurationFile | Override logback config path | auto-detected | No |
+| -Dorg.jvmxray.agent.mcc.ttl.seconds | MCC ThreadLocal cleanup TTL (seconds) - defensive cleanup for leaked scopes | 300 | No |
 
 **Directory Structure Examples:**
 ```bash
@@ -271,6 +272,35 @@ java -Djvmxray.home=/opt/security -javaagent:/opt/jvmxray/prj-agent-0.0.1-shaded
 | CID | Configuration ID - Identifies the configuration profile (production, staging, development) for operational categorization and event filtering | production | Yes |
 | log.message.encoding | Enable log message encoding for special characters and binary data | true | No |
 | monitor.interval | Interval (milliseconds) for logging periodic system metrics including memory usage, thread counts, GC statistics, CPU load, and other application health indicators | 60000 | No |
+
+**Monitoring Metrics:**
+
+The MonitorSensor logs comprehensive system and sensor statistics every 60 seconds (configurable via monitor.interval). Metrics are aggregated from multiple sources:
+
+**MCC (Mapped Correlation Context) Metrics:**
+- `mcc_contexts_created`: Total correlation contexts created (lifetime counter)
+- `mcc_active_contexts`: Current active contexts across all threads
+- `mcc_max_context_size`: Largest context size ever seen (max fields in any context)
+- `mcc_ttl_cleanups`: Defensive cleanups triggered (**should be 0** - non-zero indicates sensor bugs)
+- `mcc_ttl_seconds`: Configured TTL value for defensive cleanup
+
+**LibSensor (JAR Loading) Metrics:**
+- `lib_static_loaded`: Number of static classpath JARs detected at startup
+- `lib_dynamic_loaded`: Number of dynamically loaded JARs detected at runtime
+- `lib_total_packages`: Total unique Java packages discovered across all JARs
+- `lib_cache_size`: Current size of known JARs cache (bounded to 10,000 entries)
+
+**System Metrics:**
+- Memory: MemoryTotal, MemoryFree, MemoryMax, NonHeapUsed
+- Threads: ThreadNew, ThreadRunnable, ThreadBlocked, ThreadWaiting, ThreadTerminated
+- GC: GCCount, GCTime
+- CPU: ProcessCpuLoad
+- Files: OpenFiles (Unix systems only)
+- Deadlocks: DeadlockedThreads
+
+**LogProxy Metrics:**
+- LogBufferUtilization, LogQueueSize, LogDiscardCount
+- LogFlushRate, LogFlushTime, LogOverflowStrategy, LogTotalEvents
 
 **Sensor Configuration:**
 

@@ -4,6 +4,7 @@ import com.sun.management.UnixOperatingSystemMXBean;
 import org.jvmxray.agent.proxy.AgentLogger;
 import org.jvmxray.agent.proxy.LogProxy;
 import org.jvmxray.agent.sensor.*;
+import org.jvmxray.agent.util.StatsRegistry;
 import org.jvmxray.platform.shared.property.AgentProperties;
 
 import java.lang.instrument.Instrumentation;
@@ -163,6 +164,15 @@ public class MonitorSensor extends AbstractSensor implements Sensor {
             stats.put("LogTotalEvents", logMetrics.getTotalEvents());
         } catch (Exception e) {
             stats.put("LogBufferMetrics", "Error: " + e.getMessage());
+        }
+
+        // Collect all sensor statistics from StatsRegistry
+        // This includes MCC metrics, LibSensor metrics, and any other registered stats
+        try {
+            Map<String, String> registeredStats = StatsRegistry.getSnapshot();
+            stats.putAll(registeredStats);
+        } catch (Exception e) {
+            stats.put("StatsRegistryError", "Failed to collect stats: " + e.getMessage());
         }
 
         // Log the system statistics
