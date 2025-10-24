@@ -14,6 +14,7 @@
 5. [REST API Endpoints](#rest-api-endpoints)
 6. [Database Tables](#database-tables)
 7. [Common Errors](#common-errors)
+8. [Developer Guide](#developer-guide) (optional)
 
 ---
 
@@ -249,6 +250,72 @@ Brief error message as shown to user
 **Prevention:** Brief note on how to avoid this error
 
 <!-- Include only most common/critical errors -->
+
+---
+
+## Developer Guide
+
+**Note:** This section is optional. Include it when the component has developer-facing APIs, utilities, or patterns that require documentation beyond the architecture section.
+
+### Development Patterns
+
+#### [Pattern Name]
+**Purpose:** <!-- One line description of what this pattern solves -->
+
+**Location:** `path/to/implementation`
+
+**Design:**
+<!-- Brief description of the design pattern and architecture -->
+- Key design decision 1
+- Key design decision 2
+
+**Usage:**
+```java
+// Example code showing how developers use this pattern
+```
+
+**Best Practices:**
+- Guideline 1
+- Guideline 2
+
+<!-- Repeat for each significant pattern -->
+
+### Utility Classes
+
+#### [Utility Class Name]
+**Purpose:** <!-- One line description -->
+
+**Location:** `path/to/class`
+
+**Key Methods:**
+
+| Method | Parameters | Returns | Description |
+|--------|------------|---------|-------------|
+| methodName() | type param | type | What it does |
+
+**Integration Example:**
+```java
+// Example showing how to integrate this utility
+```
+
+<!-- Repeat for each utility class -->
+
+### Extension Points
+
+#### [Extension Point Name]
+**Purpose:** <!-- How developers can extend this component -->
+
+**Interface/Base Class:** `path.to.ExtensionInterface`
+
+**Implementation Steps:**
+1. Extend/implement the base
+2. Override required methods
+3. Register with component
+
+**Example:**
+```java
+// Example implementation
+```
 
 ---
 
