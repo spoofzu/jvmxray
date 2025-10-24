@@ -13,6 +13,7 @@
 5. [REST API Endpoints](#rest-api-endpoints)
 6. [Database Tables](#database-tables)
 7. [Common Errors](#common-errors)
+8. [Developer Guide](#developer-guide)
 
 ---
 
@@ -547,5 +548,175 @@ mvn clean install -f prj-agent/pom.xml
 ```
 
 **Prevention:** Use the shaded JAR (prj-agent-0.0.1-shaded.jar) for deployments
+
+---
+
+## Developer Guide
+
+### Utility Classes
+
+#### StatsRegistry
+
+**Purpose:** Centralized, thread-safe registry for sensor statistics monitoring
+
+**Location:** `prj-agent/src/main/java/org/jvmxray/agent/util/StatsRegistry.java`
+
+**Design:**
+- Thread-safe implementation using `ConcurrentHashMap` for lock-free updates
+- Sensors update statistics on lifecycle events (enter/exit scope)
+- MonitorSensor reads periodic snapshots (default: 60 seconds) for logging
+- Supports both counter and gauge metrics via string key-value storage
+
+**Key Methods:**
+
+| Method | Parameters | Returns | Description |
+|--------|------------|---------|-------------|
+| register() | String key, String value | void | Register or update a metric value (thread-safe) |
+| getSnapshot() | none | Map<String, String> | Get immutable snapshot of all current metrics |
+| clear() | none | void | Clear all registered metrics |
+
+**Integration Example:**
+```java
+// Sensor updates statistics
+public class MySensor extends AbstractSensor {
+    private final AtomicLong operationCount = new AtomicLong(0);
+
+    @Override
+    public void beforeMethod(Method method, Object target, Object[] args) {
+        // Update counter
+        long count = operationCount.incrementAndGet();
+
+        // Register with StatsRegistry
+        StatsRegistry.register("my_sensor_operations", String.valueOf(count));
+        StatsRegistry.register("my_sensor_last_target", target.getClass().getName());
+    }
+}
+
+// MonitorSensor collects all statistics
+public class MonitorSensor extends AbstractSensor {
+    @Override
+    public void run() {
+        // Collect snapshot from all sensors
+        Map<String, String> allStats = StatsRegistry.getSnapshot();
+
+        // Log to monitoring system
+        logProxy.logMessage(NAMESPACE, "INFO", allStats);
+    }
+}
+```
+
+**Registered Metrics:**
+
+The following metrics are automatically registered by JVMXRay sensors:
+
+**MCC Metrics** (registered by `MCC` class):
+- `mcc_contexts_created`: Lifetime count of correlation contexts created
+- `mcc_active_contexts`: Current active contexts across all threads
+- `mcc_max_context_size`: Maximum context size observed (field count)
+- `mcc_ttl_cleanups`: Defensive cleanups triggered (should be 0)
+- `mcc_ttl_seconds`: Configured TTL for defensive cleanup
+
+**LibSensor Metrics** (registered by `LibSensor`):
+- `lib_static_loaded`: Static classpath JARs detected at startup
+- `lib_dynamic_loaded`: Dynamically loaded JARs at runtime
+- `lib_total_packages`: Total unique Java packages discovered
+- `lib_cache_size`: Current size of known JARs cache
+
+**Best Practices:**
+- Use descriptive metric names with component prefix (e.g., `my_sensor_metric_name`)
+- Update metrics atomically to avoid race conditions
+- Keep values simple (strings representing numbers or states)
+- Let MonitorSensor handle periodic collection - don't read snapshot frequently
+- Watch for non-zero `mcc_ttl_cleanups` - indicates sensor scope management bugs
+
+### Development Patterns
+
+#### Sensor Statistics Integration
+
+**Purpose:** Enable sensors to contribute metrics to centralized monitoring
+
+**Pattern Steps:**
+
+1. **Track State in Sensor**
+   ```java
+   public class MySensor extends AbstractSensor {
+       private final AtomicLong counter = new AtomicLong(0);
+       private final AtomicLong errors = new AtomicLong(0);
+   ```
+
+2. **Update StatsRegistry on Events**
+   ```java
+       @Override
+       public void beforeMethod(Method method, Object target, Object[] args) {
+           try {
+               long count = counter.incrementAndGet();
+               StatsRegistry.register("my_sensor_count", String.valueOf(count));
+           } catch (Exception e) {
+               long errorCount = errors.incrementAndGet();
+               StatsRegistry.register("my_sensor_errors", String.valueOf(errorCount));
+           }
+       }
+   ```
+
+3. **MonitorSensor Collects Automatically**
+   ```java
+   // No action needed - MonitorSensor periodically reads all metrics
+   // via StatsRegistry.getSnapshot() and logs them
+   ```
+
+**Complete Example:**
+
+```java
+package org.jvmxray.agent.sensor.custom;
+
+import org.jvmxray.agent.sensor.AbstractSensor;
+import org.jvmxray.agent.util.StatsRegistry;
+import java.util.concurrent.atomic.AtomicLong;
+import java.lang.reflect.Method;
+
+public class CustomSensor extends AbstractSensor {
+    private static final String NAMESPACE = "org.jvmxray.agent.sensor.custom.CustomSensor";
+
+    // Track statistics
+    private final AtomicLong totalOperations = new AtomicLong(0);
+    private final AtomicLong successCount = new AtomicLong(0);
+    private final AtomicLong failureCount = new AtomicLong(0);
+
+    @Override
+    public void beforeMethod(Method method, Object target, Object[] args) {
+        // Increment operation counter
+        long ops = totalOperations.incrementAndGet();
+
+        // Register with StatsRegistry
+        StatsRegistry.register("custom_sensor_operations", String.valueOf(ops));
+
+        try {
+            // Perform sensor logic
+            performMonitoring(method, target, args);
+
+            // Update success counter
+            long success = successCount.incrementAndGet();
+            StatsRegistry.register("custom_sensor_success", String.valueOf(success));
+
+        } catch (Exception e) {
+            // Update failure counter
+            long failures = failureCount.incrementAndGet();
+            StatsRegistry.register("custom_sensor_failures", String.valueOf(failures));
+        }
+    }
+
+    private void performMonitoring(Method method, Object target, Object[] args) {
+        // Custom sensor logic here
+    }
+}
+```
+
+**Metrics Visibility:**
+
+Once registered, metrics appear in MonitorSensor logs every 60 seconds:
+```
+org.jvmxray.agent.sensor.monitor.MonitorSensor | INFO | ... |
+custom_sensor_operations=1523|custom_sensor_success=1498|custom_sensor_failures=25|...
+```
 
 ---
