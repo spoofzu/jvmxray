@@ -27,21 +27,34 @@ JVMXRay is an AI-enhanced security monitoring platform that watches Java applica
 jvmxray/
 ├── prj-agent/          # Java agent with bytecode injection sensors
 ├── prj-common/         # Shared utilities, models, and database schema management
-├── prj-mcp-client/     # MCP (Model Context Protocol) client functionality
-└── prj-service-log/    # Log service components
+├── prj-mcp-client/     # MCP (Model Context Protocol) client (optional, requires Java 21+)
+├── prj-service-ai/     # AI-powered event analysis and processing service
+├── prj-service-log/    # Log service components
+└── prj-service-rest/   # REST API service
 ```
 
 ### Agent Architecture (prj-agent)
 The agent uses ByteBuddy for bytecode injection to install sensors:
 
-- **Entry Point**: `org.jvmxray.agent.bin.jvmxrayagent` (Java agent premain class)
+- **Entry Point**: `org.jvmxray.agent.bootstrap.AgentBootstrap` (Premain-Class that creates isolated classloader)
+  - Delegates to `org.jvmxray.agent.bin.jvmxrayagent.start()` for actual agent initialization
 - **Sensor Types**: Modular monitoring system
+  - API call monitoring (`api/` package)
+  - Authentication tracking (`auth/` package)
+  - Configuration access (`configuration/` package)
+  - Cryptographic operations (`crypto/` package)
+  - Data transfer monitoring (`data/` package)
   - File I/O operations (`io/` package)
-  - Network operations (`net/` package)
   - HTTP requests (`http/` package)
+  - Memory operations (`memory/` package)
+  - System monitoring (`monitor/` package)
+  - Network operations (`net/` package)
+  - Reflection usage (`reflection/` package)
+  - Script engine execution (`script/` package)
+  - Serialization operations (`serialization/` package)
   - SQL queries (`sql/` package)
   - System calls and library loading (`system/` package)
-  - System monitoring (`monitor/` package)
+  - Thread operations (`thread/` package)
   - Exception handling (`uncaughtexception/` package)
 
 ### Database Schema Architecture (prj-common)
@@ -95,13 +108,17 @@ Each component follows the pattern:
 - `jvmxray.{component}.config`: Component-specific config directory path
 
 #### **Key Components**
-- **IntegrationInitializer**: Sets up integration test logging and directories
-- **CommonInitializer**: Manages common module logging and database connections
+- **ComponentInitializer**: Abstract base class providing common initialization framework
 - **AgentInitializer**: Special case - manages agent-specific configuration without standard logging
+- **CommonInitializer**: Manages common module logging and database connections
+- **LogServiceInitializer**: Configures the log service component
+- **RestServiceInitializer**: Configures the REST API service component
+- **AiServiceInitializer**: Configures the AI analysis service component
 
 ### MCC (Mapped Correlation Context) Memory Management
 
 MCC provides thread-scoped correlation context for security events, enabling event tracking across execution paths.
+- **Location**: `prj-common/src/main/java/org/jvmxray/platform/shared/util/MCC.java`
 
 #### **Memory Cleanup Strategy**
 - **Primary Cleanup**: Scope-based cleanup when sensor stack empties (thread pool safe)
@@ -161,9 +178,9 @@ logProxy.logMessage(NAMESPACE, "INFO", allStats);
 Integration tests run automatically with Maven build via `mvn clean install`. The Turtle integration test:
 
 1. Runs TurtleIntegrationTest in its own JVM with JVMXRay agent attached
-2. Exercises all sensors through controlled operations  
+2. Exercises all sensors through controlled operations
 3. Validates expected sensor events appear in logs
-4. Located in `prj-common/src/test/java/org/jvmxray/shared/integration/`
+4. Located in `prj-common/src/test/java/org/jvmxray/shared/integration/turtle/`
 
 **Memory Requirements**: Set `MAVEN_OPTS="-Xmx1g -XX:MaxMetaspaceSize=256m"`
 
@@ -189,7 +206,9 @@ When adding new sensors:
 ## Technology Stack
 
 ### Core Technologies
-- **Java 11+** (maven.compiler.source/target=11)
+- **Java 17** for most modules (maven.compiler.source/target=17)
+  - **Exception**: prj-agent uses **Java 11** for maximum cloud compatibility
+  - **Exception**: prj-mcp-client requires **Java 21+** (optional module)
 - **ByteBuddy 1.14.17** for bytecode injection
 
 ### Build & Testing
@@ -218,7 +237,7 @@ When adding new sensors:
 - **Test Environment**: TurtleIntegrationTest runs in its own JVM with agent attached
 
 ### Script Design Principles
-- **Minimal Wrapper Pattern**: All shell scripts (e.g., `logserver.sh`) must be lightweight, minimal wrappers
+- **Minimal Wrapper Pattern**: All shell scripts (e.g., `script/services/log-service`) must be lightweight, minimal wrappers
 - **Java-First Logic**: All business logic, dependency validation, environment setup, and process management must reside in Java code
 - **Script Responsibilities Limited To**:
   - Classpath construction and dependency resolution
