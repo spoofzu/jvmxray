@@ -89,10 +89,6 @@ public class ReflectionInterceptor {
                 metadata.put("error_message", throwable.getMessage());
             }
             
-            // Analyze call stack for context
-            String callContext = analyzeCallStack();
-            metadata.put("call_context", callContext);
-            
             logProxy.logMessage(NAMESPACE + ".class_forname", "INFO", metadata);
             
         } catch (Exception e) {
@@ -146,10 +142,6 @@ public class ReflectionInterceptor {
                 metadata.put("result_type", result.getClass().getName());
             }
             
-            // Analyze call stack
-            String callContext = analyzeCallStack();
-            metadata.put("call_context", callContext);
-            
             logProxy.logMessage(NAMESPACE + ".method_invoke", "INFO", metadata);
             
         } catch (Exception e) {
@@ -190,9 +182,6 @@ public class ReflectionInterceptor {
             if (result != null) {
                 metadata.put("instance_created", "true");
             }
-            
-            String callContext = analyzeCallStack();
-            metadata.put("call_context", callContext);
             
             logProxy.logMessage(NAMESPACE + ".constructor_invoke", "INFO", metadata);
             
@@ -309,9 +298,6 @@ public class ReflectionInterceptor {
             if (throwable != null) {
                 metadata.put("error", throwable.getClass().getSimpleName());
             }
-            
-            String callContext = analyzeCallStack();
-            metadata.put("call_context", callContext);
             
             logProxy.logMessage(NAMESPACE + ".setAccessible", "INFO", metadata);
             
@@ -434,27 +420,5 @@ public class ReflectionInterceptor {
         }
         
         return false;
-    }
-
-    private static String analyzeCallStack() {
-        try {
-            StackTraceElement[] stack = Thread.currentThread().getStackTrace();
-            StringBuilder context = new StringBuilder();
-            
-            for (StackTraceElement element : stack) {
-                String className = element.getClassName();
-                if (!className.startsWith("org.jvmxray") && 
-                    !className.startsWith("java.lang.reflect") &&
-                    !className.startsWith("sun.") &&
-                    !className.startsWith("net.bytebuddy") &&
-                    context.length() < 200) {
-                    context.append(className).append(".").append(element.getMethodName()).append(";");
-                }
-            }
-            
-            return context.toString();
-        } catch (Exception e) {
-            return "unknown";
-        }
     }
 }

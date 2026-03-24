@@ -26,6 +26,11 @@ public class SystemSetPropertyInterceptor {
                                        @Advice.Return String result,
                                        @Advice.Thrown Throwable throwable) {
         try {
+            // Skip logging for agent's own internal property writes to avoid noise
+            if (key != null && key.startsWith("org.jvmxray")) {
+                return;
+            }
+
             Map<String, String> metadata = new HashMap<>();
             metadata.put("operation", "system_setProperty");
             metadata.put("property_key", key != null ? key : "unknown");
@@ -64,9 +69,6 @@ public class SystemSetPropertyInterceptor {
             if (value != null && !ConfigurationUtils.isSensitiveProperty(key)) {
                 metadata.put("new_value", ConfigurationUtils.truncateValue(value));
             }
-            
-            String context = ConfigurationUtils.analyzeCallContext();
-            metadata.put("call_context", context);
             
             logProxy.logMessage(NAMESPACE + ".property", "INFO", metadata);
             

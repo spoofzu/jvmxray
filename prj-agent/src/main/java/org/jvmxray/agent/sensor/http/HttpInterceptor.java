@@ -27,12 +27,14 @@ public class HttpInterceptor {
      * Intercepts the entry of an HTTP servlet method to log request details.
      * Initializes MCC (Mapped Correlation Context) with trace_id and request metadata
      * for event correlation across the entire request execution path.
+     * Enhanced with security pattern detection and timing capture.
      *
      * @param servlet The servlet instance being intercepted.
      * @param request The HTTP request object.
      */
     @Advice.OnMethodEnter
-    public static void enter(@Advice.This Object servlet, @Advice.Argument(0) Object request) {
+    public static long enter(@Advice.This Object servlet, @Advice.Argument(0) Object request) {
+        long startTime = System.nanoTime();
         try {
             // todo Consider ramifications and protections to support sensitive cookie values.
 
@@ -130,9 +132,43 @@ public class HttpInterceptor {
             String clientIp = (String) invokeMethod(request, "getRemoteAddr");
             metadata.put("client_ip", clientIp != null ? clientIp : "unknown");
 
+            // Capture request method
+            String requestMethod = (String) invokeMethod(request, "getMethod");
+            metadata.put("request_method", requestMethod != null ? requestMethod : "unknown");
+
             // Capture request URI
             String requestUri = (String) invokeMethod(request, "getRequestURI");
             metadata.put("uri", requestUri != null ? requestUri : "unknown");
+
+            // Capture query string for security analysis
+            String queryString = null;
+            try {
+                queryString = (String) invokeMethod(request, "getQueryString");
+                if (queryString != null) {
+                    metadata.put("query_string_present", "true");
+                }
+            } catch (Exception e) {
+                // Query string not available
+            }
+
+            // Capture content length
+            try {
+                Integer contentLength = (Integer) invokeMethod(request, "getContentLength");
+                if (contentLength != null && contentLength >= 0) {
+                    metadata.put("request_size_bytes", contentLength.toString());
+                }
+            } catch (Exception e) {
+                // Content length not available
+            }
+
+            // Security pattern analysis
+            String userAgent = headers.get("User-Agent");
+            if (userAgent == null) {
+                userAgent = headers.get("user-agent");
+            }
+            Map<String, String> securityAnalysis = HttpSecurityUtils.analyzeRequestPatterns(
+                    requestUri, queryString, userAgent);
+            metadata.putAll(securityAnalysis);
 
             // Determine log level and metadata based on logging configuration
             String level = "INFO";
@@ -142,7 +178,6 @@ public class HttpInterceptor {
             } else {
                 level = "INFO";
                 // Include specific header (e.g., User-Agent) at INFO level
-                String userAgent = headers.get("User-Agent");
                 if (userAgent != null) {
                     metadata.put("user-agent", userAgent);
                 }
@@ -150,26 +185,30 @@ public class HttpInterceptor {
             // Log the request event
             logProxy.logMessage(REQ_NAMESPACE, level, metadata);
         } catch (Exception e) {
-            System.err.println("enter: Failed: " + e.getMessage());
-            e.printStackTrace();
-            // Log error event
-            Map<String, String> errorMetadata = new HashMap<>();
-            errorMetadata.put("error", "Failed to process request: " + e.getMessage());
-            logProxy.logMessage(REQ_NAMESPACE, "ERROR", errorMetadata);
+            // Log error to platform log with full stacktrace and available context
+            // MCC context (trace_id, client_ip, request_method, etc.) will be automatically merged
+            Map<String, String> errorContext = new HashMap<>();
+            errorContext.put("sensor", "HttpInterceptor");
+            errorContext.put("phase", "enter");
+            logProxy.logPlatformError(errorContext, "Failed to process HTTP request", e);
         }
+        return startTime;
     }
 
     /**
      * Intercepts the exit of an HTTP servlet method to log response details.
      * Clears MCC (Mapped Correlation Context) to prevent correlation data leakage
      * in thread pool environments where threads are reused.
+     * Enhanced with security header analysis and response timing.
      *
      * @param response The HTTP response object.
+     * @param startTime The request start time from enter method.
      */
     @Advice.OnMethodExit
-    public static void exit(@Advice.Argument(1) Object response) {
+    public static void exit(@Advice.Argument(1) Object response, @Advice.Enter long startTime) {
         try {
-            //todo May consider adding support for returning server response headers.
+            // Calculate response time
+            double responseTimeMs = (System.nanoTime() - startTime) / 1_000_000.0;
 
             // Retrieve request_id for correlation of responses.
             Map<String, String> metadata =  RequestContextHolder.getContext();
@@ -180,27 +219,69 @@ public class HttpInterceptor {
             metadata.put("request_id", requestId);
             metadata.put("request_uri", requestUri != null ? requestUri : "unknown");
 
-            // When DEBUG enabled log the response content length header value.
-            String level = "INFO";
-            if (logProxy.isLoggingAtLevel(RES_NAMESPACE, "DEBUG")) {
-                level = "DEBUG";
-                // Retrieve all request headers
-                Map<String, String> headers = getAllHeaders(response);
-                headers.remove("request_uri"); // remove it since we included it by default.
-                metadata.putAll(headers);
-            }
+            // Add response timing
+            metadata.put("response_time_ms", String.format("%.2f", responseTimeMs));
 
             // Capture response status code
             Integer status = (Integer) invokeMethod(response, "getStatus");
             metadata.put("status", status != null ? status.toString() : "unknown");
 
+            // Classify status
+            if (status != null) {
+                metadata.put("status_class", HttpSecurityUtils.classifyStatus(status));
+            }
+
+            // Get response headers for security analysis
+            Map<String, String> responseHeaders = getAllHeaders(response);
+
+            // Security header analysis
+            Map<String, String> securityAnalysis = HttpSecurityUtils.analyzeSecurityHeaders(responseHeaders);
+            metadata.putAll(securityAnalysis);
+
+            // Capture content type
+            String contentType = responseHeaders.get("Content-Type");
+            if (contentType == null) {
+                contentType = responseHeaders.get("content-type");
+            }
+            if (contentType != null) {
+                metadata.put("content_type", contentType);
+                if (HttpSecurityUtils.isSensitiveContentType(contentType)) {
+                    metadata.put("sensitive_content_type", "true");
+                }
+            }
+
+            // Capture content length (response size)
+            String contentLength = responseHeaders.get("Content-Length");
+            if (contentLength == null) {
+                contentLength = responseHeaders.get("content-length");
+            }
+            if (contentLength != null) {
+                metadata.put("response_size_bytes", contentLength);
+            }
+
+            // When DEBUG enabled log additional response headers
+            String level = "INFO";
+            if (logProxy.isLoggingAtLevel(RES_NAMESPACE, "DEBUG")) {
+                level = "DEBUG";
+                // Add all response headers except those already processed
+                for (Map.Entry<String, String> entry : responseHeaders.entrySet()) {
+                    String key = entry.getKey();
+                    if (!key.equalsIgnoreCase("Content-Type") &&
+                        !key.equalsIgnoreCase("Content-Length")) {
+                        metadata.put("header_" + key.toLowerCase().replace("-", "_"), entry.getValue());
+                    }
+                }
+            }
+
             // Log the response event
             logProxy.logMessage(RES_NAMESPACE, level, metadata);
         } catch (Exception e) {
-            // Log error event
-            Map<String, String> errorMetadata = new HashMap<>();
-            errorMetadata.put("error", "Failed to process response: " + e.getMessage());
-            logProxy.logMessage(RES_NAMESPACE, "ERROR", errorMetadata);
+            // Log error to platform log with full stacktrace and available context
+            // MCC context (trace_id, client_ip, request_method, etc.) will be automatically merged
+            Map<String, String> errorContext = new HashMap<>();
+            errorContext.put("sensor", "HttpInterceptor");
+            errorContext.put("phase", "exit");
+            logProxy.logPlatformError(errorContext, "Failed to process HTTP response", e);
         } finally {
             // Clean up RequestContextHolder ThreadLocal
             RequestContextHolder.clearContext();

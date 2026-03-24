@@ -22,10 +22,35 @@ import java.util.Map;
 public class ConnectInterceptor {
     // Thread-local storage for recording the start time of the connect operation
     public static final ThreadLocal<Long> startTime = new ThreadLocal<>();
+    // Thread-local flag to skip logging for agent internal operations
+    public static final ThreadLocal<Boolean> skipLogging = ThreadLocal.withInitial(() -> false);
     // Namespace for logging socket connect events
     public static final String NAMESPACE = "org.jvmxray.events.net.socket.connect";
     // Singleton instance of LogProxy for logging
     public static final LogProxy logProxy = LogProxy.getInstance();
+
+    /**
+     * Checks if the current connection is from agent's internal operations.
+     * This filters out noise from the agent's SocketAppender for log shipping.
+     */
+    private static boolean isAgentInternalConnection() {
+        try {
+            StackTraceElement[] stackTrace = Thread.currentThread().getStackTrace();
+            for (StackTraceElement element : stackTrace) {
+                String className = element.getClassName();
+                // Skip agent classes, logback appenders, and known framework classes
+                if (className.startsWith("org.jvmxray") ||
+                    className.contains("SocketAppender") ||
+                    className.contains("logback") ||
+                    className.contains("ShadedSQLite")) {
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            // Ignore errors during check
+        }
+        return false;
+    }
 
     /**
      * Intercepts the entry of the {@code Socket.connect} method to record the start time.
@@ -39,6 +64,12 @@ public class ConnectInterceptor {
             @Advice.This Socket socket,
             @Advice.Argument(0) SocketAddress endpoint,
             @Advice.Argument(1) int timeout) {
+        // Check if this is an agent internal operation
+        if (isAgentInternalConnection()) {
+            skipLogging.set(true);
+            return;
+        }
+        skipLogging.set(false);
         // Enter MCC correlation scope
         MCCScope.enter("Network");
         // Record the start time of the connect operation
@@ -48,6 +79,7 @@ public class ConnectInterceptor {
     /**
      * Intercepts the exit of the {@code Socket.connect} method to log the connect result.
      * Captures both successful connections and exceptions, and cleans up thread-local storage.
+     * Enhanced with network metadata and TLS/SSL session information.
      *
      * @param socket   The {@code Socket} instance initiating the connection.
      * @param endpoint The {@code SocketAddress} to connect to.
@@ -58,18 +90,41 @@ public class ConnectInterceptor {
             @Advice.This Socket socket,
             @Advice.Argument(0) SocketAddress endpoint,
             @Advice.Thrown Throwable thrown) {
+        // Skip logging for agent internal operations
+        if (skipLogging.get()) {
+            skipLogging.remove();
+            return;
+        }
+
         try {
-            // Cast endpoint to InetSocketAddress for address and port details
-            InetSocketAddress remoteAddr = (InetSocketAddress) endpoint;
+            // Calculate connection time
+            Long start = startTime.get();
+            long connectionTimeMs = start != null ? System.currentTimeMillis() - start : -1;
+
+            // Initialize metadata with enhanced network info
+            Map<String, String> metadata = NetworkUtils.extractSocketMetadata(socket, endpoint, "CONNECT");
+
+            // Add connection timing
+            if (connectionTimeMs >= 0) {
+                metadata.put("connection_time_ms", String.valueOf(connectionTimeMs));
+            }
+
             // Determine local address, defaulting to localhost if not bound
             String local = socket.isBound() ? socket.getLocalAddress().getHostAddress() + ":" + socket.getLocalPort() : "localhost:0";
-
-            // Initialize metadata for logging
-            Map<String, String> metadata = new HashMap<>();
             metadata.put("bind_src", local);
-            metadata.put("dst", remoteAddr.getAddress().getHostAddress() + ":" + remoteAddr.getPort());
-            metadata.put("status", thrown != null ?
-                    "threw " + thrown.getClass().getSimpleName() + ": " + thrown.getMessage() : "connected");
+
+            // Set status based on success or failure
+            if (thrown != null) {
+                metadata.put("status", "failed");
+                metadata.put("error_class", thrown.getClass().getSimpleName());
+                metadata.put("error_message", thrown.getMessage());
+            } else {
+                metadata.put("status", "connected");
+
+                // Extract TLS/SSL metadata for SSL sockets (after successful connection)
+                Map<String, String> tlsMetadata = NetworkUtils.extractTLSMetadata(socket);
+                metadata.putAll(tlsMetadata);
+            }
 
             // Log the socket connect event
             logProxy.logMessage(NAMESPACE, "INFO", metadata);
@@ -77,6 +132,7 @@ public class ConnectInterceptor {
             // Clean up thread-local storage
             startTime.remove();
         } finally {
+            skipLogging.remove();
             MCCScope.exit("Network");
         }
     }

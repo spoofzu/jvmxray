@@ -26,9 +26,6 @@
   <modules>
     <module>prj-common</module>
     <module>prj-agent</module>
-    <module>prj-service-log</module>
-    <module>prj-service-rest</module>
-    <module>prj-service-ai</module>
   </modules>
   <properties>
     <maven.compiler.source>17</maven.compiler.source>

@@ -69,8 +69,10 @@ public class MonitorSensor extends AbstractSensor implements Sensor {
                     Thread.currentThread().interrupt(); // Restore interrupted status
                     break;
                 } catch (Exception e) {
-                    // Log any errors during monitoring
-                    logProxy.logMessage(NAMESPACE, "ERROR", Map.of("message", "Monitoring failed: " + e.getMessage()));
+                    // Log monitoring errors to platform log with full stacktrace
+                    Map<String, String> errorContext = new HashMap<>();
+                    errorContext.put("sensor", "MonitorSensor");
+                    logProxy.logPlatformError(errorContext, "System monitoring failed", e);
                 }
             }
         }, "jvmxray.monitor-1");
@@ -164,6 +166,14 @@ public class MonitorSensor extends AbstractSensor implements Sensor {
             stats.put("LogTotalEvents", logMetrics.getTotalEvents());
         } catch (Exception e) {
             stats.put("LogBufferMetrics", "Error: " + e.getMessage());
+        }
+
+        // Collect enhanced monitoring metrics (classloader, native memory, rates, anomalies)
+        try {
+            Map<String, String> enhancedMetrics = MonitorUtils.getEnhancedMetrics();
+            stats.putAll(enhancedMetrics);
+        } catch (Exception e) {
+            stats.put("EnhancedMetricsError", "Error: " + e.getMessage());
         }
 
         // Collect all sensor statistics from StatsRegistry

@@ -19,16 +19,14 @@
 ## Background and Purpose
 
 ### Project Overview
-The AI Service is an intelligent enrichment engine that processes security events from the JVMXRay agent to provide enhanced context, vulnerability correlation, and supply chain analysis. It transforms raw library loading events into structured intelligence by calculating cryptographic hashes, tracking library lifecycles, and identifying vulnerabilities using OWASP Dependency Check (ODC) integration with NIST's National Vulnerability Database.
+The AI Service is an intelligent enrichment engine that processes security events from the JVMXRay agent to provide enhanced context, vulnerability correlation, and supply chain analysis. It transforms raw library loading events into structured intelligence by calculating cryptographic hashes, tracking library lifecycles, and identifying vulnerabilities through pattern-based CVE matching.
 
 ### Core Mission
 Enrich agent-collected security events with AI-driven intelligence to detect vulnerabilities, track library changes, and identify supply chain risks in real-time.
 
 ### Key Capabilities
-- **OWASP Dependency Check (ODC) integration** for metadata-based vulnerability analysis against NIST NVD
-- **Hybrid CVE detection**: ODC primary analysis with CVEMatcher pattern-matching fallback
-- **Metadata-driven architecture**: Agent extracts Maven coordinates, manifest attributes, and package names for server-side ODC analysis (~50ms agent overhead vs 5-10s full ODC)
-- **Evidence-based CPE matching**: ODC builds vendor/product/version evidence buckets from metadata for NVD queries
+- **Pattern-based CVE detection**: CVEMatcher correlates libraries against known vulnerability patterns
+- **Metadata extraction**: Agent extracts Maven coordinates, manifest attributes, and package names (~50ms agent overhead)
 - Library event enrichment with SHA-256 hashing and temporal tracking
 - Supply chain change detection (library additions/removals)
 - Batch and continuous processing modes with configurable intervals
@@ -62,8 +60,7 @@ flowchart LR
     subgraph "AI Service Layer"
         C[AiService CLI]
         D[LibraryEnrichmentProcessor]
-        E[OWASPMetadataAnalyzer<br/>ODC Engine]
-        F[CVEMatcher<br/>fallback]
+        F[CVEMatcher]
         G[LibraryTemporalTracker]
     end
 
@@ -72,18 +69,11 @@ flowchart LR
         I[(STAGE2_LIBRARY_CVE)]
     end
 
-    subgraph "External"
-        J[NIST NVD<br/>Database]
-    end
-
     A -->|extracts metadata| A1
     A1 -->|Maven coords<br/>manifest<br/>packages| B
     B -->|reads events| D
     C -->|orchestrates| D
-    D -->|builds evidence| E
-    E -.->|CPE queries| J
-    E -->|CVE results| I
-    D -->|fallback| F
+    D -->|CVE matching| F
     D -->|tracks lifecycle| G
     D -->|writes enriched| H
     F -->|pattern match| I
@@ -92,12 +82,10 @@ flowchart LR
     classDef agentLayer fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#000000
     classDef storageLayer fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#000000
     classDef aiLayer fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000000
-    classDef externalLayer fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000000
 
     class A,A1 agentLayer
     class B,H,I storageLayer
-    class C,D,E,F,G aiLayer
-    class J externalLayer
+    class C,D,F,G aiLayer
 ```
 
 ### Security Architecture: Defense-in-Depth
@@ -133,113 +121,12 @@ JVMXRay employs a **multi-sensor defense-in-depth strategy** where different sen
    - Top-level package names from `.class` files
 3. **Event Transmission**: Metadata sent via logback keypairs to STAGE0_EVENT
 
-**Server-Side ODC Analysis Pipeline:**
+**Server-Side Analysis Pipeline:**
 1. **Batch Processing**: AI Service reads unprocessed library events from STAGE0_EVENT
 2. **Metadata Reconstruction**: Extracts Maven coordinates, manifest data, packages from event keypairs
-3. **ODC Evidence Building**: OWASPMetadataAnalyzer creates virtual Dependency:
-   - Vendor Evidence: groupId (HIGHEST), implementationVendor (HIGH), package namespace (MEDIUM)
-   - Product Evidence: artifactId (HIGHEST), implementationTitle (HIGH)
-   - Version Evidence: version (HIGHEST), implementationVersion (HIGH)
-4. **CPE Matching**: ODC engine matches evidence against NVD CPE index
-5. **CVE Extraction**: Retrieves CVE records with CVSS scores, severity, CWE IDs
-6. **Fallback**: If ODC disabled/failed, CVEMatcher uses pattern matching
-7. **Storage**: Writes to STAGE2_LIBRARY (library metadata) and STAGE2_LIBRARY_CVE (vulnerabilities)
-8. **Temporal Tracking**: LibraryTemporalTracker updates first seen, last seen timestamps
-
-### OWASP Dependency Check Integration
-
-#### Architecture Overview
-
-The ODC integration uses a **metadata-driven architecture** to avoid the performance overhead of running full ODC analysis on 100k+ deployed agents:
-
-**Agent-Side (Lightweight):**
-- Extract metadata from JAR files (~50ms overhead)
-- No ODC dependency on agents
-- Minimal network/storage overhead
-
-**Server-Side (Centralized):**
-- Run ODC Engine with NVD database
-- Build evidence buckets from agent metadata
-- Leverage ODC's CPE matching engine
-- Query NIST NVD for vulnerabilities
-
-#### Evidence-Based CPE Matching
-
-ODC does NOT use file hashes for identification. Instead, it uses an **evidence-based system**:
-
-1. **Evidence Collection**: Gather vendor/product/version clues from multiple sources
-2. **Confidence Weighting**:
-   - HIGHEST: Maven coordinates (groupId → vendor, artifactId → product, version)
-   - HIGH: Manifest attributes (Implementation-*)
-   - MEDIUM: Package namespaces (e.g., "org.apache" → vendor)
-3. **CPE Generation**: Combine evidence to generate CPE candidates (e.g., `cpe:/a:apache:log4j:2.14.1`)
-4. **NVD Query**: Match CPE against NIST National Vulnerability Database
-5. **Result Ranking**: Score matches by evidence confidence
-
-**Example Evidence Flow:**
-```
-JAR: log4j-core-2.14.1.jar
-└─ Maven Coordinates (pom.properties)
-   ├─ groupId: org.apache.logging.log4j → Vendor Evidence (HIGHEST)
-   ├─ artifactId: log4j-core → Product Evidence (HIGHEST)
-   └─ version: 2.14.1 → Version Evidence (HIGHEST)
-└─ Manifest (MANIFEST.MF)
-   ├─ Implementation-Vendor: Apache Software Foundation → Vendor Evidence (HIGH)
-   └─ Implementation-Title: Apache Log4j Core → Product Evidence (HIGH)
-└─ Package Names
-   └─ org.apache.logging → Vendor Evidence (MEDIUM)
-
-→ CPE: cpe:/a:apache:log4j:2.14.1
-→ NVD Match: CVE-2021-44228 (Log4Shell, CVSS 10.0)
-```
-
-#### ODC Configuration
-
-**Data Directory Structure:**
-```
-.jvmxray/aiservice/data/odc/
-├─ nist/              # NVD data cache
-├─ cpe/               # CPE index files
-└─ updates/           # Update metadata
-```
-
-**NVD API Key (Optional):**
-Without API key: ~4 hours for initial NVD download, rate-limited to 5 requests/30s
-With API key: ~30 minutes, rate-limited to 50 requests/30s
-
-Get API key: https://nvd.nist.gov/developers/request-an-api-key
-
-**Update Frequency:**
-- First run: Full NVD database download (2-4 hours)
-- Subsequent runs: Incremental updates (5-10 minutes)
-- Recommended: Daily cron job for NVD updates
-
-#### Hybrid CVE Detection Strategy
-
-The service uses a **two-tier approach**:
-
-1. **Primary: ODC Analysis** (when enabled)
-   - Comprehensive NVD coverage
-   - CPE-based matching
-   - CVSS scoring
-   - CWE classification
-
-2. **Fallback: CVEMatcher Pattern Matching**
-   - Activates when ODC disabled/failed
-   - Uses STAGE2_LIBRARY_CVE pattern matching
-   - Glob-based library name matching
-   - Manual CVE database population
-
-**Decision Flow:**
-```
-Library Event → Metadata Available?
-    ├─ Yes → ODC Enabled?
-    │   ├─ Yes → Run ODC Analysis → CVEs Found?
-    │   │   ├─ Yes → Store CVE Results ✓
-    │   │   └─ No → Run CVEMatcher Fallback
-    │   └─ No → Run CVEMatcher Pattern Matching
-    └─ No → Skip CVE Analysis (metadata required)
-```
+3. **CVE Matching**: CVEMatcher correlates library names against known vulnerability patterns
+4. **Storage**: Writes to STAGE2_LIBRARY (library metadata) and STAGE2_LIBRARY_CVE (vulnerabilities)
+5. **Temporal Tracking**: LibraryTemporalTracker updates first seen, last seen timestamps
 
 ---
 
@@ -294,34 +181,22 @@ java -jar prj-service-ai/target/prj-service-ai-0.0.1-shaded.jar --help
 
 ### Operational Procedures
 
-#### Initial Setup with OWASP Dependency Check
+#### Initial Setup
 
 **First-Time Execution:**
 
-The first run of AI Service will download the complete NIST NVD database (~2GB). This process can take 2-4 hours without an API key, or 30-60 minutes with an API key.
-
 ```bash
-# Step 1: Ensure adequate disk space
-df -h .jvmxray/aiservice/data
-
-# Step 2: (Optional but recommended) Set NVD API key
-# Edit .jvmxray/aiservice/config/aiservice.properties
-aiservice.odc.nvd.api.key=YOUR_API_KEY_HERE
-
-# Step 3: Run initial setup (be patient, this takes time)
+# Run the AI Service
 java -jar prj-service-ai/target/prj-service-ai-0.0.1-shaded.jar
 
-# Step 4: Monitor progress
-tail -f .jvmxray/aiservice/logs/aiservice.log | grep -E "ODC|NVD"
+# Monitor progress
+tail -f .jvmxray/aiservice/logs/aiservice.log
 ```
 
 **Expected Output:**
 ```
-INFO  OWASP Dependency Check engine initialized successfully
-WARN  ODC integration is experimental - using default configuration
-INFO  Downloading NVD data feeds (this may take several hours)...
-INFO  Downloaded CVE-2023-XXXXX (1000/50000)
-INFO  NVD database download complete
+INFO  Stage2Processor initialized with pattern-based CVE matching
+INFO  Processing library enrichment batch...
 ```
 
 #### Production Deployment
@@ -330,15 +205,6 @@ INFO  NVD database download complete
 
 ```properties
 # .jvmxray/aiservice/config/aiservice.properties
-
-# Enable ODC (default)
-aiservice.odc.enabled=true
-
-# Set NVD API key for faster updates
-aiservice.odc.nvd.api.key=YOUR_API_KEY_FROM_NVD
-
-# ODC data directory (ensure 2GB+ free space)
-aiservice.odc.data.directory=.jvmxray/aiservice/data/odc
 
 # Batch processing
 aiservice.batch.size=1000
@@ -394,49 +260,6 @@ sudo systemctl status jvmxray-aiservice
 sudo journalctl -u jvmxray-aiservice -f
 ```
 
-#### NVD Database Maintenance
-
-**Daily Update Cron Job:**
-
-```bash
-# Add to crontab (crontab -e)
-# Update NVD data daily at 2 AM
-0 2 * * * cd /opt/jvmxray && java -jar prj-service-ai/target/prj-service-ai-0.0.1-shaded.jar >> /var/log/jvmxray-aiservice-cron.log 2>&1
-```
-
-**Manual NVD Update:**
-
-```bash
-# Trigger immediate NVD update
-java -jar prj-service-ai/target/prj-service-ai-0.0.1-shaded.jar
-
-# Force complete re-download (use sparingly)
-rm -rf .jvmxray/aiservice/data/odc/nist
-rm -rf .jvmxray/aiservice/data/odc/updates
-java -jar prj-service-ai/target/prj-service-ai-0.0.1-shaded.jar
-```
-
-**Verify NVD Data Freshness:**
-
-```bash
-# Check last update timestamp
-ls -ltr .jvmxray/aiservice/data/odc/updates/
-
-# Monitor update logs
-tail -100 .jvmxray/aiservice/logs/aiservice.log | grep NVD
-```
-
-#### Disabling ODC (Fallback to Pattern Matching)
-
-If ODC causes issues or is not desired:
-
-```properties
-# .jvmxray/aiservice/config/aiservice.properties
-aiservice.odc.enabled=false
-```
-
-This will activate CVEMatcher pattern-based fallback for all vulnerability analysis.
-
 ---
 
 ## Properties
@@ -487,9 +310,6 @@ This will activate CVEMatcher pattern-based fallback for all vulnerability analy
 | aiservice.library.tracking.enabled | Enable library temporal tracking | true | No |
 | aiservice.cve.database.enabled | Enable CVE vulnerability correlation | true | No |
 | aiservice.cve.update.interval.hours | Hours between CVE database cache refresh | 24 | No |
-| **aiservice.odc.enabled** | **Enable OWASP Dependency Check analysis** | **true** | **No** |
-| **aiservice.odc.data.directory** | **ODC data directory for NVD database** | **.jvmxray/aiservice/data/odc** | **No** |
-| **aiservice.odc.nvd.api.key** | **NVD API key for faster updates** | **(empty)** | **No** |
 | aiservice.database.url | JDBC connection URL | jdbc:sqlite:.jvmxray/common/data/jvmxray-test.db | Yes |
 | aiservice.database.connection.pool.size | Database connection pool size | 10 | No |
 | aiservice.database.batch.size | Database batch operation size | 100 | No |
@@ -674,8 +494,7 @@ ORDER BY FIRST_SEEN DESC;
 ```
 
 **Data Sources:**
-- **ODC Analysis**: Automatically populated from NIST NVD via OWASP Dependency Check
-- **CVEMatcher Fallback**: Manual population for pattern-based matching (requires custom scripts)
+- **CVEMatcher**: Pattern-based matching against known vulnerability patterns (requires CVE database population)
 
 **Indexes:**
 
@@ -684,16 +503,15 @@ ORDER BY FIRST_SEEN DESC;
 | idx_cvss_severity | CVSS_SEVERITY | Filter by severity level |
 | idx_cvss_v3 | CVSS_V3 | Score-based queries |
 
-**Sample Data (ODC-Populated):**
+**Sample Data:**
 ```sql
--- Example CVE record from ODC analysis of log4j-core-2.14.1.jar
--- This is automatically inserted by OWASPMetadataAnalyzer.storeCVERecord()
+-- Example CVE record for log4j vulnerability
 INSERT INTO STAGE2_LIBRARY_CVE VALUES (
   'CVE-2021-44228',
   'CVE-2021-44228',
   'CRITICAL',
   10.0,
-  'Apache Log4j2 2.0-beta9 through 2.15.0 (excluding security releases 2.12.2, 2.12.3, and 2.3.1) JNDI features...',
+  'Apache Log4j2 2.0-beta9 through 2.15.0 JNDI features vulnerability...',
   'CWE-502, CWE-917'
 );
 ```
@@ -824,86 +642,6 @@ ls -la .jvmxray/aiservice/
 
 ---
 
-#### OWASP Dependency Check Errors
-
-**Error Message:**
-```
-Failed to initialize OWASP Dependency Check, falling back to pattern matching
-org.owasp.dependencycheck.exception.InitializationException
-```
-
-**Cause:** ODC initialization failed (NVD download timeout, disk space, network issues)
-
-**Resolution:**
-```bash
-# Check disk space (ODC requires ~2GB for NVD data)
-df -h .jvmxray/aiservice/data/odc
-
-# Increase timeout for initial NVD download (can take 2-4 hours)
-# Run with patience on first execution
-
-# Check ODC data directory permissions
-ls -la .jvmxray/aiservice/data/odc/
-
-# Verify network connectivity to NVD
-curl -I https://nvd.nist.gov/feeds/json/cve/1.1/nvdcve-1.1-recent.json.gz
-
-# Optional: Set NVD API key for faster downloads
-# Edit .jvmxray/aiservice/config/aiservice.properties:
-aiservice.odc.nvd.api.key=YOUR_API_KEY_HERE
-```
-
-**Prevention:** Ensure 2GB+ free disk space; run initial ODC setup during off-hours; consider NVD API key for production
-
----
-
-**Error Message:**
-```
-ODC analysis failed for commons-lang3-3.12.0, falling back to pattern matching
-```
-
-**Cause:** ODC could not match library metadata to NVD CPE (missing Maven coordinates, unknown library)
-
-**Resolution:**
-```bash
-# Check if library has Maven coordinates in events
-tail -f {jvmxray.aiservice.logs}/library-enrichment.log | grep "groupId"
-
-# Verify agent is extracting metadata properly
-# Check prj-agent logs for JarMetadataExtractor output
-
-# This is expected behavior - ODC cannot identify all JARs
-# CVEMatcher fallback will activate automatically
-```
-
-**Prevention:** Ensure JARs have Maven `pom.properties` files; ODC works best with Maven-managed dependencies
-
----
-
-**Error Message:**
-```
-NVD data is outdated (last update: 30 days ago)
-```
-
-**Cause:** NVD database hasn't been updated in configured refresh interval
-
-**Resolution:**
-```bash
-# Run AI Service to trigger NVD update
-java -jar prj-service-ai/target/prj-service-ai-0.0.1-shaded.jar
-
-# Set up daily cron job for updates
-# Add to crontab:
-0 2 * * * cd /path/to/jvmxray && java -jar prj-service-ai/target/prj-service-ai-0.0.1-shaded.jar --continuous &
-
-# Force manual update by removing update metadata
-rm -rf .jvmxray/aiservice/data/odc/updates
-```
-
-**Prevention:** Schedule daily AI Service runs; enable daemon mode with `--daemon` option
-
----
-
 ## Related Documentation
 
 - **[prj-common](../prj-common/README.md)**: Database schema management and shared utilities
@@ -912,8 +650,5 @@ rm -rf .jvmxray/aiservice/data/odc/updates
 
 ## External References
 
-- **[OWASP Dependency Check](https://jeremylong.github.io/DependencyCheck/)**: Official ODC documentation and usage guide
-- **[NIST NVD](https://nvd.nist.gov/)**: National Vulnerability Database (NVD) data source
-- **[NVD API Key Request](https://nvd.nist.gov/developers/request-an-api-key)**: Request API key for faster NVD downloads
-- **[CPE Dictionary](https://nvd.nist.gov/products/cpe)**: Common Platform Enumeration naming standard
 - **[CVSS Scoring](https://www.first.org/cvss/)**: Common Vulnerability Scoring System specification
+- **[CWE Database](https://cwe.mitre.org/)**: Common Weakness Enumeration database

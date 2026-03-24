@@ -107,10 +107,10 @@ public class LibSensor extends AbstractSensor implements Sensor {
                     Thread.currentThread().interrupt(); // Restore interrupted status
                     break;
                 } catch (Exception e) {
-                    // Log errors during dynamic detection
-                    logProxy.logMessage(NAMESPACE, "ERROR", Map.of(
-                            "message", "Dynamic JAR detection failed: " + e.getMessage()
-                    ));
+                    // Log detection errors to platform log with full stacktrace
+                    Map<String, String> errorContext = new HashMap<>();
+                    errorContext.put("sensor", "LibSensor");
+                    logProxy.logPlatformError(errorContext, "Dynamic JAR detection failed", e);
                 }
             }
         }, "jvmxray.libsensor-1");

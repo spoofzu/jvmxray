@@ -77,6 +77,8 @@ public class FileIOSensor extends AbstractSensor implements InjectableSensor {
                 org.jvmxray.platform.shared.util.MCC.class,
                 // File statistics tracking
                 FileStats.class,
+                // File I/O utilities for enhanced metadata
+                FileIOUtils.class,
                 // Unified file I/O interceptor and inner classes
                 FileIOInterceptor.class,
                 FileIOInterceptor.FileOps.class,
@@ -90,7 +92,13 @@ public class FileIOSensor extends AbstractSensor implements InjectableSensor {
                 FileIOInterceptor.OutputStreamWriteByte.class,
                 FileIOInterceptor.OutputStreamWriteArray.class,
                 FileIOInterceptor.OutputStreamWriteArrayOffset.class,
-                FileIOInterceptor.OutputStreamClose.class
+                FileIOInterceptor.OutputStreamClose.class,
+                // New operation interceptors
+                FileIOInterceptor.RenameOps.class,
+                FileIOInterceptor.MoveOps.class,
+                FileIOInterceptor.SymlinkCreateOps.class,
+                FileIOInterceptor.ChmodOps.class,
+                FileIOInterceptor.ChownOps.class
         };
     }
 
@@ -98,7 +106,7 @@ public class FileIOSensor extends AbstractSensor implements InjectableSensor {
      * Configures transformations for instrumenting file I/O CRUD operations.
      * Defines instrumentation for Create (File.createNewFile, Files.createFile),
      * Read (FileInputStream constructor), Update (FileOutputStream constructor),
-     * and Delete (File.delete) operations with configurable operation tracking.
+     * Delete (File.delete), Rename, Move, Symlink, Chmod, and Chown operations.
      *
      * @return An array of {@code Transform} objects defining the classes and methods to instrument.
      */
@@ -111,6 +119,12 @@ public class FileIOSensor extends AbstractSensor implements InjectableSensor {
                         FileIOInterceptor.FileOps.class,
                         new MethodSpec("delete"),
                         new MethodSpec("createNewFile")
+                ),
+                // Instrument File.renameTo() - RENAME operation
+                new Transform(
+                        java.io.File.class,
+                        FileIOInterceptor.RenameOps.class,
+                        new MethodSpec("renameTo", java.io.File.class)
                 ),
                 // Instrument Files NIO methods - Create, Read, Update, Delete operations
                 new Transform(
@@ -125,6 +139,30 @@ public class FileIOSensor extends AbstractSensor implements InjectableSensor {
                         new MethodSpec("delete", java.nio.file.Path.class),
                         new MethodSpec("deleteIfExists", java.nio.file.Path.class),
                         new MethodSpec("copy", java.nio.file.Path.class, java.nio.file.Path.class, java.nio.file.CopyOption[].class)
+                ),
+                // Instrument Files.move() - MOVE operation
+                new Transform(
+                        java.nio.file.Files.class,
+                        FileIOInterceptor.MoveOps.class,
+                        new MethodSpec("move", java.nio.file.Path.class, java.nio.file.Path.class, java.nio.file.CopyOption[].class)
+                ),
+                // Instrument Files.createSymbolicLink() - SYMLINK_CREATE operation
+                new Transform(
+                        java.nio.file.Files.class,
+                        FileIOInterceptor.SymlinkCreateOps.class,
+                        new MethodSpec("createSymbolicLink", java.nio.file.Path.class, java.nio.file.Path.class, java.nio.file.attribute.FileAttribute[].class)
+                ),
+                // Instrument Files.setPosixFilePermissions() - CHMOD operation
+                new Transform(
+                        java.nio.file.Files.class,
+                        FileIOInterceptor.ChmodOps.class,
+                        new MethodSpec("setPosixFilePermissions", java.nio.file.Path.class, java.util.Set.class)
+                ),
+                // Instrument Files.setOwner() - CHOWN operation
+                new Transform(
+                        java.nio.file.Files.class,
+                        FileIOInterceptor.ChownOps.class,
+                        new MethodSpec("setOwner", java.nio.file.Path.class, java.nio.file.attribute.UserPrincipal.class)
                 ),
                 // Instrument FileInputStream constructor and operations
                 new Transform(

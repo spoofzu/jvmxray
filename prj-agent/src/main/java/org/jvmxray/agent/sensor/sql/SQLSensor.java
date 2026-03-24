@@ -19,6 +19,7 @@ import java.util.Map;
 /**
  * Sensor for instrumenting JDBC PreparedStatement implementations to monitor SQL query execution.
  * Uses ByteBuddy to instrument execute methods and detect loaded classes dynamically.
+ * Also instruments Connection.prepareStatement() to capture SQL text at creation time.
  *
  * @author Milton Smith
  */
@@ -44,7 +45,7 @@ public class SQLSensor extends AbstractSensor implements InjectableSensor {
     public void initialize(AgentProperties properties, String agentArgs, Instrumentation inst) {
         this.instrumentation = inst;
         try {
-            // Configure ByteBuddy agent for dynamic class detection
+            // Configure ByteBuddy agent for dynamic class detection of PreparedStatement implementations
             new AgentBuilder.Default()
                     .type(ElementMatchers.isSubTypeOf(PreparedStatement.class)
                             .and(ElementMatchers.not(ElementMatchers.isInterface())))
@@ -65,6 +66,45 @@ public class SQLSensor extends AbstractSensor implements InjectableSensor {
                     })
                     .installOn(instrumentation);
 
+            // Configure ByteBuddy agent for Connection.prepareStatement() to capture SQL text
+            new AgentBuilder.Default()
+                    .type(ElementMatchers.isSubTypeOf(java.sql.Connection.class)
+                            .and(ElementMatchers.not(ElementMatchers.isInterface())))
+                    .transform((builder, typeDescription, classLoader, module, protectionDomain) -> {
+                        String className = typeDescription.getName();
+                        // Skip agent's internal connection classes
+                        if (className.contains("jvmxray") || className.contains("shaded")) {
+                            return builder;
+                        }
+
+                        logProxy.logMessage(NAMESPACE, "DEBUG", Map.of(
+                                "message", "Instrumenting Connection for SQL capture: " + className
+                        ));
+
+                        // Instrument all prepareStatement variants
+                        return builder.method(ElementMatchers.named("prepareStatement")
+                                        .and(ElementMatchers.takesArguments(String.class)
+                                                .or(ElementMatchers.takesArgument(0, String.class))))
+                                .intercept(Advice.to(PrepareStatementInterceptor.class));
+                    })
+                    .installOn(instrumentation);
+
+            // Configure ByteBuddy agent for Statement.close() to clean up cache
+            new AgentBuilder.Default()
+                    .type(ElementMatchers.isSubTypeOf(java.sql.Statement.class)
+                            .and(ElementMatchers.not(ElementMatchers.isInterface())))
+                    .transform((builder, typeDescription, classLoader, module, protectionDomain) -> {
+                        String className = typeDescription.getName();
+                        // Skip agent's internal statement classes
+                        if (className.contains("jvmxray") || className.contains("shaded")) {
+                            return builder;
+                        }
+
+                        return builder.method(ElementMatchers.named("close"))
+                                .intercept(Advice.to(StatementCloseInterceptor.class));
+                    })
+                    .installOn(instrumentation);
+
             String priority = (detectedClasses.size() < 1 ) ? "WARN" : "INFO";
                 logProxy.logMessage(NAMESPACE, priority, Map.of(
                         "message", "SQLSensor initialized with ByteBuddy transformer, detected classes: " + detectedClasses.size()));
@@ -79,7 +119,10 @@ public class SQLSensor extends AbstractSensor implements InjectableSensor {
     public Class<?>[] inject() {
         return new Class<?>[]{
                 LogProxy.class,
-                SQLInterceptor.class
+                SQLInterceptor.class,
+                PrepareStatementInterceptor.class,
+                StatementCloseInterceptor.class,
+                SQLStatementCache.class
         };
     }
 
@@ -142,7 +185,7 @@ public class SQLSensor extends AbstractSensor implements InjectableSensor {
     @Override
     public void shutdown() {
         logProxy.logMessage(NAMESPACE, "INFO", Map.of(
-                "message", "SQLSensor shutting down"
+                "message", "SQLSensor shutting down. Cache stats: " + SQLStatementCache.getStats()
         ));
     }
 }

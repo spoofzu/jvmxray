@@ -35,6 +35,7 @@ public class CryptoInterceptor {
 
     /**
      * Intercepts Cipher.getInstance() to detect weak cipher algorithms.
+     * Enhanced with compliance checking (FIPS, PCI-DSS, NIST) and replacement suggestions.
      */
     @Advice.OnMethodExit
     public static void cipherGetInstance(@Advice.Argument(0) String transformation,
@@ -55,19 +56,31 @@ public class CryptoInterceptor {
                     metadata.put("algorithm", algorithm);
 
                     // Check for weak algorithms
-                    for (String weakCipher : WEAK_CIPHERS) {
-                        if (algorithm.contains(weakCipher)) {
-                            metadata.put("weak_algorithm", "true");
-                            metadata.put("risk_level", "HIGH");
-                            metadata.put("weakness_type", "deprecated_algorithm");
-                            break;
-                        }
+                    boolean isWeak = CryptoUtils.isWeakAlgorithm(algorithm);
+                    if (isWeak) {
+                        metadata.put("weak_algorithm", "true");
+                        metadata.put("risk_level", "HIGH");
+                        metadata.put("weakness_type", "deprecated_algorithm");
                     }
+
+                    // Add compliance metadata
+                    Map<String, String> compliance = CryptoUtils.getComplianceMetadata(algorithm, -1);
+                    metadata.putAll(compliance);
 
                     // Check for missing padding or mode
                     if (parts.length < 3) {
                         metadata.put("incomplete_transformation", "true");
-                        metadata.put("risk_level", metadata.getOrDefault("risk_level", "MEDIUM"));
+                        if (!metadata.containsKey("risk_level")) {
+                            metadata.put("risk_level", "MEDIUM");
+                        }
+                    }
+
+                    // Extract mode and padding if present
+                    if (parts.length >= 2) {
+                        metadata.put("mode", parts[1]);
+                    }
+                    if (parts.length >= 3) {
+                        metadata.put("padding", parts[2]);
                     }
                 }
 
@@ -92,6 +105,7 @@ public class CryptoInterceptor {
 
     /**
      * Intercepts Cipher.init() to monitor key usage and modes.
+     * Enhanced with key strength analysis and compliance checking.
      */
     @Advice.OnMethodExit
     public static void cipherInit(@Advice.This Object cipher,
@@ -130,12 +144,14 @@ public class CryptoInterceptor {
 
                 if (key != null) {
                     metadata.put("key_class", key.getClass().getSimpleName());
-                    metadata.put("key_algorithm", extractKeyAlgorithm(key));
+
+                    String keyAlgorithm = CryptoUtils.extractKeyAlgorithm(key);
+                    metadata.put("key_algorithm", keyAlgorithm);
 
                     // Check key strength
-                    int keyLength = extractKeyLength(key);
+                    int keyLength = CryptoUtils.extractKeyLength(key);
                     if (keyLength > 0) {
-                        metadata.put("key_length", String.valueOf(keyLength));
+                        metadata.put("key_length_bits", String.valueOf(keyLength));
 
                         // Flag weak key lengths
                         if (keyLength < 128) {
@@ -143,8 +159,18 @@ public class CryptoInterceptor {
                             metadata.put("risk_level", "HIGH");
                         } else if (keyLength < 256) {
                             metadata.put("moderate_key_length", "true");
-                            metadata.put("risk_level", "MEDIUM");
+                            if (!metadata.containsKey("risk_level")) {
+                                metadata.put("risk_level", "MEDIUM");
+                            }
                         }
+
+                        // Add compliance metadata with key length
+                        Map<String, String> compliance = CryptoUtils.getComplianceMetadata(keyAlgorithm, keyLength);
+                        metadata.putAll(compliance);
+                    } else {
+                        // Add compliance metadata without key length
+                        Map<String, String> compliance = CryptoUtils.getComplianceMetadata(keyAlgorithm, -1);
+                        metadata.putAll(compliance);
                     }
                 }
 
@@ -165,6 +191,7 @@ public class CryptoInterceptor {
 
     /**
      * Intercepts MessageDigest.getInstance() to detect weak hash algorithms.
+     * Enhanced with compliance checking and replacement suggestions.
      */
     @Advice.OnMethodExit
     public static void messageDigestGetInstance(@Advice.Argument(0) String algorithm,
@@ -183,7 +210,7 @@ public class CryptoInterceptor {
                     String upperAlgo = algorithm.toUpperCase();
 
                     // Check for weak hash algorithms
-                    if (upperAlgo.contains("MD5")) {
+                    if (upperAlgo.contains("MD5") || upperAlgo.contains("MD4")) {
                         metadata.put("weak_algorithm", "true");
                         metadata.put("risk_level", "CRITICAL");
                         metadata.put("weakness_type", "collision_vulnerable");
@@ -192,10 +219,24 @@ public class CryptoInterceptor {
                         metadata.put("risk_level", "HIGH");
                         metadata.put("weakness_type", "deprecated_hash");
                     }
+
+                    // Add compliance metadata
+                    Map<String, String> compliance = CryptoUtils.getComplianceMetadata(algorithm, -1);
+                    metadata.putAll(compliance);
                 }
 
                 if (result != null) {
                     metadata.put("digest_class", result.getClass().getName());
+
+                    // Get digest length if available
+                    try {
+                        java.lang.reflect.Method getLengthMethod = result.getClass().getMethod("getDigestLength");
+                        int digestLength = (Integer) getLengthMethod.invoke(result);
+                        metadata.put("digest_length_bytes", String.valueOf(digestLength));
+                        metadata.put("digest_length_bits", String.valueOf(digestLength * 8));
+                    } catch (Exception e) {
+                        // Digest length not available
+                    }
                 }
 
                 if (throwable != null) {

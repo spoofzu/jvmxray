@@ -59,10 +59,6 @@ public class ObjectInputInterceptor {
                 }
             }
             
-            // Analyze call stack for additional context
-            String stackTrace = SerializationUtils.getRelevantStackTrace();
-            metadata.put("call_context", SerializationUtils.analyzeCallContext(stackTrace));
-            
             logProxy.logMessage(NAMESPACE + ".deserialize", "INFO", metadata);
             
         } catch (Exception e) {

@@ -85,10 +85,6 @@ public class SerializationInterceptor {
                 }
             }
             
-            // Analyze call stack for additional context
-            String stackTrace = getRelevantStackTrace();
-            metadata.put("call_context", analyzeCallContext(stackTrace));
-            
             logProxy.logMessage(NAMESPACE + ".deserialize", "INFO", metadata);
             
         } catch (Exception e) {
@@ -290,38 +286,5 @@ public class SerializationInterceptor {
             }
         }
         return null;
-    }
-
-    private static String getRelevantStackTrace() {
-        try {
-            StackTraceElement[] stack = Thread.currentThread().getStackTrace();
-            StringBuilder relevant = new StringBuilder();
-            
-            for (StackTraceElement element : stack) {
-                String className = element.getClassName();
-                if (!className.startsWith("org.jvmxray") && 
-                    !className.startsWith("java.io") &&
-                    !className.startsWith("sun.") &&
-                    relevant.length() < 500) {
-                    relevant.append(className).append(".").append(element.getMethodName()).append(";");
-                }
-            }
-            
-            return relevant.toString();
-        } catch (Exception e) {
-            return "unknown";
-        }
-    }
-
-    private static String analyzeCallContext(String stackTrace) {
-        if (stackTrace.contains("RMI") || stackTrace.contains("rmi")) {
-            return "rmi_context";
-        } else if (stackTrace.contains("servlet") || stackTrace.contains("http")) {
-            return "web_context";
-        } else if (stackTrace.contains("jndi") || stackTrace.contains("ldap")) {
-            return "jndi_context";
-        } else {
-            return "general_context";
-        }
     }
 }

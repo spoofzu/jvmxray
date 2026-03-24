@@ -17,7 +17,6 @@ Initialize the AI Service to create configuration files and directories:
 **What This Does:**
 - Creates `.jvmxray/aiservice/` directory structure
 - Generates `aiservice.properties` configuration file
-- **Does NOT start the service or download NVD database**
 
 **Expected Output:**
 ```
@@ -31,13 +30,7 @@ Configuration file: /path/to/.jvmxray/aiservice/config/aiservice.properties
 =================================================
 
 Next steps:
-1. (Optional) Configure NVD API key for faster CVE database updates:
-   - Get API key: https://nvd.nist.gov/developers/request-an-api-key
-   - Edit: /path/to/.jvmxray/aiservice/config/aiservice.properties
-   - Add: aiservice.odc.nvd.api.key=YOUR_KEY_HERE
-   - Benefit: 30-60 min download (vs 2-4 hours without key)
-
-2. Start the AI service:
+1. Start the AI service:
    ./script/services/ai-service --start --interval 60
 
 Configuration initialization complete!
@@ -45,30 +38,9 @@ Configuration initialization complete!
 
 ---
 
-## Step 6: Configure OWASP CVE Analysis (Optional but Recommended)
+## Step 6: Start AI Service
 
-The AI Service performs vulnerability analysis using OWASP Dependency Check. For faster CVE database updates, configure an NVD API key **before** starting the service.
-
-### 6.1 Get NVD API Key
-
-**Request a free API key:** [NVD API Key Request](https://nvd.nist.gov/developers/request-an-api-key)
-
-### 6.2 Configure API Key
-
-Edit `.jvmxray/aiservice/config/aiservice.properties` and add:
-
-```properties
-# NVD API key for faster database updates (optional but recommended)
-aiservice.odc.nvd.api.key=YOUR_API_KEY_HERE
-```
-
-**⏱️ NVD Database Download Times:**
-- **Without API Key:** 2-4 hours (rate-limited to 5 requests/30s)
-- **With API Key:** 30-60 minutes (rate-limited to 50 requests/30s)
-
-### 6.3 Start AI Service
-
-Now start the AI Service to begin processing security events:
+Start the AI Service to begin processing security events:
 
 ```bash
 ./script/services/ai-service --start --interval 60
@@ -99,9 +71,7 @@ Service is now processing events...
 
 **Keep the service running** for continuous processing, or stop it with `Ctrl+C` when done.
 
-**Note:** The NVD database downloads automatically on first library enrichment. The AI Service continues processing other stages while ODC initializes in the background.
-
-### 6.4 What the AI Service Does
+### 6.1 What the AI Service Does
 
 The AI Service provides a complete multi-stage data processing pipeline:
 
@@ -119,8 +89,7 @@ The AI Service provides a complete multi-stage data processing pipeline:
 
 **Stage 2 - CVE Analysis & Metadata:**
 - Reads library records from `STAGE2_LIBRARY`
-- Performs OWASP Dependency Check vulnerability analysis
-- Correlates against NIST National Vulnerability Database (NVD)
+- Performs pattern-based CVE matching against known vulnerabilities
 - Identifies CVE vulnerabilities with CVSS scores and severity
 - Extracts Maven coordinates and JAR manifest metadata
 - Updates `STAGE2_LIBRARY` with enriched data
@@ -132,7 +101,7 @@ The AI Service provides a complete multi-stage data processing pipeline:
 - Processing interval applies to all stages
 - See `.jvmxray/aiservice/config/aiservice.properties`
 
-### 6.5 Query Enriched Data
+### 6.2 Query Enriched Data
 
 **View enriched libraries:**
 ```bash

@@ -65,9 +65,10 @@ public class FileIOInterceptor {
                             monitorPattern = java.util.regex.Pattern.compile(monitorPatterns);
                         }
                         
-                        // Load ignore patterns (temp/cache files)
+                        // Load ignore patterns (temp/cache files and agent's own files)
+                        // Default pattern includes .jvmxray directory to filter agent's internal I/O
                         String ignorePatterns = props.getProperty("jvmxray.io.ignore.patterns",
-                                "(?i).*[\\\\/](temp|tmp|cache)[\\\\/].*|.*\\.(tmp|cache|swp)$");
+                                "(?i).*[\\\\/](temp|tmp|cache)[\\\\/].*|.*\\.(tmp|cache|swp)$|.*[\\\\/]\\.jvmxray[\\\\/].*");
                         if (ignorePatterns != null && !ignorePatterns.trim().isEmpty()) {
                             ignorePattern = java.util.regex.Pattern.compile(ignorePatterns);
                         }
@@ -136,30 +137,53 @@ public class FileIOInterceptor {
     }
 
     /**
-     * Logs aggregate file statistics.
+     * Logs aggregate file statistics with enhanced path and file metadata.
      */
     public static void logAggregateStats(FileStats stats) {
         Map<String, String> metadata = new HashMap<>();
+
+        // Basic operation info
         metadata.put("operation", stats.getOperationType());
-        metadata.put("file", stats.getFilePath());
         metadata.put("is_new_file", String.valueOf(stats.isNewFile()));
         metadata.put("is_sensitive", String.valueOf(stats.isSensitive()));
+
+        // Transfer statistics
         metadata.put("bytes_read", String.valueOf(stats.getBytesRead()));
         metadata.put("bytes_written", String.valueOf(stats.getBytesWritten()));
         metadata.put("read_operations", String.valueOf(stats.getReadOperations()));
         metadata.put("write_operations", String.valueOf(stats.getWriteOperations()));
         metadata.put("duration_ms", String.valueOf(stats.getDurationMs()));
+
+        // Add enhanced path resolution metadata
+        String filePath = stats.getFilePath();
+        metadata.putAll(FileIOUtils.getPathResolutionMetadata(filePath));
+
+        // Add file metadata (captured at close time)
+        metadata.putAll(FileIOUtils.getFileMetadata(filePath));
+
+        // Keep the original 'file' field for backward compatibility
+        metadata.put("file", filePath);
+
         logProxy.logMessage(NAMESPACE, "INFO", metadata);
     }
 
     /**
-     * Logs a file I/O operation with the specified details.
+     * Logs a file I/O operation with enhanced metadata including path resolution and file attributes.
      */
     public static void logFileOperation(String operation, String filePath, String status) {
         Map<String, String> metadata = new HashMap<>();
         metadata.put("operation", operation);
-        metadata.put("file", filePath);
         metadata.put("status", status);
+
+        // Add path resolution metadata (original_path, canonical_path, is_symlink, etc.)
+        metadata.putAll(FileIOUtils.getPathResolutionMetadata(filePath));
+
+        // Add file metadata (size, permissions, timestamps, etc.)
+        metadata.putAll(FileIOUtils.getFileMetadata(filePath));
+
+        // Keep the original 'file' field for backward compatibility
+        metadata.put("file", filePath);
+
         logProxy.logMessage(NAMESPACE, "INFO", metadata);
     }
 
@@ -412,6 +436,184 @@ public class FileIOInterceptor {
         @Advice.OnMethodExit
         public static void exit(@Advice.This FileOutputStream fos) {
             unregisterFileAndLog(fos);
+        }
+    }
+
+    // File.renameTo() interception - RENAME operation
+    public static class RenameOps {
+        @Advice.OnMethodEnter
+        public static void enter() {
+            MCCScope.enter("FileIO");
+        }
+
+        @Advice.OnMethodExit
+        public static void exit(@Advice.This File source, @Advice.Argument(0) File dest, @Advice.Return boolean result) {
+            try {
+                Map<String, String> metadata = new HashMap<>();
+                metadata.put("operation", "RENAME");
+                metadata.put("status", result ? "renamed" : "rename_failed");
+
+                // Add rename-specific metadata
+                metadata.putAll(FileIOUtils.getRenameMetadata(
+                        source.getAbsolutePath(),
+                        dest.getAbsolutePath()
+                ));
+
+                logProxy.logMessage(NAMESPACE, "INFO", metadata);
+            } finally {
+                MCCScope.exit("FileIO");
+            }
+        }
+    }
+
+    // Files.move() interception - MOVE operation
+    public static class MoveOps {
+        @Advice.OnMethodEnter
+        public static void enter() {
+            MCCScope.enter("FileIO");
+        }
+
+        @Advice.OnMethodExit
+        public static void exit(@Advice.Argument(0) Path source, @Advice.Argument(1) Path target,
+                               @Advice.AllArguments Object[] args) {
+            try {
+                Map<String, String> metadata = new HashMap<>();
+                metadata.put("operation", "MOVE");
+                metadata.put("status", "moved");
+
+                // Add move-specific metadata
+                metadata.putAll(FileIOUtils.getRenameMetadata(
+                        source.toAbsolutePath().toString(),
+                        target.toAbsolutePath().toString()
+                ));
+
+                // Capture copy options if present
+                if (args.length > 2 && args[2] instanceof java.nio.file.CopyOption[]) {
+                    java.nio.file.CopyOption[] options = (java.nio.file.CopyOption[]) args[2];
+                    if (options.length > 0) {
+                        StringBuilder optStr = new StringBuilder();
+                        for (int i = 0; i < options.length; i++) {
+                            if (i > 0) optStr.append(",");
+                            optStr.append(options[i].toString());
+                        }
+                        metadata.put("move_options", optStr.toString());
+                    }
+                }
+
+                logProxy.logMessage(NAMESPACE, "INFO", metadata);
+            } catch (Exception e) {
+                // Silently ignore errors
+            } finally {
+                MCCScope.exit("FileIO");
+            }
+        }
+    }
+
+    // Files.createSymbolicLink() interception - SYMLINK_CREATE operation
+    public static class SymlinkCreateOps {
+        @Advice.OnMethodEnter
+        public static void enter() {
+            MCCScope.enter("FileIO");
+        }
+
+        @Advice.OnMethodExit
+        public static void exit(@Advice.Argument(0) Path link, @Advice.Argument(1) Path target) {
+            try {
+                Map<String, String> metadata = new HashMap<>();
+                metadata.put("operation", "SYMLINK_CREATE");
+                metadata.put("status", "created");
+                metadata.put("link_path", link.toAbsolutePath().toString());
+                metadata.put("target_path", target.toString());
+
+                // Add path resolution for the target
+                metadata.putAll(FileIOUtils.getPathResolutionMetadata(target.toString()));
+
+                logProxy.logMessage(NAMESPACE, "INFO", metadata);
+            } catch (Exception e) {
+                // Silently ignore errors
+            } finally {
+                MCCScope.exit("FileIO");
+            }
+        }
+    }
+
+    // Files.setPosixFilePermissions() interception - CHMOD operation
+    public static class ChmodOps {
+        @Advice.OnMethodEnter
+        public static String[] enter(@Advice.Argument(0) Path path) {
+            MCCScope.enter("FileIO");
+            // Capture previous permissions before change
+            try {
+                java.util.Set<java.nio.file.attribute.PosixFilePermission> perms =
+                        java.nio.file.Files.getPosixFilePermissions(path);
+                return new String[]{
+                        java.nio.file.attribute.PosixFilePermissions.toString(perms),
+                        path.toAbsolutePath().toString()
+                };
+            } catch (Exception e) {
+                return new String[]{"unknown", path.toAbsolutePath().toString()};
+            }
+        }
+
+        @Advice.OnMethodExit
+        public static void exit(@Advice.Argument(0) Path path,
+                               @Advice.Argument(1) java.util.Set<java.nio.file.attribute.PosixFilePermission> perms,
+                               @Advice.Enter String[] context) {
+            try {
+                Map<String, String> metadata = new HashMap<>();
+                metadata.put("operation", "CHMOD");
+                metadata.put("status", "permissions_changed");
+                metadata.put("file", context[1]);
+                metadata.put("previous_permissions", context[0]);
+                metadata.put("new_permissions",
+                        java.nio.file.attribute.PosixFilePermissions.toString(perms));
+
+                // Check if permissions weakened (potential security concern)
+                if (perms.contains(java.nio.file.attribute.PosixFilePermission.OTHERS_WRITE)) {
+                    metadata.put("world_writable", "true");
+                }
+
+                logProxy.logMessage(NAMESPACE, "INFO", metadata);
+            } catch (Exception e) {
+                // Silently ignore errors
+            } finally {
+                MCCScope.exit("FileIO");
+            }
+        }
+    }
+
+    // Files.setOwner() interception - CHOWN operation
+    public static class ChownOps {
+        @Advice.OnMethodEnter
+        public static String[] enter(@Advice.Argument(0) Path path) {
+            MCCScope.enter("FileIO");
+            // Capture previous owner before change
+            try {
+                String prevOwner = java.nio.file.Files.getOwner(path).getName();
+                return new String[]{prevOwner, path.toAbsolutePath().toString()};
+            } catch (Exception e) {
+                return new String[]{"unknown", path.toAbsolutePath().toString()};
+            }
+        }
+
+        @Advice.OnMethodExit
+        public static void exit(@Advice.Argument(0) Path path,
+                               @Advice.Argument(1) java.nio.file.attribute.UserPrincipal owner,
+                               @Advice.Enter String[] context) {
+            try {
+                Map<String, String> metadata = new HashMap<>();
+                metadata.put("operation", "CHOWN");
+                metadata.put("status", "owner_changed");
+                metadata.put("file", context[1]);
+                metadata.put("previous_owner", context[0]);
+                metadata.put("new_owner", owner.getName());
+
+                logProxy.logMessage(NAMESPACE, "INFO", metadata);
+            } catch (Exception e) {
+                // Silently ignore errors
+            } finally {
+                MCCScope.exit("FileIO");
+            }
         }
     }
 }

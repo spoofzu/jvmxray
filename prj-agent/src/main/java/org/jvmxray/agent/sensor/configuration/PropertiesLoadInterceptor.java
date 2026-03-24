@@ -43,9 +43,6 @@ public class PropertiesLoadInterceptor {
                 }
             }
             
-            String context = ConfigurationUtils.analyzeCallContext();
-            metadata.put("call_context", context);
-            
             logProxy.logMessage(NAMESPACE + ".file", "INFO", metadata);
             
         } catch (Exception e) {

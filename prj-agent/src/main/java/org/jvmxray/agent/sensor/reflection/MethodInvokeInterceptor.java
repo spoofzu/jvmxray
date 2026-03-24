@@ -63,10 +63,6 @@ public class MethodInvokeInterceptor {
                 metadata.put("result_type", result.getClass().getName());
             }
             
-            // Analyze call stack
-            String callContext = ReflectionUtils.analyzeCallStack();
-            metadata.put("call_context", callContext);
-            
             logProxy.logMessage(NAMESPACE + ".method_invoke", "INFO", metadata);
             
         } catch (Exception e) {

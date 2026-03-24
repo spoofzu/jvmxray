@@ -94,9 +94,6 @@ public class ConfigurationInterceptor {
                 metadata.put("property_value", truncateValue(result));
             }
             
-            String context = analyzeCallContext();
-            metadata.put("call_context", context);
-            
             logProxy.logMessage(NAMESPACE + ".property", "INFO", metadata);
             
         } catch (Exception e) {
@@ -151,9 +148,6 @@ public class ConfigurationInterceptor {
             if (value != null && !isSensitiveProperty(key)) {
                 metadata.put("new_value", truncateValue(value));
             }
-            
-            String context = analyzeCallContext();
-            metadata.put("call_context", context);
             
             logProxy.logMessage(NAMESPACE + ".property", "INFO", metadata);
             
@@ -233,9 +227,6 @@ public class ConfigurationInterceptor {
                     metadata.put("property_count", String.valueOf(propertyCount));
                 }
             }
-            
-            String context = analyzeCallContext();
-            metadata.put("call_context", context);
             
             logProxy.logMessage(NAMESPACE + ".file", "INFO", metadata);
             
@@ -379,25 +370,5 @@ public class ConfigurationInterceptor {
         } catch (Exception e) {
             return 0;
         }
-    }
-
-    private static String analyzeCallContext() {
-        try {
-            StackTraceElement[] stack = Thread.currentThread().getStackTrace();
-            for (StackTraceElement element : stack) {
-                String className = element.getClassName();
-                if (!className.startsWith("org.jvmxray") && 
-                    !className.startsWith("java.lang.System") &&
-                    !className.startsWith("java.util.Properties") &&
-                    !className.startsWith("java.util.prefs") &&
-                    !className.startsWith("sun.") &&
-                    !className.startsWith("net.bytebuddy")) {
-                    return className + "." + element.getMethodName();
-                }
-            }
-        } catch (Exception e) {
-            // Ignore
-        }
-        return "unknown";
     }
 }

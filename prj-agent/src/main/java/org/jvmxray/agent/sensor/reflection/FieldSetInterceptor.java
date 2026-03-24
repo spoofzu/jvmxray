@@ -65,10 +65,6 @@ public class FieldSetInterceptor {
                 metadata.put("error_message", throwable.getMessage());
             }
             
-            // Analyze call stack
-            String callContext = ReflectionUtils.analyzeCallStack();
-            metadata.put("call_context", callContext);
-            
             logProxy.logMessage(NAMESPACE + ".field_set", "INFO", metadata);
             
         } catch (Exception e) {

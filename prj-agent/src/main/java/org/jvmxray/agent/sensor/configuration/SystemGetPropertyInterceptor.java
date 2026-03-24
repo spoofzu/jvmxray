@@ -25,6 +25,11 @@ public class SystemGetPropertyInterceptor {
                                        @Advice.Return String result,
                                        @Advice.Thrown Throwable throwable) {
         try {
+            // Skip logging for agent's own internal property reads to avoid noise
+            if (key != null && key.startsWith("org.jvmxray")) {
+                return;
+            }
+
             Map<String, String> metadata = new HashMap<>();
             metadata.put("operation", "system_getProperty");
             metadata.put("property_key", key != null ? key : "unknown");
@@ -49,9 +54,6 @@ public class SystemGetPropertyInterceptor {
             if (result != null && !ConfigurationUtils.isSensitiveProperty(key)) {
                 metadata.put("property_value", ConfigurationUtils.truncateValue(result));
             }
-            
-            String context = ConfigurationUtils.analyzeCallContext();
-            metadata.put("call_context", context);
             
             logProxy.logMessage(NAMESPACE + ".property", "INFO", metadata);
             

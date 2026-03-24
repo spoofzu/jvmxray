@@ -59,10 +59,6 @@ public class SetAccessibleInterceptor {
                     metadata.put("error_message", throwable.getMessage());
                 }
                 
-                // Analyze call stack
-                String callContext = ReflectionUtils.analyzeCallStack();
-                metadata.put("call_context", callContext);
-                
                 logProxy.logMessage(NAMESPACE + ".set_accessible", "INFO", metadata);
             }
             

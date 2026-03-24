@@ -61,10 +61,6 @@ public class ClassForNameInterceptor {
                 metadata.put("error_message", throwable.getMessage());
             }
             
-            // Analyze call stack for context
-            String callContext = ReflectionUtils.analyzeCallStack();
-            metadata.put("call_context", callContext);
-            
             logProxy.logMessage(NAMESPACE + ".class_forname", "INFO", metadata);
             
         } catch (Exception e) {

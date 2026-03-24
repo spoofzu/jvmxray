@@ -19,6 +19,8 @@ public class LogProxy {
     private static final LogProxy INSTANCE = new LogProxy();
     // Package prefix for JVMXRay classes
     private static final String AGENT_PACKAGE = "org.jvmxray";
+    // Platform namespace for sensor errors - routes to agent-PLATFORM.log
+    public static final String PLATFORM_NAMESPACE = "org.jvmxray.agent.platform";
     // Framework prefixes to filter out from stack traces
     private static final Set<String> FRAMEWORK_PREFIXES = new HashSet<>(Set.of(
             "java.",
@@ -305,6 +307,69 @@ public class LogProxy {
             }
         }
         return result;
+    }
+
+    /**
+     * Logs a sensor error to the platform log with full context and stacktrace.
+     * This method should be used by sensors when catching exceptions during interception.
+     * It logs to the PLATFORM_NAMESPACE (agent-PLATFORM.log) with:
+     * - All provided metadata (trace_id, client_ip, request_method, etc.)
+     * - MCC correlation context (automatically merged)
+     * - Full exception stacktrace
+     * - Caller information
+     *
+     * @param metadata Context metadata from the sensor (e.g., request_method, client_ip)
+     * @param message Description of what failed
+     * @param exception The exception that was caught
+     */
+    public synchronized void logPlatformError(Map<String, String> metadata, String message, Throwable exception) {
+        try {
+            // Capture caller information
+            String caller = captureCallerInfo(PLATFORM_NAMESPACE);
+
+            // Build enriched metadata with all context
+            Map<String, String> enrichedMetadata = new HashMap<>();
+            if (metadata != null) {
+                enrichedMetadata.putAll(metadata);
+            }
+            enrichedMetadata.put("caller", caller);
+            enrichedMetadata.put("message", message);
+            enrichedMetadata.put("exception", exception.getClass().getName() + ": " + exception.getMessage());
+            enrichedMetadata.put("stacktrace", getStackTraceAsString(exception));
+
+            // Merge MCC (Mapped Correlation Context) data for correlation
+            try {
+                Class<?> mccClass = Class.forName("org.jvmxray.platform.shared.util.MCC");
+                java.lang.reflect.Method getCopyOfContextMethod = mccClass.getMethod("getCopyOfContext");
+                @SuppressWarnings("unchecked")
+                Map<String, String> mccContext = (Map<String, String>) getCopyOfContextMethod.invoke(null);
+
+                if (mccContext != null && !mccContext.isEmpty()) {
+                    // MCC values do not override explicit metadata
+                    for (Map.Entry<String, String> entry : mccContext.entrySet()) {
+                        enrichedMetadata.putIfAbsent(entry.getKey(), entry.getValue());
+                    }
+                }
+            } catch (ClassNotFoundException e) {
+                // MCC not available - expected in minimal deployments
+            } catch (Exception e) {
+                // MCC integration failed - continue without it
+            }
+
+            // Log to platform namespace
+            if (logEventMethod != null && agentLoggerInstance != null) {
+                logEventMethod.invoke(agentLoggerInstance, PLATFORM_NAMESPACE, "ERROR", enrichedMetadata);
+            } else {
+                // Fallback to stderr if logger not initialized
+                System.err.println("LogProxy: Platform error (logger not initialized): " + message);
+                exception.printStackTrace();
+            }
+        } catch (Exception e) {
+            // Last resort fallback
+            System.err.println("LogProxy: Failed to log platform error: " + e.getMessage());
+            System.err.println("Original error: " + message);
+            exception.printStackTrace();
+        }
     }
 
     /**

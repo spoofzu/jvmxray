@@ -13,6 +13,7 @@ import org.jvmxray.agent.sensor.MethodSpec;
 import org.jvmxray.agent.sensor.Sensor;
 import org.jvmxray.agent.sensor.Transform;
 import org.jvmxray.agent.util.sensor.SensorUtils;
+import org.jvmxray.agent.util.ModuleOpener;
 import org.jvmxray.agent.init.AgentInitializer;
 import org.jvmxray.platform.shared.property.AgentProperties;
 
@@ -49,10 +50,13 @@ public class jvmxrayagent {
     // Must wait to init logProxy until AgentInitializer logging is initialized.
     private static LogProxy logProxy = null;
     private static final List<Sensor> sensors = new ArrayList<>();
+    // Store Instrumentation reference for on-demand module opening
+    private static Instrumentation globalInstrumentation = null;
 
     public static void premain(String agentArgs, Instrumentation instrumentation) {
         System.out.println(BANNER);
         System.out.println("jvmxrayagent.premain(): Agent started.");
+        globalInstrumentation = instrumentation; // Store for on-demand module opening
         try {
             // ********************
             // *** BEGIN SECTION
@@ -93,6 +97,18 @@ public class jvmxrayagent {
             // ********************
             logProxy.logMessage(NAMESPACE, "INFO", BANNER);
             logProxy.logMessage(NAMESPACE, "INFO", "Agent started.");
+
+            // Open module packages to allow unrestricted reflective access
+            // This prevents IllegalAccessException when sensors use reflection
+            // on classes in other modules (e.g., Jakarta Servlet)
+            try {
+                String moduleOpenSummary = ModuleOpener.openModulesForAgent(instrumentation);
+                logProxy.logMessage(NAMESPACE, "INFO", "Module access configured: " + moduleOpenSummary.split("\n")[0]);
+                logProxy.logMessage(NAMESPACE, "DEBUG", moduleOpenSummary);
+            } catch (Exception e) {
+                logProxy.logMessage(NAMESPACE, "WARN", "Could not open all module packages: " + e.getMessage() +
+                        ". Some sensors may have restricted access. Consider adding --add-opens JVM flags.");
+            }
 
             // Register sensors from properties
             Set<Sensor> sensors = new HashSet<>(); // Use Set to help track unique sensors
@@ -271,5 +287,14 @@ public class jvmxrayagent {
         System.out.println("jvmxrayagent.shutdown(): jvmxrayagent shutting down.");
     }
 
+    /**
+     * Returns the global Instrumentation instance for use by sensors
+     * that need to open module packages on-demand.
+     *
+     * @return The Instrumentation instance, or null if agent not initialized
+     */
+    public static Instrumentation getInstrumentation() {
+        return globalInstrumentation;
+    }
 
 }

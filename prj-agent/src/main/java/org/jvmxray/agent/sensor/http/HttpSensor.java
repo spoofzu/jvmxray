@@ -67,8 +67,9 @@ public class HttpSensor extends AbstractSensor implements InjectableSensor {
                 Sensor.class,
                 InjectableSensor.class,
                 LogProxy.class,
-                // Sensor-specific class
+                // Sensor-specific classes
                 HttpInterceptor.class,
+                HttpSecurityUtils.class,  // Security header and pattern analysis
                 RequestContextHolder.class  // req for req/resp correlation
         };
     }

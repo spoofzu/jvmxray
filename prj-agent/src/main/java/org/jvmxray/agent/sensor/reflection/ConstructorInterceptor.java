@@ -66,10 +66,6 @@ public class ConstructorInterceptor {
                 metadata.put("result_type", result.getClass().getName());
             }
             
-            // Analyze call stack
-            String callContext = ReflectionUtils.analyzeCallStack();
-            metadata.put("call_context", callContext);
-            
             logProxy.logMessage(NAMESPACE + ".constructor_newInstance", "INFO", metadata);
             
         } catch (Exception e) {

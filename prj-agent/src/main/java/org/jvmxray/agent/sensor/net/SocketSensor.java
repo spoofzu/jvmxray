@@ -63,6 +63,8 @@ public class SocketSensor extends AbstractSensor implements InjectableSensor {
                 Sensor.class,
                 InjectableSensor.class,
                 LogProxy.class,
+                // Network utilities for enhanced metadata
+                NetworkUtils.class,
                 // Sensor-specific interceptor classes
                 AcceptInterceptor.class,
                 BindInterceptor.class,
