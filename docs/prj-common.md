@@ -798,13 +798,7 @@ JVMXRay Subproject Versions
    GitHub: https://github.com/spoofzu/jvmxray/commit/c0d2187
    Build Time: 2025-10-08T19:11:18Z
 
-📦 prj-service-log
-   JAR: prj-service-log/target/prj-service-log-0.0.1-shaded.jar
-   Git Commit: c0d2187
-   GitHub: https://github.com/spoofzu/jvmxray/commit/c0d2187
-   Build Time: 2025-10-08T19:14:52Z
-
-Found 6 subproject JAR(s)
+Found 5 subproject JAR(s)
 ```
 
 **Features:**
