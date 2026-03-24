@@ -405,6 +405,7 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <version>3.2.5</version>
         <configuration>
+          <useModulePath>false</useModulePath>
           <systemPropertyVariables>
             <jvmxray.test.home>${project.build.directory}/test-jvmxray</jvmxray.test.home>
             <jvmxray.common.logs>${project.build.directory}/test-jvmxray/common/logs</jvmxray.common.logs>
@@ -428,6 +429,7 @@
               <goal>verify</goal>
             </goals>
             <configuration>
+              <useModulePath>false</useModulePath>
               <includes>
                 <include>**/TurtleTest.java</include>
               </includes>
