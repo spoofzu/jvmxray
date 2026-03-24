@@ -27,10 +27,7 @@ JVMXRay is an AI-enhanced security monitoring platform that watches Java applica
 jvmxray/
 ├── prj-agent/          # Java agent with bytecode injection sensors
 ├── prj-common/         # Shared utilities, models, and database schema management
-├── prj-mcp-client/     # MCP (Model Context Protocol) client (optional, requires Java 21+)
-├── prj-service-ai/     # AI-powered event analysis and processing service
-├── prj-service-log/    # Log service components
-└── prj-service-rest/   # REST API service
+└── prj-mcp-client/     # MCP (Model Context Protocol) client (optional, requires Java 21+)
 ```
 
 ### Agent Architecture (prj-agent)
@@ -111,9 +108,6 @@ Each component follows the pattern:
 - **ComponentInitializer**: Abstract base class providing common initialization framework
 - **AgentInitializer**: Special case - manages agent-specific configuration without standard logging
 - **CommonInitializer**: Manages common module logging and database connections
-- **LogServiceInitializer**: Configures the log service component
-- **RestServiceInitializer**: Configures the REST API service component
-- **AiServiceInitializer**: Configures the AI analysis service component
 
 ### MCC (Mapped Correlation Context) Memory Management
 
@@ -237,7 +231,7 @@ When adding new sensors:
 - **Test Environment**: TurtleIntegrationTest runs in its own JVM with agent attached
 
 ### Script Design Principles
-- **Minimal Wrapper Pattern**: All shell scripts (e.g., `script/services/log-service`) must be lightweight, minimal wrappers
+- **Minimal Wrapper Pattern**: All shell scripts must be lightweight, minimal wrappers
 - **Java-First Logic**: All business logic, dependency validation, environment setup, and process management must reside in Java code
 - **Script Responsibilities Limited To**:
   - Classpath construction and dependency resolution
