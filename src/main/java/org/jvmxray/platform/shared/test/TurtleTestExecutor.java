@@ -126,7 +126,7 @@ private static String resolveAgentJarPath() throws IllegalStateException {
         String testHome = System.getProperty("jvmxray.test.home");
         if (testHome != null) {
             agentJar = Paths.get(testHome).getParent()
-                .resolve("prj-agent/target/prj-agent-0.0.1-shaded.jar")
+                .resolve("jvmxray-0.0.1-agent.jar")
                 .toString();
         } else {
             throw new IllegalStateException(
@@ -137,8 +137,8 @@ private static String resolveAgentJarPath() throws IllegalStateException {
     // Check if the agent JAR file actually exists
     if (!Paths.get(agentJar).toFile().exists()) {
         throw new IllegalStateException(
-            "Agent JAR file does not exist: " + agentJar + 
-            ". Please ensure 'mvn install' has been run on prj-agent module first.");
+            "Agent JAR file does not exist: " + agentJar +
+            ". Please ensure mvn install has been run first.");
     }
     
     return agentJar;
@@ -285,8 +285,9 @@ private static String resolveAgentJarPath() throws IllegalStateException {
         // Resolve the agent logback database configuration path
         String testHome = System.getProperty("jvmxray.test.home");
         String agentLogbackDbConfig = null;
-        if (testHome != null) {
-            agentLogbackDbConfig = Paths.get(testHome).getParent()
+        String projectBasedir = System.getProperty("project.basedir");
+        if (projectBasedir != null) {
+            agentLogbackDbConfig = Paths.get(projectBasedir)
                 .resolve("script/config/logback/agent-db.xml")
                 .toString();
         }
