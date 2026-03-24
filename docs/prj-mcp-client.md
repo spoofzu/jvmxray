@@ -224,13 +224,7 @@ cat > ~/Library/Application\ Support/Claude/claude_desktop_config.json << 'EOF'
 EOF
 ```
 
-**Step 4: Start JVMXRay REST Service**
-```bash
-# Start the REST service that the MCP bridge connects to
-./script/bin/services/rest-service --start -p 8080
-```
-
-**Step 5: Restart Claude Desktop**
+**Step 4: Restart Claude Desktop**
 ```bash
 # Restart Claude Desktop to load the new MCP server configuration
 # The JVMXRay tools should appear in Claude Desktop's available tools
@@ -512,25 +506,6 @@ The MCP client is a stateless bridge component that does not directly access or 
 ## Common Errors
 
 ### Error Reference
-
-#### Connection Errors
-
-**Error Message:**
-```
-Cannot connect to server at localhost:8080. Please ensure the server is running.
-```
-
-**Cause:** JVMXRay REST API server is not running or unreachable
-
-**Resolution:**
-```bash
-# Start the JVMXRay REST service first
-./script/bin/services/rest-service --start -p 8080
-# Then start the MCP bridge
-java -jar prj-mcp-client-bridge.jar --api-key your_key
-```
-
-**Prevention:** Ensure JVMXRay REST service is running before starting MCP bridge
 
 #### Authentication Errors
 
