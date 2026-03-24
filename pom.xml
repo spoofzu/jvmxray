@@ -1,20 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <!-- Top-level Parent POM -->
+
   <groupId>org.jvmxray</groupId>
   <artifactId>jvmxray</artifactId>
   <version>0.0.1</version>
-  <packaging>pom</packaging>
+  <packaging>jar</packaging>
   <name>jvmxray platform</name>
-  <description>VMXRay is a technology for monitoring access to system resources within the Java Virtual Machine.</description>
+  <description>JVMXRay is a technology for monitoring access to system resources within the Java Virtual Machine.</description>
   <url>https://github.com/spoofzu/jvmxray/</url>
+
   <licenses>
     <license>
       <name>The Apache License, Version 2.0</name>
       <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
     </license>
   </licenses>
+
   <developers>
     <developer>
       <name>Milton Smith</name>
@@ -23,69 +27,164 @@
       <organizationUrl>https://silentoctet.blogspot.com/p/milton-smith-welcome-and-thanks-for.html</organizationUrl>
     </developer>
   </developers>
-  <modules>
-    <module>prj-common</module>
-    <module>prj-agent</module>
-  </modules>
+
   <properties>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>ch.qos.logback</groupId>
-        <artifactId>logback-classic</artifactId>
-        <version>1.5.19</version>
-      </dependency>
-      <dependency>
-        <groupId>ch.qos.logback</groupId>
-        <artifactId>logback-core</artifactId>
-        <version>1.5.19</version>
-      </dependency>
-      <dependency>
-        <groupId>org.slf4j</groupId>
-        <artifactId>slf4j-api</artifactId>
-        <version>2.0.13</version>
-      </dependency>
-      <dependency>
-        <groupId>ch.qos.logback.contrib</groupId>
-        <artifactId>logback-json-classic</artifactId>
-        <version>0.1.5</version>
-      </dependency>
-      <dependency>
-        <groupId>ch.qos.logback.contrib</groupId>
-        <artifactId>logback-jackson</artifactId>
-        <version>0.1.5</version>
-      </dependency>
-      <dependency>
-        <groupId>com.fasterxml.jackson.core</groupId>
-        <artifactId>jackson-databind</artifactId>
-        <version>2.17.1</version>
-      </dependency>
-      <dependency>
-        <groupId>commons-cli</groupId>
-        <artifactId>commons-cli</artifactId>
-        <version>1.5.0</version>
-      </dependency>
-      <dependency>
-        <groupId>org.xerial</groupId>
-        <artifactId>sqlite-jdbc</artifactId>
-        <version>3.50.3.0</version>
-      </dependency>
-      <dependency>
-        <groupId>junit</groupId>
-        <artifactId>junit</artifactId>
-        <version>4.13.1</version>
-        <scope>test</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
+
+  <dependencies>
+
+    <!-- Agent: bytecode injection -->
+    <dependency>
+      <groupId>net.bytebuddy</groupId>
+      <artifactId>byte-buddy</artifactId>
+      <version>1.14.17</version>
+    </dependency>
+    <dependency>
+      <groupId>net.bytebuddy</groupId>
+      <artifactId>byte-buddy-agent</artifactId>
+      <version>1.14.17</version>
+    </dependency>
+    <dependency>
+      <groupId>javax.servlet</groupId>
+      <artifactId>javax.servlet-api</artifactId>
+      <version>4.0.1</version>
+      <scope>compile</scope>
+    </dependency>
+
+    <!-- Logging -->
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>1.5.19</version>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-core</artifactId>
+      <version>1.5.19</version>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>2.0.13</version>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback.contrib</groupId>
+      <artifactId>logback-json-classic</artifactId>
+      <version>0.1.5</version>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback.contrib</groupId>
+      <artifactId>logback-jackson</artifactId>
+      <version>0.1.5</version>
+    </dependency>
+
+    <!-- JSON -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>2.17.1</version>
+    </dependency>
+
+    <!-- Database drivers -->
+    <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-core</artifactId>
+      <version>4.13.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-query-builder</artifactId>
+      <version>4.13.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-mapper-runtime</artifactId>
+      <version>4.13.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.mysql</groupId>
+      <artifactId>mysql-connector-j</artifactId>
+      <version>8.2.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.xerial</groupId>
+      <artifactId>sqlite-jdbc</artifactId>
+      <version>3.50.3.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.zaxxer</groupId>
+      <artifactId>HikariCP</artifactId>
+      <version>5.0.1</version>
+    </dependency>
+
+    <!-- CLI -->
+    <dependency>
+      <groupId>commons-cli</groupId>
+      <artifactId>commons-cli</artifactId>
+      <version>1.5.0</version>
+    </dependency>
+
+    <!-- MCP SDK (system-scope SNAPSHOTs from libs/) -->
+    <dependency>
+      <groupId>io.modelcontextprotocol.sdk</groupId>
+      <artifactId>mcp</artifactId>
+      <version>0.13.0-SNAPSHOT</version>
+      <scope>system</scope>
+      <systemPath>${basedir}/libs/mcp-0.13.0-SNAPSHOT.jar</systemPath>
+    </dependency>
+    <dependency>
+      <groupId>io.modelcontextprotocol.sdk</groupId>
+      <artifactId>mcp-json-jackson2</artifactId>
+      <version>0.13.0-SNAPSHOT</version>
+      <scope>system</scope>
+      <systemPath>${basedir}/libs/mcp-json-jackson2-0.13.0-SNAPSHOT.jar</systemPath>
+    </dependency>
+
+    <!-- MCP runtime support -->
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
+      <version>4.5.14</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpcore</artifactId>
+      <version>4.4.16</version>
+    </dependency>
+    <dependency>
+      <groupId>io.projectreactor</groupId>
+      <artifactId>reactor-core</artifactId>
+      <version>3.7.0</version>
+    </dependency>
+
+    <!-- Test -->
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.13.1</version>
+      <scope>test</scope>
+    </dependency>
+
+  </dependencies>
 
   <build>
     <plugins>
-      <!-- Git commit ID plugin for version tracking -->
+
+      <!-- Compiler -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.10.1</version>
+        <configuration>
+          <source>17</source>
+          <target>17</target>
+        </configuration>
+      </plugin>
+
+      <!-- Git commit ID for version tracking -->
       <plugin>
         <groupId>pl.project13.maven</groupId>
         <artifactId>git-commit-id-plugin</artifactId>
@@ -93,9 +192,7 @@
         <executions>
           <execution>
             <id>get-the-git-infos</id>
-            <goals>
-              <goal>revision</goal>
-            </goals>
+            <goals><goal>revision</goal></goals>
             <phase>initialize</phase>
           </execution>
         </executions>
@@ -104,22 +201,250 @@
           <failOnNoGitDirectory>false</failOnNoGitDirectory>
         </configuration>
       </plugin>
+
+      <!-- Unshaded JAR (standard output) -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>3.2.0</version>
+        <configuration>
+          <archive>
+            <manifest>
+              <mainClass>org.jvmxray.platform.shared.bin.VersionTool</mainClass>
+            </manifest>
+            <manifestEntries>
+              <Implementation-Version>${project.version}</Implementation-Version>
+              <Git-Commit>${git.commit.id.abbrev}</Git-Commit>
+              <Build-Time>${maven.build.timestamp}</Build-Time>
+            </manifestEntries>
+          </archive>
+        </configuration>
+      </plugin>
+
+      <!-- Shade: agent + version-tool -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.6.1</version>
+        <executions>
+
+          <!-- Execution 1: agent shaded JAR -->
+          <execution>
+            <id>shade-agent</id>
+            <phase>package</phase>
+            <goals><goal>shade</goal></goals>
+            <configuration>
+              <shadedArtifactAttached>true</shadedArtifactAttached>
+              <shadedClassifierName>agent</shadedClassifierName>
+              <createDependencyReducedPom>false</createDependencyReducedPom>
+              <relocations>
+                <relocation>
+                  <pattern>org.slf4j</pattern>
+                  <shadedPattern>agent.shadow.slf4j</shadedPattern>
+                </relocation>
+                <relocation>
+                  <pattern>ch.qos.logback</pattern>
+                  <shadedPattern>agent.shadow.logback</shadedPattern>
+                </relocation>
+              </relocations>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>logback.xml</exclude>
+                    <exclude>logback-test.xml</exclude>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <manifestEntries>
+                    <Premain-Class>org.jvmxray.agent.bootstrap.AgentBootstrap</Premain-Class>
+                    <Can-Redefine-Classes>true</Can-Redefine-Classes>
+                    <Can-Retransform-Classes>true</Can-Retransform-Classes>
+                    <Implementation-Version>${project.version}</Implementation-Version>
+                    <Git-Commit>${git.commit.id.abbrev}</Git-Commit>
+                    <Build-Time>${maven.build.timestamp}</Build-Time>
+                  </manifestEntries>
+                </transformer>
+              </transformers>
+            </configuration>
+          </execution>
+
+          <!-- Execution 2: version-tool shaded JAR -->
+          <execution>
+            <id>shade-version-tool</id>
+            <phase>package</phase>
+            <goals><goal>shade</goal></goals>
+            <configuration>
+              <shadedArtifactAttached>true</shadedArtifactAttached>
+              <shadedClassifierName>version-tool</shadedClassifierName>
+              <createDependencyReducedPom>false</createDependencyReducedPom>
+              <filters>
+                <filter>
+                  <artifact>*:*</artifact>
+                  <excludes>
+                    <exclude>META-INF/*.SF</exclude>
+                    <exclude>META-INF/*.DSA</exclude>
+                    <exclude>META-INF/*.RSA</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+              <transformers>
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>org.jvmxray.platform.shared.bin.VersionTool</mainClass>
+                  <manifestEntries>
+                    <Implementation-Version>${project.version}</Implementation-Version>
+                    <Git-Commit>${git.commit.id.abbrev}</Git-Commit>
+                    <Build-Time>${maven.build.timestamp}</Build-Time>
+                  </manifestEntries>
+                </transformer>
+              </transformers>
+            </configuration>
+          </execution>
+
+        </executions>
+      </plugin>
+
+      <!-- Assembly: MCP client fat JAR (handles system-scope JARs correctly) -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <version>3.6.0</version>
+        <configuration>
+          <descriptors>
+            <descriptor>src/assembly/standalone.xml</descriptor>
+          </descriptors>
+          <finalName>jvmxray-mcp-client</finalName>
+          <appendAssemblyId>false</appendAssemblyId>
+          <archive>
+            <manifest>
+              <mainClass>org.jvmxray.platform.client.mcp.bridge.JvmxrayMcpClient</mainClass>
+            </manifest>
+            <manifestEntries>
+              <Implementation-Version>${project.version}</Implementation-Version>
+              <Git-Commit>${git.commit.id.abbrev}</Git-Commit>
+              <Build-Time>${maven.build.timestamp}</Build-Time>
+            </manifestEntries>
+          </archive>
+        </configuration>
+        <executions>
+          <execution>
+            <id>make-mcp-client</id>
+            <phase>package</phase>
+            <goals><goal>single</goal></goals>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Antrun: create test dirs + seed configs + run SchemaManager -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <version>3.1.0</version>
+        <executions>
+
+          <!-- Setup agent test directories and logback config -->
+          <execution>
+            <id>prepare-agent-test-home</id>
+            <phase>process-resources</phase>
+            <goals><goal>run</goal></goals>
+            <configuration>
+              <target>
+                <mkdir dir="${project.build.directory}/test-jvmxray/agent/config"/>
+                <mkdir dir="${project.build.directory}/test-jvmxray/agent/logs"/>
+                <copy file="${project.basedir}/src/main/resources/agent-logback-production.xml2"
+                      tofile="${project.build.directory}/test-jvmxray/agent/config/logback.xml"
+                      overwrite="false"/>
+                <echo message="Seeded test-jvmxray/agent with config/logs"/>
+              </target>
+            </configuration>
+          </execution>
+
+          <!-- Create common test dirs and SQLite test schema -->
+          <execution>
+            <id>create-test-schema</id>
+            <phase>process-test-resources</phase>
+            <goals><goal>run</goal></goals>
+            <configuration>
+              <target>
+                <mkdir dir="${project.build.directory}/test-jvmxray/common/data"/>
+                <mkdir dir="${project.build.directory}/test-jvmxray/common/config"/>
+                <mkdir dir="${project.build.directory}/test-jvmxray/common/logs"/>
+                <echo message="Created test-jvmxray/common directory structure"/>
+                <java classname="org.jvmxray.platform.shared.bin.SchemaManager"
+                      fork="true"
+                      failonerror="false">
+                  <classpath>
+                    <path refid="maven.compile.classpath"/>
+                    <pathelement location="${project.build.outputDirectory}"/>
+                    <pathelement location="${project.build.testOutputDirectory}"/>
+                  </classpath>
+                  <arg value="--create-schema"/>
+                  <arg value="--database-type"/>
+                  <arg value="sqlite"/>
+                  <arg value="--connection-url"/>
+                  <arg value="jdbc:sqlite:${project.build.directory}/test-jvmxray/common/data/jvmxray-test.db"/>
+                  <sysproperty key="jvmxray.test.home" value="${project.build.directory}/test-jvmxray"/>
+                </java>
+                <echo message="Test database schema creation completed"/>
+              </target>
+            </configuration>
+          </execution>
+
+        </executions>
+      </plugin>
+
+      <!-- Surefire: unit tests -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.2.5</version>
+        <configuration>
+          <systemPropertyVariables>
+            <jvmxray.test.home>${project.build.directory}/test-jvmxray</jvmxray.test.home>
+            <jvmxray.common.logs>${project.build.directory}/test-jvmxray/common/logs</jvmxray.common.logs>
+            <jvmxray.common.config>${project.build.directory}/test-jvmxray/common/config</jvmxray.common.config>
+            <jvmxray.common.data>${project.build.directory}/test-jvmxray/common/data</jvmxray.common.data>
+            <logback.common.configurationFile>${project.build.directory}/test-jvmxray/common/config/logback.xml</logback.common.configurationFile>
+            <project.basedir>${project.basedir}</project.basedir>
+          </systemPropertyVariables>
+        </configuration>
+      </plugin>
+
+      <!-- Failsafe: TurtleTest integration -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <version>3.2.5</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+            <configuration>
+              <includes>
+                <include>**/TurtleTest.java</include>
+              </includes>
+              <systemPropertyVariables>
+                <jvmxray.test.home>${project.build.directory}/test-jvmxray</jvmxray.test.home>
+                <project.basedir>${project.basedir}</project.basedir>
+                <jvmxray.agent.jar>${project.build.directory}/jvmxray-${project.version}-agent.jar</jvmxray.agent.jar>
+                <jvmxray.common.logs>${project.build.directory}/test-jvmxray/common/logs</jvmxray.common.logs>
+                <jvmxray.common.config>${project.build.directory}/test-jvmxray/common/config</jvmxray.common.config>
+                <jvmxray.common.data>${project.build.directory}/test-jvmxray/common/data</jvmxray.common.data>
+              </systemPropertyVariables>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
     </plugins>
   </build>
-
-  <profiles>
-    <!-- Include MCP client when NOT skipping it (default for Java 21+) -->
-    <profile>
-      <id>include-mcp-client</id>
-      <activation>
-        <property>
-          <name>!skipMcpClient</name>
-        </property>
-      </activation>
-      <modules>
-        <module>prj-mcp-client</module>
-      </modules>
-    </profile>
-  </profiles>
 
 </project>
