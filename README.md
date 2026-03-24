@@ -151,7 +151,6 @@ Ready for advanced features? Continue with:
 **Optional features include:**
 - Step 5: Migrate data to enriched format for AI analysis
 - Step 6: MCP integration for Claude Desktop AI-powered queries
-- Step 7: AI Service for vulnerability analysis and library tracking
 
 ## Key Capabilities
 
@@ -228,10 +227,8 @@ JVMXRay's MCP server enables AI clients like Claude Desktop to become instant se
 
 ### Component Documentation
 - **[🔧 JVMXRay Agent](docs/prj-agent.md)** - Java agent setup and sensor configuration
-- **[🌐 REST Service API](docs/prj-service-rest.md)** - REST API endpoints and authentication
 - **[🤖 MCP Client](docs/prj-mcp-client.md)** - Claude Desktop integration guide
 - **[📊 Common Components](docs/prj-common.md)** - Database setup and utilities
-- **[📝 Log Service](docs/prj-service-log.md)** - Event aggregation service
 
 ### Quick Links
 - **[📰 News Archive](README-NEWS.md)** - Complete project history
