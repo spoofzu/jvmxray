@@ -2,6 +2,7 @@ package org.jvmxray.agent.sensor.reflection;
 
 import net.bytebuddy.asm.Advice;
 import org.jvmxray.agent.proxy.LogProxy;
+import org.jvmxray.platform.shared.util.MCCScope;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,6 +25,7 @@ public class ClassForNameInterceptor {
     public static void classForName(@Advice.Argument(0) String className,
                                   @Advice.Return Class<?> result,
                                   @Advice.Thrown Throwable throwable) {
+        MCCScope.enter("Reflection");
         try {
             Map<String, String> metadata = new HashMap<>();
             metadata.put("operation", "class_forName");
@@ -65,6 +67,8 @@ public class ClassForNameInterceptor {
             
         } catch (Exception e) {
             // Fail silently to avoid disrupting reflection operations
+        } finally {
+            MCCScope.exit("Reflection");
         }
     }
 }

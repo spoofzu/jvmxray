@@ -2,6 +2,7 @@ package org.jvmxray.agent.sensor.configuration;
 
 import net.bytebuddy.asm.Advice;
 import org.jvmxray.agent.proxy.LogProxy;
+import org.jvmxray.platform.shared.util.MCCScope;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -23,6 +24,7 @@ public class SystemGetEnvAllInterceptor {
     @Advice.OnMethodExit(onThrowable = Throwable.class)
     public static void systemGetEnvAll(@Advice.Return Map<String, String> result,
                                       @Advice.Thrown Throwable throwable) {
+        MCCScope.enter("Config");
         try {
             Map<String, String> metadata = new HashMap<>();
             metadata.put("operation", "system_getenv_all");
@@ -69,6 +71,8 @@ public class SystemGetEnvAllInterceptor {
             
         } catch (Exception e) {
             // Fail silently
+        } finally {
+            MCCScope.exit("Config");
         }
     }
 }

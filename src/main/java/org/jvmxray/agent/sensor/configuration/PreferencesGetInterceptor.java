@@ -2,6 +2,7 @@ package org.jvmxray.agent.sensor.configuration;
 
 import net.bytebuddy.asm.Advice;
 import org.jvmxray.agent.proxy.LogProxy;
+import org.jvmxray.platform.shared.util.MCCScope;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -26,6 +27,7 @@ public class PreferencesGetInterceptor {
                                     @Advice.Argument(1) String defaultValue,
                                     @Advice.Return String result,
                                     @Advice.Thrown Throwable throwable) {
+        MCCScope.enter("Config");
         try {
             Map<String, String> metadata = new HashMap<>();
             metadata.put("operation", "preferences_get");
@@ -41,6 +43,8 @@ public class PreferencesGetInterceptor {
             
         } catch (Exception e) {
             // Fail silently
+        } finally {
+            MCCScope.exit("Config");
         }
     }
 }

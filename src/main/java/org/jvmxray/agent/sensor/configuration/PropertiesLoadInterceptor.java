@@ -2,6 +2,7 @@ package org.jvmxray.agent.sensor.configuration;
 
 import net.bytebuddy.asm.Advice;
 import org.jvmxray.agent.proxy.LogProxy;
+import org.jvmxray.platform.shared.util.MCCScope;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,6 +25,7 @@ public class PropertiesLoadInterceptor {
     public static void propertiesLoad(@Advice.This Object properties,
                                     @Advice.Argument(0) Object inputStream,
                                     @Advice.Thrown Throwable throwable) {
+        MCCScope.enter("Config");
         try {
             Map<String, String> metadata = new HashMap<>();
             metadata.put("operation", "properties_load");
@@ -47,6 +49,8 @@ public class PropertiesLoadInterceptor {
             
         } catch (Exception e) {
             // Fail silently
+        } finally {
+            MCCScope.exit("Config");
         }
     }
 }

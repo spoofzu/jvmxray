@@ -2,6 +2,7 @@ package org.jvmxray.agent.sensor.data;
 
 import net.bytebuddy.asm.Advice;
 import org.jvmxray.agent.proxy.LogProxy;
+import org.jvmxray.platform.shared.util.MCCScope;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -11,6 +12,7 @@ public class DataTransferInterceptor {
 
     @Advice.OnMethodExit
     public static void dataTransfer(@Advice.Origin String method, @Advice.Return int bytesRead) {
+        MCCScope.enter("DataTransfer");
         try {
             Map<String, String> metadata = new HashMap<>();
             metadata.put("operation", "data_transfer");
@@ -19,6 +21,8 @@ public class DataTransferInterceptor {
             logProxy.logMessage(NAMESPACE + ".transfer", "INFO", metadata);
         } catch (Exception e) {
             // Fail silently
+        } finally {
+            MCCScope.exit("DataTransfer");
         }
     }
 }

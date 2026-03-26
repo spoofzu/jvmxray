@@ -2,6 +2,7 @@ package org.jvmxray.agent.sensor.serialization;
 
 import net.bytebuddy.asm.Advice;
 import org.jvmxray.agent.proxy.LogProxy;
+import org.jvmxray.platform.shared.util.MCCScope;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,6 +25,7 @@ public class JacksonInterceptor {
     public static void jacksonReadValue(@Advice.Argument(0) Object input,
                                       @Advice.Return Object result,
                                       @Advice.Thrown Throwable throwable) {
+        MCCScope.enter("Serialization");
         try {
             Map<String, String> metadata = new HashMap<>();
             metadata.put("operation", "deserialize");
@@ -64,6 +66,8 @@ public class JacksonInterceptor {
             
         } catch (Exception e) {
             // Fail silently
+        } finally {
+            MCCScope.exit("Serialization");
         }
     }
 }

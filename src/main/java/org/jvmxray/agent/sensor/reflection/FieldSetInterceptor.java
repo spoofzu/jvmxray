@@ -2,6 +2,7 @@ package org.jvmxray.agent.sensor.reflection;
 
 import net.bytebuddy.asm.Advice;
 import org.jvmxray.agent.proxy.LogProxy;
+import org.jvmxray.platform.shared.util.MCCScope;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,6 +26,7 @@ public class FieldSetInterceptor {
                                @Advice.Argument(0) Object instance,
                                @Advice.Argument(1) Object value,
                                @Advice.Thrown Throwable throwable) {
+        MCCScope.enter("Reflection");
         try {
             Map<String, String> metadata = new HashMap<>();
             metadata.put("operation", "field_set");
@@ -69,6 +71,8 @@ public class FieldSetInterceptor {
             
         } catch (Exception e) {
             // Fail silently
+        } finally {
+            MCCScope.exit("Reflection");
         }
     }
 }

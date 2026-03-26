@@ -2,6 +2,7 @@ package org.jvmxray.agent.sensor.reflection;
 
 import net.bytebuddy.asm.Advice;
 import org.jvmxray.agent.proxy.LogProxy;
+import org.jvmxray.platform.shared.util.MCCScope;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -26,6 +27,7 @@ public class MethodInvokeInterceptor {
                                   @Advice.Argument(1) Object[] args,
                                   @Advice.Return Object result,
                                   @Advice.Thrown Throwable throwable) {
+        MCCScope.enter("Reflection");
         try {
             Map<String, String> metadata = new HashMap<>();
             metadata.put("operation", "method_invoke");
@@ -67,6 +69,8 @@ public class MethodInvokeInterceptor {
             
         } catch (Exception e) {
             // Fail silently
+        } finally {
+            MCCScope.exit("Reflection");
         }
     }
 }

@@ -2,6 +2,7 @@ package org.jvmxray.agent.sensor.configuration;
 
 import net.bytebuddy.asm.Advice;
 import org.jvmxray.agent.proxy.LogProxy;
+import org.jvmxray.platform.shared.util.MCCScope;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -25,6 +26,7 @@ public class PropertiesStoreInterceptor {
                                      @Advice.Argument(0) Object outputStream,
                                      @Advice.Argument(1) String comments,
                                      @Advice.Thrown Throwable throwable) {
+        MCCScope.enter("Config");
         try {
             Map<String, String> metadata = new HashMap<>();
             metadata.put("operation", "properties_store");
@@ -51,6 +53,8 @@ public class PropertiesStoreInterceptor {
             
         } catch (Exception e) {
             // Fail silently
+        } finally {
+            MCCScope.exit("Config");
         }
     }
 }

@@ -2,6 +2,7 @@ package org.jvmxray.agent.sensor.serialization;
 
 import net.bytebuddy.asm.Advice;
 import org.jvmxray.agent.proxy.LogProxy;
+import org.jvmxray.platform.shared.util.MCCScope;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -22,14 +23,15 @@ public class ObjectInputResolveInterceptor {
      */
     @Advice.OnMethodEnter
     public static void resolveClass(@Advice.Argument(0) Object objectStreamClass) {
+        MCCScope.enter("Serialization");
         try {
             if (objectStreamClass != null) {
                 String className = objectStreamClass.toString();
-                
+
                 Map<String, String> metadata = new HashMap<>();
                 metadata.put("operation", "resolve_class");
                 metadata.put("class_name", className);
-                
+
                 // Check for dangerous classes being resolved
                 String dangerousClass = SerializationUtils.checkDangerousClass(className);
                 if (dangerousClass != null) {
@@ -37,11 +39,13 @@ public class ObjectInputResolveInterceptor {
                     metadata.put("risk_level", "CRITICAL");
                     metadata.put("threat_type", "deserialization_gadget");
                 }
-                
+
                 logProxy.logMessage(NAMESPACE + ".resolve", "INFO", metadata);
             }
         } catch (Exception e) {
             // Fail silently
+        } finally {
+            MCCScope.exit("Serialization");
         }
     }
 }

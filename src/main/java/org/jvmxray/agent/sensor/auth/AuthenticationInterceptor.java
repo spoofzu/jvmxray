@@ -2,6 +2,7 @@ package org.jvmxray.agent.sensor.auth;
 
 import net.bytebuddy.asm.Advice;
 import org.jvmxray.agent.proxy.LogProxy;
+import org.jvmxray.platform.shared.util.MCCScope;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -11,6 +12,7 @@ public class AuthenticationInterceptor {
 
     @Advice.OnMethodExit
     public static void sessionOperation(@Advice.Origin String method) {
+        MCCScope.enter("Auth");
         try {
             Map<String, String> metadata = new HashMap<>();
             metadata.put("operation", "session_operation");
@@ -18,6 +20,8 @@ public class AuthenticationInterceptor {
             logProxy.logMessage(NAMESPACE + ".session", "INFO", metadata);
         } catch (Exception e) {
             // Fail silently
+        } finally {
+            MCCScope.exit("Auth");
         }
     }
 }

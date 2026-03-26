@@ -2,6 +2,7 @@ package org.jvmxray.agent.sensor.reflection;
 
 import net.bytebuddy.asm.Advice;
 import org.jvmxray.agent.proxy.LogProxy;
+import org.jvmxray.platform.shared.util.MCCScope;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,6 +25,7 @@ public class SetAccessibleInterceptor {
     public static void setAccessible(@Advice.This Object accessibleObject,
                                    @Advice.Argument(0) boolean flag,
                                    @Advice.Thrown Throwable throwable) {
+        MCCScope.enter("Reflection");
         try {
             Map<String, String> metadata = new HashMap<>();
             metadata.put("operation", "set_accessible");
@@ -64,6 +66,8 @@ public class SetAccessibleInterceptor {
             
         } catch (Exception e) {
             // Fail silently
+        } finally {
+            MCCScope.exit("Reflection");
         }
     }
 }
