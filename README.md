@@ -1,12 +1,9 @@
-
-# JVMXRay: AI-Enhanced Java Security Monitoring
+# JVMXRay: Java Application Security Monitoring
 
 [![Black Hat Arsenal](https://raw.githubusercontent.com/toolswatch/badges/master/arsenal/usa/2020.svg?sanitize=true)](https://www.toolswatch.org/blackhat-arsenal-us-2020-archive/)
-[![Java](https://img.shields.io/badge/Java-11+-orange.svg)](https://openjdk.java.net/)
-[![Build Status](https://github.com/spoofzu/jvmxray/actions/workflows/maven-build.yml/badge.svg)](https://github.com/spoofzu/jvmxray/actions/workflows/maven-build.yml)
-[![Contributors](https://img.shields.io/github/contributors/spoofzu/jvmxray.svg)](https://github.com/spoofzu/jvmxray/graphs/contributors)
+[![Java](https://img.shields.io/badge/Java-17+-orange.svg)](https://openjdk.java.net/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0.txt)
-[![Development Status](https://img.shields.io/badge/Status-Alpha-red.svg)](ZREADME-ALPHA.md)
+[![Development Status](https://img.shields.io/badge/Status-POC-red.svg)](#)
 
 <div align="left">
 <picture>
@@ -18,227 +15,114 @@
 
 **[Duke history](https://dev.java/duke/)**
 
-**JVMXRay is an AI-enhanced security monitoring platform that watches Java applications in real-time, detecting vulnerabilities and suspicious activity without requiring code changes. Intelligence analysis enriches security events with AI-powered metadata and context for enhanced risk prioritization and compliance reporting. With simple setup and minimal performance impact, JVMXRay provides comprehensive security visibility into applications and third-party dependencies, enhanced by machine learning that improves detection accuracy over time.**
-
-| &nbsp;                                  | &nbsp;                                                                                                                                                                                                                                                                                                                                |
-|-----------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **NEWS**                                | &nbsp;                                                                                                                                                                                                                                                                                                                                |
-| **Oct 7, 2025** Minor Fixes             | Sensor meta improvements, developing AI service (work in progress) OWASP Dependency Check integration (NVD metadata, CVSS scoring, etc) for 3rd party libraries (not operational at the moment).                                                                                                                                      |                                                                                                                                                                                                                                                                                       |                                                                                                                                                                                                                                                                                                         |
-| **Sep 18, 2025** Major Update           | Significant milestone release featuring AI-powered vulnerability analysis, online/offline integration support with AI MCP clients like Claude Desktop, 15+ sensor types and growing, enhanced documentation suite, multi-database support (SQLite/MySQL/Cassandra), and complete CI/CD pipeline. Suitable for testing and evaluation. |
-| **Apr 23, 2025** Platform rearchitected | Architecture improved to remove deprecated SecurityManager and move to byte code injection approach.                                                                                                                                                                                                                                  |
-| **Feb 20, 2025** Improved architecture  | Improved documentation for new architecture. Site docs forthcoming.                                                                                                                                                                                                                                                                   |
-
-**📰 [View News Archive](ZREADME-NEWS.md)** - Complete history of project announcements and milestones
-
-## ⚠️ Development Status & Security Notice
-
-**🚨 ALPHA SOFTWARE - NOT FOR PRODUCTION USE 🚨**
-
-JVMXRay is currently in **alpha development status** and should **NOT be deployed in production environments**. This software is intended for testing, evaluation, and development purposes only.
-
-**📖 [Learn more about alpha limitations and security considerations →](ZREADME-ALPHA.md)**
+JVMXRay monitors Java applications in real-time via bytecode injection, detecting vulnerabilities and suspicious activity without code changes. 19 modular sensors track file access, network connections, SQL queries, cryptographic operations, authentication, process execution, and more — generating structured, machine-readable security events with automatic cross-sensor correlation.
 
 ---
 
-## Why JVMXRay?
-
-Java applications are under constant attack, but traditional security tools require code changes, create performance overhead, or generate too many false positives. JVMXRay improves upon current state by:
-
-- **Zero Code Changes**: Monitor any Java application without modifications
-- **Intelligence Analysis**: AI enriches security events with contextual metadata for risk prioritization and compliance reporting
-- **Complete Visibility**: See exactly what applications and dependencies are doing
-- **Minimal Impact**: Low performance overhead using well-proven technologies like bytecode injection and Logback enterprise logging
-- **Enterprise Ready**: Works with existing logging infrastructure and scales to any size
-
-## Logging Philosophy: Beyond Traditional Approaches
-
-### The Problem with Unstructured Logging
-Traditional application logging relies on developers manually adding log statements throughout code. This creates several challenges:
-- **Developer-Dependent**: Log quality varies based on individual experience and foresight
-- **Needle in Haystack**: Complex parsing tools required to extract meaningful insights from unstructured text
-- **Inconsistent Format**: Different developers use different logging patterns and message formats
-- **Reactive Coverage**: Only logs what developers anticipated needing, missing unexpected security events
-
-### JVMXRay's Structured Security Events
-JVMXRay automatically generates structured security events without developer intervention:
-- **System-Generated**: Consistent, comprehensive coverage regardless of developer experience
-- **Machine-Readable**: Structured formats enable instant analysis and correlation without complex parsing
-- **Predictive Coverage**: Monitors security-relevant operations automatically, capturing events developers might not anticipate
-- **AI-Ready**: Structured data enables intelligent analysis, pattern recognition, and automated threat detection
-
-## Who Benefits and How
-
-### 🏢 Operations & IT Teams
-- **Datacenter Intelligence**: Keep sensitive security data on-premises while leveraging AI analysis capabilities
-- **Zero-Downtime Deployment**: Monitor applications without restarts or maintenance windows
-- **Alert Reduction**: Intelligent filtering significantly reduces security alert noise
-- **Infrastructure Integration**: Works with existing Splunk, ELK, DataDog, and logging systems
-
-### 👨‍💻 Developers & Engineers  
-- **Beyond Traditional Logging**: Eliminate dependency on manual log statements - JVMXRay automatically captures security-relevant operations in structured formats that don't require complex parsing tools to find security needles in log haystacks
-- **AI Security Intelligence**: JVMXRay MCP Server provides event-based security intelligence to AI clients instantly, making them security experts on your datacenter. Compatible with Claude Desktop or internal MCP clients.
-- **Improved Diagnostics**: Point-in-time system state capture with monitor sensor and uncaught exception handler to diagnose cloud server failures. Eliminates the need to recreate complex test environments for debugging production issues.
-- **Real-time Insights**: See file access, network connections, and system calls as they happen
-
-### 🔒 Security Practitioners
-- **Advanced Threat Detection**: Machine learning enhances vulnerability identification accuracy
-- **MITRE ATT&CK Mapping**: Automatic attack technique identification and timeline analysis
-- **Incident Response**: Complete attack context with file, network, and process details
-- **Low False Positives**: Context-aware detection based on actual application security events
-
-### 📈 Engineering Leaders & CISOs
-- **Risk Reduction**: Proactive vulnerability detection prevents costly data breaches
-- **Strategic Investment**: Comprehensive security monitoring that scales with business growth
-- **Open Source Foundation**: No vendor lock-in with enterprise support options available
-- **Supply Chain Security**: Monitor third-party libraries and detect malicious behavior
-- **Compliance Automation**: AI-enriched security event data supporting compliance automation for SOC 2, PCI DSS, and regulatory reporting
-
-<!-- TODO: // Update example
-# Deploying JVMXRay with Examples
-The following provides some basic information to download and compile JVMXRay source on your computer.  Remainder of the video shows how to get JVMXRay working with Tomcat and work with Tomcat's examples.
-
-[![](http://img.youtube.com/vi/QxgTiTCorow/0.jpg)](http://www.youtube.com/watch?v=QxgTiTCorow "JVMXRay Deploy")
--->
-
-## Video Tutorial
-
-Watch a [video](https://youtu.be/HufPrUo96H8?si=CTwZ1SISg9HW39Jh) to build JVMXRay and integrate with Claude Desktop AI followed by a quick demo or jump directly to the [demo at 3:30](https://youtu.be/HufPrUo96H8?si=toqnh9hu2EgtOrNu&t=211).
-
 ## Quick Start
 
-Get up and running in **under 5 minutes**:
+```bash
+git clone https://github.com/spoofzu/jvmxray.git
+cd jvmxray
+mvn clean install
+```
 
-1. **Change to GitHub Repository Folder**
-   ```bash
-   cd {your-github-folder}/
-   ```
+Deploy as a Java agent:
+```bash
+java -javaagent:target/jvmxray-0.0.1-agent.jar -jar yourapp.jar
+```
 
-2. **Clone JVMXRay Repository**
-   ```bash
-   git clone https://github.com/spoofzu/jvmxray.git
-   ```
+---
 
-3. **Build JVMXRay Project**
-   ```bash
-   mvn clean package
-   ```
+## Benefits
 
-4. **Generate Test Data**
-   ```bash
-   ./script/data/generate-test-data
-   ```
-   **Note**: This script executes various activities to stimulate JVMXRay Agent's sensors. When finished, a SQLite database contains sensor data for experimentation.
+- **Zero code changes** — Attaches to any Java application at launch, like a debugger. No source modifications, no recompilation, no library dependencies to add.
+- **AI-ready structured events** — Sensors generate machine-readable security events, not unstructured log lines. Use your AI tools to analyze application behavior like you application logs.
+- **Fits your logging infrastructure** — Events are Logback log messages. Route them to Splunk, ELK, DataDog, Kafka, or any destination the Logback ecosystem supports.
+- **Attack chain reconstruction** — Correlated events with `trace_id` and `scope_chain` let SOC teams trace an incident from HTTP request through SQL injection to data exfiltration in a single query.
+- **Tunable overhead** — Standard Logback log-level properties control which sensors fire and at what verbosity. Turn sensors on or off per environment without rebuilding.
 
-   **Explore the test data:**
-   ```bash
-   sqlite3 .jvmxray/common/data/jvmxray-test.db "SELECT EVENT_ID, TIMESTAMP, NAMESPACE, KEYPAIRS FROM STAGE0_EVENT LIMIT 10;"
-   ```
+Keep in mind, JVMXRay is a source of truth for what a Java application is doing, not an analysis engine.  Analysis is provided by your centralized logging solution and/or your AI tooling projects.
 
-**Congratulations! You've built JVMXRay successfully!**
+---
 
-The project compiles, tests pass, and includes:
-- Complete sensor framework with 15+ monitoring capabilities
-- Multi-database support (SQLite/MySQL/Cassandra)
-- AI-enhanced security event analysis
-- Enterprise logging integration
+## Sensors
 
-### Continue Optional Setup
+| Sensor | What It Monitors |
+|--------|-----------------|
+| **File I/O** | File reads, writes, deletes, permissions, symlinks with path resolution and aggregate I/O stats |
+| **Network** | Socket connect/accept/bind/close with TLS detection, private IP classification, timing |
+| **SQL** | Query capture with parameterization detection, operation type, duration, connection metadata |
+| **HTTP** | Request/response with security header analysis, user/session correlation |
+| **Process** | ProcessBuilder.start() and Runtime.exec() with command args, duration, exit status |
+| **Crypto** | Cipher/KeyStore/MessageDigest/SSL with weak algorithm detection and key strength validation |
+| **Authentication** | Session operations, JAAS login, Spring Security authenticate, principal queries with success/failure tracking |
+| **API Call** | HttpClient.send() with URI, method, host, TLS, response status, timing |
+| **Script Engine** | ScriptEngine.eval() with engine identification, content hashing, suspicious pattern detection, risk level |
+| **Serialization** | Java native, Jackson, Gson, XStream deserialization with gadget chain detection |
+| **Reflection** | Class.forName, Method.invoke, Field access, setAccessible with threat classification |
+| **Configuration** | System properties, env vars, Properties files, Preferences with security annotations |
+| **Library** | Static and dynamic JAR loading with SHA-256, Maven coordinates, package inventory |
+| **Monitor** | JVM health: memory, threads, GC, CPU, open files, deadlock detection (60s interval) |
+| **Uncaught Exception** | Crash diagnostics: full stack, memory state, thread dump, cause chain, incident ID |
+| **App Init** | One-time startup capture: JVM version, OS, container detection, env vars (redacted) |
+| **Data Transfer** | InputStream.read() byte counting (currently disabled — too broad) |
+| **Thread** | Thread lifecycle monitoring (currently disabled — recursive logging fix needed) |
+| **Memory** | Memory allocation tracking (currently disabled — recursive logging fix needed) |
 
-Ready for advanced features? Continue with:
+## Event Correlation
 
-**📖 [Continue Setup →](docs/setup-continued.md)** - Security event enrichment, AI integration, and vulnerability analysis
+Every sensor event includes correlation fields for reconstructing attack chains:
 
-**Optional features include:**
-- Step 5: Migrate data to enriched format for AI analysis
-- Step 6: MCP integration for Claude Desktop AI-powered queries
-- Step 7: AI Service for vulnerability analysis and library tracking
+| Field | Example | Purpose |
+|-------|---------|---------|
+| `trace_id` | `a1b2c3d4e5f6` | Links all events in the same execution context |
+| `scope_chain` | `HTTP>SQL>FileIO` | Nested sensor path — the "security stacktrace" |
+| `parent_scope` | `SQL` | Immediate parent for tree reconstruction |
+| `scope_depth` | `3` | Nesting level — depth 6+ warrants investigation |
 
-## Key Capabilities
+A scope chain like `HTTP>Serialization>Reflection>Process` is a deserialization attack signature at a glance. The `TRACE_ID` column is indexed in the database for fast correlation queries.
 
-### 🤖 AI-Enhanced Analysis
-- **Structured Security Events**: Unlike traditional unstructured logs that require complex parsing, JVMXRay generates machine-readable security events automatically
-- **AI Data Enrichment**: Structured data enables intelligent vulnerability classification with CWE assignment and dynamic CVSS scoring based on attack characteristics
-- **Pattern Recognition**: Advanced detection for SQL injection, command injection, path traversal using consistent event formats
-- **Intelligence Pipeline**: Rule-based analysis with configurable pattern matching and threat classification on structured data
+## Architecture
 
-### 🔧 Extensible Sensor Capabilities
-- **File I/O Sensor**: Monitors file system access, reads, writes, and deletions
-  ```
-  C:AP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.events.io.fileio |  | caller=java.io.File:1075, file=/tmp/sensitive.data, operation=DELETE, status=deleted, AID=7KLZZAC0DM9RA1ISVXQY63NTK, CID=unit-test
-  ```
-- **Network Sensor**: Tracks socket connections, binds, and data transfers
-  ```
-  C:AP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.events.net.connect |  | caller=java.net.Socket:189, destination=malicious-site.com:443, status=connected, AID=7KLZZAC0DM9RA1ISVXQY63NTK, CID=production
-  ```
-- **Process Sensor**: Detects system command execution and privilege escalation
-  ```
-  C:AP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.events.system.exec |  | caller=java.lang.ProcessBuilder:1029, command=/bin/sh -c rm -rf /, status=blocked, AID=7KLZZAC0DM9RA1ISVXQY63NTK, CID=production
-  ```
-- **Monitor Sensor**: System performance and health monitoring with point-in-time snapshots
-  ```
-  C:AP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.events.monitor |  | caller=org.jvmxray.agent.sensor.monitor.MonitorSensor:45, GCCount=1, ThreadRunnable=2, MemoryFree=566.3MB, ProcessCpuLoad=0%, OpenFiles=163, AID=7KLZZAC0DM9RA1ISVXQY63NTK, CID=production
-  ```
-- **Library Sensor**: Dynamic and static JAR loading detection
-  ```
-  C:AP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.events.system.lib |  | caller=ClassLoader:123, method=dynamic, jarPath=/path/to/library.jar, AID=7KLZZAC0DM9RA1ISVXQY63NTK, CID=production
-  ```
-- **Serialization Sensor**: Object serialization monitoring for deserialization attacks
-  ```
-  C:AP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.events.serialization |  | caller=ObjectInputStream:123, target=UserData.class, status=deserialized, AID=7KLZZAC0DM9RA1ISVXQY63NTK, CID=production
-  ```
-- **SQL Sensor**: Database query monitoring and injection attempt detection
-  ```
-  C:AP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.events.sql.query |  | caller=java.sql.Statement:142, query=SELECT * FROM users WHERE id = '1 OR 1=1', status=potential_injection, AID=7KLZZAC0DM9RA1ISVXQY63NTK, CID=production
-  ```
-- **Uncaught Exception Sensor**: Application error and crash monitoring with comprehensive diagnostics
-  ```
-  C:AP | 2025.09.18 at 11:23:34 CDT | payment-processor-1 |  INFO | org.jvmxray.events.system.uncaughtexception |  | caller=com.example.PaymentProcessor:145, thread_name=payment-processor-1, thread_id=42, thread_group=main, exception_type=java.lang.NullPointerException, exception_location=com.example.PaymentProcessor:145, exception_method=processPayment, exception_message=Cannot process null payment, stack_depth=28, memory_pressure=HIGH, heap_used_mb=756.2, command_line=java -jar payment-service.jar --port=8080, jvm_uptime_minutes=47, incident_id=f3d4e5a6-b7c8-4d9e-a1b2-3c4d5e6f7a8b, AID=7KLZZAC0DM9RA1ISVXQY63NTK, CID=production
-  ```
-- **API Sensor**: REST and web service call monitoring
-- **Configuration Sensor**: Application configuration access and modification tracking
-- **Data Transfer Sensor**: Large data movement and export detection
-- **Thread Sensor**: Thread lifecycle and synchronization monitoring
-- **Authentication Sensor**: Login attempts and credential usage tracking
-- **Cryptographic Sensor**: Encryption/decryption operations and key usage
-- **Reflection Sensor**: Dynamic code loading and class manipulation detection
-- **HTTP Sensor**: Web request and response pattern analysis
+```
+java -javaagent:jvmxray-agent.jar -jar app.jar
+         |
+    AgentBootstrap (isolated classloader)
+         |
+    ByteBuddy installs sensor interceptors
+         |
+    Sensors fire on method entry/exit
+         |
+    LogProxy merges MCC correlation context
+         |
+    +----------+----------+----------+
+    | SQLite   | File     | Socket   |
+    | Appender | Appender | Appender |
+    +----------+----------+----------+
+```
 
-### 🏗️ Enterprise Architecture
-- **Database Support**: SQLite (testing), MySQL, Cassandra (production)
-- **Logging Integration**: Logback framework supports any destination (Kafka, JMS, SMTP, etc.)
-- **High Performance**: Bytecode injection with minimal overhead
-- **Scalable Design**: From single applications to enterprise-wide deployments
-
-## How JMVXRay Works
-
-1. **Deploy Agent**: Add JVMXRay as Java agent: `java -javaagent:xray.jar -jar yourapp.jar` - That's it! Your application won't know it's monitored.
-2. **Sensor Installation**: Bytecode injection installs monitoring sensors automatically  
-3. **Event Capture**: Sensors monitor file access, network connections, system calls
-4. **AI Analysis**: Intelligence pipeline analyzes patterns and assigns vulnerability classifications
-5. **Structured Event Generation**: Unlike traditional unstructured logs that require complex analysis tools, JVMXRay automatically generates machine-readable security events that enable instant analysis and AI enhancement
-6. **Query & Analyze**: Generate reports with standard BI tools, visualize with Grafana dashboards, or answer ad-hoc queries using AI MCP clients connected to JVMXRay's MCP server  
-
-### Enhanced MCP Query Capabilities ✨ **NEW**
-
-JVMXRay's MCP server enables AI clients like Claude Desktop to become instant security experts on your datacenter. The system provides sophisticated querying capabilities with advanced filtering, pagination, and real-time analysis.
-
-**See it in action:** [JVMXRay AI Integration Demo](https://www.youtube.com/watch?v=O-5oIXijMb8&t=101s) - A video is worth a thousand words!
+- **Java 17**, **ByteBuddy 1.14.17** for bytecode injection
+- **Logback + SLF4J** for enterprise logging (Splunk, ELK, DataDog compatible)
+- **Multi-database**: SQLite (dev), MySQL, Cassandra (production)
+- **MCC** (Mapped Correlation Context): thread-local scope tracking with TTL cleanup
 
 ## Documentation
 
-### Component Documentation
-- **[🔧 JVMXRay Agent](docs/prj-agent.md)** - Java agent setup and sensor configuration
-- **[🌐 REST Service API](docs/prj-service-rest.md)** - REST API endpoints and authentication
-- **[🤖 MCP Client](docs/prj-mcp-client.md)** - Claude Desktop integration guide
-- **[📊 Common Components](docs/prj-common.md)** - Database setup and utilities
-- **[📝 Log Service](docs/prj-service-log.md)** - Event aggregation service
+- [Agent Reference](docs/prj-agent.md) — Sensor configuration, event fields, database schema
+- [Common Components](docs/prj-common.md) — Database setup and utilities
+- [Changelog](docs/CHANGELOG.md) — Detailed release changes
+- [News Archive](docs/CHANGELOG.md) — Project history
 
-### Quick Links
-- **[📰 News Archive](README-NEWS.md)** - Complete project history
+## Acknowledgements
+This project was developed using ideas, architecture, and code in some cases from the following,
+- Claude Code CLI by Anthropic, [Anthropic](https://www.anthropic.com/claude-code)
+- Byte-code architecture based in part from ideas by Terse Systems, [Terse Systems](https://tersesystems.com/)
+- Logback logging framework by QOS.ch Sarl Sweitzerland, [QOS.ch](https://www.qos.ch/)
+- Apache Software Foundation, [Apache Software Foundation](https://www.apache.org/)
 
-## Project Contributors(s)
-Milton Smith - Project creator, leader
+## Contributor(s)
 
-Disclosure(s):  The JVMXRay project is not, approved, endorsed by, or affiliated with Oracle Corporation.  Oracle is a long-time supporter of secure open source software and the Online Web Application Security(OWASP) project.  Milton Smith is an active industry open source contributor, OWASP member, and an employee of Oracle.
+Milton Smith — Project creator, leader
 
-<!-- Test build with Java version compatibility fix -->
+Disclosure: JVMXRay is not approved, endorsed by, or affiliated with Oracle Corporation.

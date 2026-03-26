@@ -11,36 +11,42 @@ JVMXRay is an AI-enhanced security monitoring platform that watches Java applica
 **Primary Build Command**: `mvn clean install` - Full build with unit and integration tests
 
 ### Database Schema Commands
-- `java -cp "prj-common/target/classes:$(mvn dependency:build-classpath -q -Dmdep.outputFile=/dev/stdout -f prj-common/pom.xml)" org.jvmxray.platform.shared.bin.SchemaManager --help` - Show schema management options
+- `java -cp "target/classes:$(mvn dependency:build-classpath -q -Dmdep.outputFile=/dev/stdout)" org.jvmxray.platform.shared.bin.SchemaManager --help` - Show schema management options
 - Schema creation examples:
   - SQLite: `--create-schema --database-type sqlite --connection-url jdbc:sqlite:/path/to/db.sqlite`
   - MySQL: `--create-schema --database-type mysql --connection-url jdbc:mysql://host:port/database --username user --password pass --database-name jvmxray`
   - Cassandra: `--create-schema --database-type cassandra --host host --port 9042 --username user --password pass --database-name jvmxray --datacenter datacenter1`
 
 ### Key Build Artifacts
-- `prj-agent/target/prj-agent-0.0.1-shaded.jar` - Deployable Java agent JAR
+- `target/jvmxray-0.0.1-agent.jar` - Deployable Java agent JAR
 
 ## Architecture
 
-### Multi-Module Maven Structure
+### Single-Module Maven Structure
 ```
 jvmxray/
-├── prj-agent/          # Java agent with bytecode injection sensors
-├── prj-common/         # Shared utilities, models, and database schema management
-├── prj-mcp-client/     # MCP (Model Context Protocol) client (optional, requires Java 21+)
-├── prj-service-ai/     # AI-powered event analysis and processing service
-├── prj-service-log/    # Log service components
-└── prj-service-rest/   # REST API service
+├── src/main/java/org/jvmxray/
+│   ├── agent/          # Java agent with bytecode injection sensors
+│   │   ├── bootstrap/  # Agent entry point and classloader isolation
+│   │   ├── bin/        # Agent initialization
+│   │   ├── sensor/     # All sensor implementations
+│   │   └── util/       # Agent utilities (StatsRegistry, etc.)
+│   └── platform/
+│       └── shared/     # Shared utilities, models, and database schema management
+├── src/main/resources/ # Agent manifest, logback templates, properties
+├── src/test/java/      # Unit and integration tests
+└── target/
+    └── jvmxray-0.0.1-agent.jar  # Deployable Java agent JAR
 ```
 
-### Agent Architecture (prj-agent)
+### Agent Architecture
 The agent uses ByteBuddy for bytecode injection to install sensors:
 
 - **Entry Point**: `org.jvmxray.agent.bootstrap.AgentBootstrap` (Premain-Class that creates isolated classloader)
   - Delegates to `org.jvmxray.agent.bin.jvmxrayagent.start()` for actual agent initialization
 - **Sensor Types**: Modular monitoring system
   - API call monitoring (`api/` package)
-  - Authentication tracking (`auth/` package)
+  - Authentication tracking (`auth/` package) — 6 specialized interceptors: SessionSet/Get/Invalidate, Login, Authenticate, Principal
   - Configuration access (`configuration/` package)
   - Cryptographic operations (`crypto/` package)
   - Data transfer monitoring (`data/` package)
@@ -57,26 +63,27 @@ The agent uses ByteBuddy for bytecode injection to install sensors:
   - Thread operations (`thread/` package)
   - Exception handling (`uncaughtexception/` package)
 
-### Database Schema Architecture (prj-common)
+### Database Schema Architecture
 The project includes a comprehensive database schema management system for storing agent events:
 
 - **SchemaManager**: CLI tool for creating, validating, and managing database schemas
 - **Multi-Database Support**: Cassandra, MySQL, and SQLite implementations
 - **Event Storage Tables**:
-  - `STAGE0_EVENT`: Raw events with fields EVENT_ID, CONFIG_FILE, TIMESTAMP, THREAD_ID, PRIORITY, NAMESPACE, AID, CID, IS_STABLE, KEYPAIRS
+  - `STAGE0_EVENT`: Raw events with fields EVENT_ID, CONFIG_FILE, TIMESTAMP, THREAD_ID, PRIORITY, NAMESPACE, AID, CID, TRACE_ID, KEYPAIRS
+  - **TRACE_ID Column**: Dedicated indexed column extracted from keypairs during INSERT for efficient correlation queries
   - `STAGE0_EVENT_KEYPAIR`: Key-value pairs extracted from event messages (EVENT_ID, KEY, VALUE) - used for parsed/processed events
   - **Agent Events**: Agents post complete log messages with keypairs directly to STAGE0_EVENT.KEYPAIRS column (not STAGE0_EVENT_KEYPAIR table)
 - **Consistency Management**: IS_STABLE flag ensures data consistency between tables for NoSQL databases
-- **Test Integration**: SQLite test database automatically created during `mvn test` at `.jvmxray/common/data/jvmxray-test.db`
+- **Test Integration**: SQLite test database automatically created during `mvn test` at `target/test-jvmxray/common/data/jvmxray-test.db`
 - **Event Format**: Parses logback format: `CONFIG_FILE | timestamp | thread | priority | namespace | keypairs`
 
-### Component Initialization Architecture (prj-common)
+### Component Initialization Architecture
 JVMXRay uses a standardized component initialization system via `ComponentInitializer`:
 
 #### **Component Directory Structure**
-Each component follows the pattern:
+Each component follows the pattern (test mode uses `target/test-jvmxray/`, production uses `~/.jvmxray/`):
 ```
-.jvmxray/{component}/
+{jvmxray-home}/{component}/
 ├── config/
 │   ├── logback.xml          # Logback configuration (copied from .xml2 template)
 │   └── {component}.properties # Component-specific properties
@@ -102,7 +109,7 @@ Each component follows the pattern:
 - **SLF4J Integration**: Components use standard `LoggerFactory.getLogger()` (not isolated LoggerContext)
 
 #### **System Properties**
-- `jvmxray.test.home`: Test mode base directory (e.g., `project/.jvmxray`)
+- `jvmxray.test.home`: Test mode base directory (e.g., `project/target/test-jvmxray`)
 - `jvmxray.home`: Production mode base directory (adds `/jvmxray/` subdirectory)
 - `jvmxray.{component}.logs`: Component-specific logs directory path
 - `jvmxray.{component}.config`: Component-specific config directory path
@@ -111,14 +118,23 @@ Each component follows the pattern:
 - **ComponentInitializer**: Abstract base class providing common initialization framework
 - **AgentInitializer**: Special case - manages agent-specific configuration without standard logging
 - **CommonInitializer**: Manages common module logging and database connections
-- **LogServiceInitializer**: Configures the log service component
-- **RestServiceInitializer**: Configures the REST API service component
-- **AiServiceInitializer**: Configures the AI analysis service component
 
 ### MCC (Mapped Correlation Context) Memory Management
 
 MCC provides thread-scoped correlation context for security events, enabling event tracking across execution paths.
-- **Location**: `prj-common/src/main/java/org/jvmxray/platform/shared/util/MCC.java`
+- **Location**: `src/main/java/org/jvmxray/platform/shared/util/MCC.java`
+
+#### **Correlation Fields (Auto-Maintained)**
+MCC automatically maintains these fields in the context on each `enterScope()`/`exitScope()`:
+- `trace_id`: Unique correlation ID generated on first scope entry, inherited by nested scopes
+- `scope_chain`: Nested sensor path delimited by `>` (e.g., `HTTP>SQL>FileIO`). The `>` character is reserved as delimiter in scope IDs.
+- `parent_scope`: Immediate parent scope name, or `"none"` for root scope
+- `scope_depth`: Integer nesting level as string (e.g., `"1"`, `"3"`)
+
+#### **Sensor Scope Coverage**
+- **Spanning scopes** (enter in @OnMethodEnter, exit in @OnMethodExit): FileIO, SQL, HTTP, Socket/Connect, Process, Crypto (5 sub-interceptors)
+- **Degenerate scopes** (enter/exit within same advice method): APICall, Auth, Script, Config (8), Reflection (6), Serialization (6), DataTransfer, Socket/Bind/Accept/Close
+- **No scope** (standalone): Monitor, AppInit, Lib, UncaughtException
 
 #### **Memory Cleanup Strategy**
 - **Primary Cleanup**: Scope-based cleanup when sensor stack empties (thread pool safe)
@@ -153,7 +169,7 @@ MonitorSensor logs MCC statistics via StatsRegistry:
 Centralized, thread-safe registry for sensor statistics monitoring.
 
 #### **Design Pattern**
-- **Location**: `prj-agent/src/main/java/org/jvmxray/agent/util/StatsRegistry.java`
+- **Location**: `src/main/java/org/jvmxray/agent/util/StatsRegistry.java`
 - **Thread Safety**: Uses `ConcurrentHashMap` for lock-free updates
 - **Update Pattern**: Sensors update stats on each lifecycle event (enter/exit)
 - **Read Pattern**: MonitorSensor reads snapshot periodically (default: 60 seconds)
@@ -180,7 +196,7 @@ Integration tests run automatically with Maven build via `mvn clean install`. Th
 1. Runs TurtleIntegrationTest in its own JVM with JVMXRay agent attached
 2. Exercises all sensors through controlled operations
 3. Validates expected sensor events appear in logs
-4. Located in `prj-common/src/test/java/org/jvmxray/shared/integration/turtle/`
+4. Located in `src/test/java/org/jvmxray/shared/integration/turtle/`
 
 **Memory Requirements**: Set `MAVEN_OPTS="-Xmx1g -XX:MaxMetaspaceSize=256m"`
 
@@ -206,9 +222,7 @@ When adding new sensors:
 ## Technology Stack
 
 ### Core Technologies
-- **Java 17** for most modules (maven.compiler.source/target=17)
-  - **Exception**: prj-agent uses **Java 11** for maximum cloud compatibility
-  - **Exception**: prj-mcp-client requires **Java 21+** (optional module)
+- **Java 17** (maven.compiler.source/target=17)
 - **ByteBuddy 1.14.17** for bytecode injection
 
 ### Build & Testing
@@ -237,7 +251,7 @@ When adding new sensors:
 - **Test Environment**: TurtleIntegrationTest runs in its own JVM with agent attached
 
 ### Script Design Principles
-- **Minimal Wrapper Pattern**: All shell scripts (e.g., `script/services/log-service`) must be lightweight, minimal wrappers
+- **Minimal Wrapper Pattern**: All shell scripts must be lightweight, minimal wrappers
 - **Java-First Logic**: All business logic, dependency validation, environment setup, and process management must reside in Java code
 - **Script Responsibilities Limited To**:
   - Classpath construction and dependency resolution
@@ -253,6 +267,6 @@ When adding new sensors:
 
 ### Configuration Notes
 - **JVMXRay Home Pathing**:
-  - Test mode (`jvmxray.test.home`): `{jvmxray.test.home}/agent/logs/` (no extra /jvmxray/)
+  - Test mode (`jvmxray.test.home`): `{jvmxray.test.home}/agent/logs/` — set to `target/test-jvmxray` (no extra /jvmxray/)
   - Production mode (`jvmxray.home`): `{jvmxray.home}/jvmxray/agent/logs/`
   - Exception thrown if both properties are assigned
