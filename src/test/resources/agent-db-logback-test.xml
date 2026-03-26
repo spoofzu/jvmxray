@@ -1,0 +1,283 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration debug="false" scan="false" scanPeriod="1 minutes">
+
+    <property name="LOG_HOME" value="${jvmxray.agent.logs}" />
+    <property name="DB_PATH" value="${jvmxray.test.home}/common/data/jvmxray-test.db" />
+    <property name="MSG_FMT_LG" value="C:AP | %d{YYYY.MM.dd 'at' HH:mm:ss z} | %thread | %5level | %logger | %X | %msg%n" />
+
+    <!-- SQLite Database Appender for JVMXRay Events (Shaded version for agent) -->
+    <appender name="DATABASE" class="org.jvmxray.agent.log.appender.ShadedSQLiteAppender">
+        <databasePath>${DB_PATH}</databasePath>
+        <batchSize>50</batchSize>
+        <flushIntervalMs>2000</flushIntervalMs>
+        <queueSize>5000</queueSize>
+    </appender>
+
+    <!-- Console appender for debugging (optional) -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- File appenders for browsable log files -->
+    <appender name="IOEVENTS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/agent-IO-events.log</file>
+        <immediateFlush>true</immediateFlush>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/agent-IO-events.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="HTTPEVENTS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/agent-HTTP-events.log</file>
+        <immediateFlush>true</immediateFlush>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/agent-HTTP-events.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="MONITOREVENTS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/agent-MONITOR-events.log</file>
+        <immediateFlush>true</immediateFlush>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/agent-MONITOR-events.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="SQLEVENTS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/agent-SQL-events.log</file>
+        <immediateFlush>true</immediateFlush>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/agent-SQL-events.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="SYSTEMEVENTS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/agent-SYSTEM-events.log</file>
+        <immediateFlush>true</immediateFlush>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/agent-SYSTEM-events.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="NETEVENTS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/agent-NET-events.log</file>
+        <immediateFlush>true</immediateFlush>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/agent-NET-events.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="EXCEPTIONEVENTS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/agent-EXCEPTION-events.log</file>
+        <immediateFlush>true</immediateFlush>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/agent-EXCEPTION-events.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="CRYPTOEVENTS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/agent-CRYPTO-events.log</file>
+        <immediateFlush>true</immediateFlush>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/agent-CRYPTO-events.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="CONFIGEVENTS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/agent-CONFIG-events.log</file>
+        <immediateFlush>true</immediateFlush>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/agent-CONFIG-events.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="AUTHEVENTS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/agent-AUTH-events.log</file>
+        <immediateFlush>true</immediateFlush>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/agent-AUTH-events.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="SERIALIZATIONEVENTS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/agent-SERIALIZATION-events.log</file>
+        <immediateFlush>true</immediateFlush>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/agent-SERIALIZATION-events.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="SCRIPTEVENTS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/agent-SCRIPT-events.log</file>
+        <immediateFlush>true</immediateFlush>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/agent-SCRIPT-events.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="APIEVENTS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/agent-API-events.log</file>
+        <immediateFlush>true</immediateFlush>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/agent-API-events.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+    </appender>
+
+    <appender name="REFLECTIONEVENTS" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/agent-REFLECTION-events.log</file>
+        <immediateFlush>true</immediateFlush>
+        <append>true</append>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_HOME}/agent-REFLECTION-events.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${MSG_FMT_LG}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Event loggers - route to both database and log files -->
+    <logger name="org.jvmxray.events.io" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+        <appender-ref ref="IOEVENTS" />
+    </logger>
+    <logger name="org.jvmxray.events.http" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+        <appender-ref ref="HTTPEVENTS" />
+    </logger>
+    <logger name="org.jvmxray.events.monitor" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+        <appender-ref ref="MONITOREVENTS" />
+    </logger>
+    <logger name="org.jvmxray.events.sql" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+        <appender-ref ref="SQLEVENTS" />
+    </logger>
+    <logger name="org.jvmxray.events.system" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+        <appender-ref ref="SYSTEMEVENTS" />
+    </logger>
+    <logger name="org.jvmxray.events.net" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+        <appender-ref ref="NETEVENTS" />
+    </logger>
+    <logger name="org.jvmxray.events.system.uncaughtexception" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+        <appender-ref ref="EXCEPTIONEVENTS" />
+    </logger>
+    <logger name="org.jvmxray.events.crypto" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+        <appender-ref ref="CRYPTOEVENTS" />
+    </logger>
+    <logger name="org.jvmxray.events.config" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+        <appender-ref ref="CONFIGEVENTS" />
+    </logger>
+    <logger name="org.jvmxray.events.auth" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+        <appender-ref ref="AUTHEVENTS" />
+    </logger>
+    <logger name="org.jvmxray.events.serialization" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+        <appender-ref ref="SERIALIZATIONEVENTS" />
+    </logger>
+    <logger name="org.jvmxray.events.script" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+        <appender-ref ref="SCRIPTEVENTS" />
+    </logger>
+    <logger name="org.jvmxray.events.api" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+        <appender-ref ref="APIEVENTS" />
+    </logger>
+    <!-- Data transfer events disabled - noisy, handled by file I/O aggregate statistics -->
+    <logger name="org.jvmxray.events.data" level="OFF" additivity="false">
+        <appender-ref ref="DATABASE" />
+    </logger>
+    <logger name="org.jvmxray.events.reflection" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+        <appender-ref ref="REFLECTIONEVENTS" />
+    </logger>
+
+    <!-- Catch-all for other jvmxray events -->
+    <logger name="org.jvmxray.events" level="DEBUG" additivity="false">
+        <appender-ref ref="DATABASE" />
+    </logger>
+
+    <!-- Platform logging goes to console only for debugging -->
+    <logger name="org.jvmxray" level="INFO" additivity="false">
+        <appender-ref ref="CONSOLE" />
+    </logger>
+
+    <!-- Root logger - minimal output to avoid noise -->
+    <root level="WARN">
+        <appender-ref ref="CONSOLE" />
+    </root>
+
+</configuration>
