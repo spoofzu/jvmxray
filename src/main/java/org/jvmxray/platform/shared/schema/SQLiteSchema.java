@@ -104,14 +104,6 @@ public class SQLiteSchema extends AbstractDatabaseSchema {
             executeSQL(connection, SchemaConstants.SQLTemplates.CREATE_API_KEY_SQLITE);
             logger.info("Created API_KEY table");
 
-            // Create STAGE2_LIBRARY table for library enrichment
-            executeSQL(connection, SchemaConstants.SQLTemplates.CREATE_STAGE2_LIBRARY_SQLITE);
-            logger.info("Created STAGE2_LIBRARY table");
-
-            // Create STAGE2_LIBRARY_CVE table for CVE associations
-            executeSQL(connection, SchemaConstants.SQLTemplates.CREATE_STAGE2_LIBRARY_CVE_SQLITE);
-            logger.info("Created STAGE2_LIBRARY_CVE table");
-
             connection.commit();
             logger.info("Successfully created all SQLite tables");
             
@@ -156,12 +148,16 @@ public class SQLiteSchema extends AbstractDatabaseSchema {
                 "CREATE INDEX IF NOT EXISTS idx_stage0_event_aid ON " + 
                 SchemaConstants.STAGE0_EVENT_TABLE + "(" + SchemaConstants.COL_AID + ")");
             
-            executeSQL(connection, 
-                "CREATE INDEX IF NOT EXISTS idx_stage0_event_cid ON " + 
+            executeSQL(connection,
+                "CREATE INDEX IF NOT EXISTS idx_stage0_event_cid ON " +
                 SchemaConstants.STAGE0_EVENT_TABLE + "(" + SchemaConstants.COL_CID + ")");
-            
-            executeSQL(connection, 
-                "CREATE INDEX IF NOT EXISTS idx_stage0_event_config ON " + 
+
+            executeSQL(connection,
+                "CREATE INDEX IF NOT EXISTS idx_stage0_trace_id ON " +
+                SchemaConstants.STAGE0_EVENT_TABLE + "(" + SchemaConstants.COL_TRACE_ID + ")");
+
+            executeSQL(connection,
+                "CREATE INDEX IF NOT EXISTS idx_stage0_event_config ON " +
                 SchemaConstants.STAGE0_EVENT_TABLE + "(" + SchemaConstants.COL_CONFIG_FILE + ")");
             
             // STAGE1_EVENT indexes (processed events)
@@ -190,36 +186,6 @@ public class SQLiteSchema extends AbstractDatabaseSchema {
                 "CREATE INDEX IF NOT EXISTS idx_stage1_event_stable ON " + 
                 SchemaConstants.STAGE1_EVENT_TABLE + "(" + SchemaConstants.COL_IS_STABLE + ")");
             
-            // STAGE2_LIBRARY indexes
-            executeSQL(connection,
-                "CREATE INDEX IF NOT EXISTS idx_stage2_library_sha256 ON " +
-                SchemaConstants.STAGE2_LIBRARY_TABLE + "(" + SchemaConstants.COL_SHA256_HASH + ")");
-            
-            executeSQL(connection,
-                "CREATE INDEX IF NOT EXISTS idx_stage2_library_jarpath ON " +
-                SchemaConstants.STAGE2_LIBRARY_TABLE + "(" + SchemaConstants.COL_JARPATH + ")");
-            
-            executeSQL(connection,
-                "CREATE INDEX IF NOT EXISTS idx_stage2_library_first_seen ON " +
-                SchemaConstants.STAGE2_LIBRARY_TABLE + "(" + SchemaConstants.COL_FIRST_SEEN + ")");
-            
-            executeSQL(connection,
-                "CREATE INDEX IF NOT EXISTS idx_stage2_library_last_seen ON " +
-                SchemaConstants.STAGE2_LIBRARY_TABLE + "(" + SchemaConstants.COL_LAST_SEEN + ")");
-            
-            // STAGE2_LIBRARY_CVE indexes (based on actual table structure)
-            executeSQL(connection,
-                "CREATE INDEX IF NOT EXISTS idx_stage2_library_cve_severity ON " +
-                SchemaConstants.STAGE2_LIBRARY_CVE_TABLE + "(" + SchemaConstants.COL_CVSS_SEVERITY + ")");
-            
-            executeSQL(connection,
-                "CREATE INDEX IF NOT EXISTS idx_stage2_library_cve_published ON " +
-                SchemaConstants.STAGE2_LIBRARY_CVE_TABLE + "(" + SchemaConstants.COL_PUBLISHED_DATE + ")");
-            
-            executeSQL(connection,
-                "CREATE INDEX IF NOT EXISTS idx_stage2_library_cve_cvss_v3 ON " +
-                SchemaConstants.STAGE2_LIBRARY_CVE_TABLE + "(" + SchemaConstants.COL_CVSS_V3 + ")");
-            
             logger.info("Successfully created all SQLite indexes");
             
         } finally {
@@ -235,12 +201,6 @@ public class SQLiteSchema extends AbstractDatabaseSchema {
             connection.setAutoCommit(false); // Use transaction
             
             // Drop tables in reverse order (dependent tables first)
-            executeSQL(connection, SchemaConstants.SQLTemplates.DROP_STAGE2_LIBRARY_CVE);
-            logger.info("Dropped STAGE2_LIBRARY_CVE table");
-
-            executeSQL(connection, SchemaConstants.SQLTemplates.DROP_STAGE2_LIBRARY);
-            logger.info("Dropped STAGE2_LIBRARY table");
-
             executeSQL(connection, SchemaConstants.SQLTemplates.DROP_API_KEY);
             logger.info("Dropped API_KEY table");
 
@@ -296,20 +256,14 @@ public class SQLiteSchema extends AbstractDatabaseSchema {
             // Check if API_KEY table exists
             boolean apiKeyExists = checkTableExists(connection, SchemaConstants.API_KEY_TABLE);
 
-            // Check if STAGE2_LIBRARY table exists
-            boolean stage2LibraryExists = checkTableExists(connection, SchemaConstants.STAGE2_LIBRARY_TABLE);
-
-            // Check if STAGE2_LIBRARY_CVE table exists
-            boolean stage2LibraryCveExists = checkTableExists(connection, SchemaConstants.STAGE2_LIBRARY_CVE_TABLE);
-
             boolean allTablesExist = stage0EventExists && stage1EventExists && stage1KeypairExists &&
-                                   apiKeyExists && stage2LibraryExists && stage2LibraryCveExists;
+                                   apiKeyExists;
 
             if (allTablesExist) {
                 logger.info("All required SQLite tables exist");
             } else {
-                logger.warning(String.format("Missing SQLite tables - Stage0Event: %b, Stage1Event: %b, Stage1KeyPair: %b, ApiKey: %b, Stage2Library: %b, Stage2LibraryCve: %b",
-                    stage0EventExists, stage1EventExists, stage1KeypairExists, apiKeyExists, stage2LibraryExists, stage2LibraryCveExists));
+                logger.warning(String.format("Missing SQLite tables - Stage0Event: %b, Stage1Event: %b, Stage1KeyPair: %b, ApiKey: %b",
+                    stage0EventExists, stage1EventExists, stage1KeypairExists, apiKeyExists));
             }
             
             return allTablesExist;
@@ -334,14 +288,7 @@ public class SQLiteSchema extends AbstractDatabaseSchema {
             // Check STAGE1_EVENT_KEYPAIR table structure
             boolean stage1KeypairValid = validateStage1KeypairTableStructure(connection);
 
-            // Check STAGE2_LIBRARY table structure
-            boolean stage2LibraryValid = validateStage2LibraryTableStructure(connection);
-
-            // Check STAGE2_LIBRARY_CVE table structure
-            boolean stage2LibraryCveValid = validateStage2LibraryCveTableStructure(connection);
-
-            boolean structureValid = stage0EventValid && stage1EventValid && stage1KeypairValid &&
-                                   stage2LibraryValid && stage2LibraryCveValid;
+            boolean structureValid = stage0EventValid && stage1EventValid && stage1KeypairValid;
             
             if (structureValid) {
                 logger.info("SQLite table structures are valid");
@@ -383,9 +330,9 @@ public class SQLiteSchema extends AbstractDatabaseSchema {
                 }
             }
             
-            // Should have 9 columns with KEYPAIRS but without IS_STABLE
-            // EVENT_ID, CONFIG_FILE, TIMESTAMP, THREAD_ID, PRIORITY, NAMESPACE, AID, CID, KEYPAIRS
-            return columnCount == 9 && hasKeypairsColumn && !hasIsStableColumn;
+            // Should have 10 columns with KEYPAIRS and TRACE_ID but without IS_STABLE
+            // EVENT_ID, CONFIG_FILE, TIMESTAMP, THREAD_ID, PRIORITY, NAMESPACE, AID, CID, TRACE_ID, KEYPAIRS
+            return columnCount == 10 && hasKeypairsColumn && !hasIsStableColumn;
             
         } catch (SQLException e) {
             logger.log(Level.WARNING, "Failed to validate STAGE0_EVENT table structure", e);
@@ -394,36 +341,30 @@ public class SQLiteSchema extends AbstractDatabaseSchema {
     }
     
     /**
-     * Validate the structure of the STAGE1_EVENT table (should have IS_STABLE column, no KEYPAIRS).
+     * Validate the structure of the STAGE1_EVENT table (should have IS_STABLE, no KEYPAIRS).
      */
     private boolean validateStage1EventTableStructure(Connection connection) throws SQLException {
         try {
-            // Query table info to check columns
             String sql = "PRAGMA table_info(" + SchemaConstants.STAGE1_EVENT_TABLE + ")";
             var statement = connection.createStatement();
             var resultSet = statement.executeQuery(sql);
-            
+
             int columnCount = 0;
-            boolean hasKeypairsColumn = false;
             boolean hasIsStableColumn = false;
-            
+
             while (resultSet.next()) {
                 columnCount++;
                 String columnName = resultSet.getString("name");
                 logger.fine("Found column in STAGE1_EVENT: " + columnName);
-                
-                if (SchemaConstants.COL_KEYPAIRS.equals(columnName)) {
-                    hasKeypairsColumn = true;
-                }
+
                 if (SchemaConstants.COL_IS_STABLE.equals(columnName)) {
                     hasIsStableColumn = true;
                 }
             }
-            
-            // Should have 9 columns with IS_STABLE but without KEYPAIRS
-            // EVENT_ID, CONFIG_FILE, TIMESTAMP, THREAD_ID, PRIORITY, NAMESPACE, AID, CID, IS_STABLE
-            return columnCount == 9 && !hasKeypairsColumn && hasIsStableColumn;
-            
+
+            // 9 columns: EVENT_ID, CONFIG_FILE, TIMESTAMP, THREAD_ID, PRIORITY, NAMESPACE, AID, CID, IS_STABLE
+            return columnCount == 9 && hasIsStableColumn;
+
         } catch (SQLException e) {
             logger.log(Level.WARNING, "Failed to validate STAGE1_EVENT table structure", e);
             return false;
@@ -502,59 +443,6 @@ public class SQLiteSchema extends AbstractDatabaseSchema {
         }
     }
     
-    /**
-     * Validate the structure of the STAGE2_LIBRARY table.
-     */
-    private boolean validateStage2LibraryTableStructure(Connection connection) throws SQLException {
-        try {
-            // Query table info to check columns
-            String sql = "PRAGMA table_info(" + SchemaConstants.STAGE2_LIBRARY_TABLE + ")";
-            var statement = connection.createStatement();
-            var resultSet = statement.executeQuery(sql);
-
-            int columnCount = 0;
-            while (resultSet.next()) {
-                columnCount++;
-                String columnName = resultSet.getString("name");
-                logger.fine("Found column in STAGE2_LIBRARY: " + columnName);
-            }
-
-            // Should have 11 columns: LIBRARY_ID, EVENT_ID, AID, CID, JARPATH, LIBRARY_NAME,
-            // SHA256_HASH, METHOD, FIRST_SEEN, LAST_SEEN, REMOVED_ON
-            return columnCount == 11;
-
-        } catch (SQLException e) {
-            logger.log(Level.WARNING, "Failed to validate STAGE2_LIBRARY table structure", e);
-            return false;
-        }
-    }
-
-    /**
-     * Validate the structure of the STAGE2_LIBRARY_CVE table.
-     */
-    private boolean validateStage2LibraryCveTableStructure(Connection connection) throws SQLException {
-        try {
-            // Query table info to check columns
-            String sql = "PRAGMA table_info(" + SchemaConstants.STAGE2_LIBRARY_CVE_TABLE + ")";
-            var statement = connection.createStatement();
-            var resultSet = statement.executeQuery(sql);
-
-            int columnCount = 0;
-            while (resultSet.next()) {
-                columnCount++;
-                String columnName = resultSet.getString("name");
-                logger.fine("Found column in STAGE2_LIBRARY_CVE: " + columnName);
-            }
-
-            // Should have 4 columns: LIBRARY_ID, CVE_ID, CVE_SCORE, FIRST_DETECTED
-            return columnCount == 4;
-
-        } catch (SQLException e) {
-            logger.log(Level.WARNING, "Failed to validate STAGE2_LIBRARY_CVE table structure", e);
-            return false;
-        }
-    }
-
     /**
      * Check if a specific table exists in the SQLite database.
      *

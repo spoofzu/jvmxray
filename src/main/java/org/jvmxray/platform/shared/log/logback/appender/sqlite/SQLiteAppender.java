@@ -49,10 +49,9 @@ public class SQLiteAppender extends AppenderBase<ILoggingEvent> {
     private Thread writerThread;
     private AtomicBoolean shutdown = new AtomicBoolean(false);
     
-    // SQL statements - STAGE0_EVENT now includes KEYPAIRS column
-    private static final String INSERT_EVENT_SQL = 
-        "INSERT OR IGNORE INTO " + SchemaConstants.STAGE0_EVENT_TABLE + " (" +
-        SchemaConstants.COL_EVENT_ID + ", " +
+    // SQL statements - EVENT_ID is auto-incremented
+    private static final String INSERT_EVENT_SQL =
+        "INSERT INTO " + SchemaConstants.STAGE0_EVENT_TABLE + " (" +
         SchemaConstants.COL_CONFIG_FILE + ", " +
         SchemaConstants.COL_TIMESTAMP + ", " +
         SchemaConstants.COL_CURRENT_THREAD_ID + ", " +
@@ -60,6 +59,7 @@ public class SQLiteAppender extends AppenderBase<ILoggingEvent> {
         SchemaConstants.COL_NAMESPACE + ", " +
         SchemaConstants.COL_AID + ", " +
         SchemaConstants.COL_CID + ", " +
+        SchemaConstants.COL_TRACE_ID + ", " +
         SchemaConstants.COL_KEYPAIRS + ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
     
     @Override
@@ -336,17 +336,21 @@ public class SQLiteAppender extends AppenderBase<ILoggingEvent> {
                 if (event == null) continue;
                 
                 // Serialize keypairs to string for KEYPAIRS column
-                String serializedKeypairs = EventParser.serializeKeyPairs(event.getKeyPairs());
-                
-                // Insert event with serialized keypairs
-                eventStmt.setString(1, event.getEventId());
-                eventStmt.setString(2, event.getConfigFile());
-                eventStmt.setLong(3, event.getTimestamp());
-                eventStmt.setString(4, event.getThreadId());
-                eventStmt.setString(5, event.getPriority());
-                eventStmt.setString(6, event.getNamespace());
-                eventStmt.setString(7, event.getAid());
-                eventStmt.setString(8, event.getCid());
+                Map<String, String> keypairs = event.getKeyPairs();
+                String serializedKeypairs = EventParser.serializeKeyPairs(keypairs);
+
+                // Extract trace_id from keypairs for dedicated column
+                String traceId = keypairs != null ? keypairs.get("trace_id") : null;
+
+                // Insert event with serialized keypairs (EVENT_ID auto-incremented)
+                eventStmt.setString(1, event.getConfigFile());
+                eventStmt.setLong(2, event.getTimestamp());
+                eventStmt.setString(3, event.getThreadId());
+                eventStmt.setString(4, event.getPriority());
+                eventStmt.setString(5, event.getNamespace());
+                eventStmt.setString(6, event.getAid());
+                eventStmt.setString(7, event.getCid());
+                eventStmt.setString(8, traceId);
                 eventStmt.setString(9, serializedKeypairs);
                 eventStmt.addBatch();
                 

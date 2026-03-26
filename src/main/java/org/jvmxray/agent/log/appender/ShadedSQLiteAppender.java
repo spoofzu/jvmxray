@@ -7,7 +7,6 @@ import com.zaxxer.hikari.HikariDataSource;
 import org.jvmxray.platform.shared.schema.EventParser;
 import org.jvmxray.platform.shared.schema.EventParser.ParsedEvent;
 import org.jvmxray.platform.shared.schema.SchemaConstants;
-import org.jvmxray.platform.shared.util.GUID;
 
 import java.io.File;
 import java.sql.Connection;
@@ -54,9 +53,9 @@ public class ShadedSQLiteAppender extends AppenderBase<ILoggingEvent> {
     private Thread writerThread;
     private AtomicBoolean shutdown = new AtomicBoolean(false);
     
-    // Prepared statement for inserting events
-    private static final String INSERT_EVENT_SQL = 
-        "INSERT OR REPLACE INTO STAGE0_EVENT (EVENT_ID, CONFIG_FILE, TIMESTAMP, CURRENT_THREAD_ID, PRIORITY, NAMESPACE, AID, CID, KEYPAIRS) " +
+    // Prepared statement for inserting events (EVENT_ID is auto-incremented)
+    private static final String INSERT_EVENT_SQL =
+        "INSERT INTO STAGE0_EVENT (CONFIG_FILE, TIMESTAMP, CURRENT_THREAD_ID, PRIORITY, NAMESPACE, AID, CID, TRACE_ID, KEYPAIRS) " +
         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
     
     @Override
@@ -128,10 +127,7 @@ protected void append(ILoggingEvent eventObject) {
     try {
         // Create ParsedEvent directly from logback event data
         ParsedEvent parsedEvent = new ParsedEvent();
-        
-        // Generate unique event ID
-        parsedEvent.setEventId(GUID.generate());
-        
+
         // Extract basic fields from logback event
         parsedEvent.setConfigFile("C:AP"); // Agent config file identifier
         parsedEvent.setTimestamp(eventObject.getTimeStamp());
@@ -222,9 +218,9 @@ protected void append(ILoggingEvent eventObject) {
     
     private void ensureSchema(Connection conn) throws SQLException {
         // Create STAGE0_EVENT table if not exists
-        String createTableSQL = 
+        String createTableSQL =
             "CREATE TABLE IF NOT EXISTS STAGE0_EVENT (" +
-            "EVENT_ID TEXT PRIMARY KEY, " +
+            "EVENT_ID INTEGER PRIMARY KEY AUTOINCREMENT, " +
             "CONFIG_FILE TEXT, " +
             "TIMESTAMP INTEGER, " +
             "CURRENT_THREAD_ID TEXT, " +
@@ -232,6 +228,7 @@ protected void append(ILoggingEvent eventObject) {
             "NAMESPACE TEXT, " +
             "AID TEXT, " +
             "CID TEXT, " +
+            "TRACE_ID TEXT, " +
             "KEYPAIRS TEXT" +
             ")";
         
@@ -244,7 +241,8 @@ protected void append(ILoggingEvent eventObject) {
             "CREATE INDEX IF NOT EXISTS idx_stage0_event_timestamp ON STAGE0_EVENT(TIMESTAMP)",
             "CREATE INDEX IF NOT EXISTS idx_stage0_event_namespace ON STAGE0_EVENT(NAMESPACE)",
             "CREATE INDEX IF NOT EXISTS idx_stage0_event_aid ON STAGE0_EVENT(AID)",
-            "CREATE INDEX IF NOT EXISTS idx_stage0_event_cid ON STAGE0_EVENT(CID)"
+            "CREATE INDEX IF NOT EXISTS idx_stage0_event_cid ON STAGE0_EVENT(CID)",
+            "CREATE INDEX IF NOT EXISTS idx_stage0_trace_id ON STAGE0_EVENT(TRACE_ID)"
         };
         
         for (String indexSQL : indexQueries) {
@@ -259,14 +257,14 @@ protected void append(ILoggingEvent eventObject) {
             try {
                 // Process events in batches
                 processBatch();
-                
+
                 // Sleep between batches
                 if (!shutdown.get()) {
                     Thread.sleep(Math.min(flushIntervalMs, 1000));
                 }
-                
+
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+                // Interrupted during sleep — will drain remaining events after loop
                 break;
             } catch (Exception e) {
                 logger.log(Level.SEVERE, "Error in writer loop", e);
@@ -276,6 +274,16 @@ protected void append(ILoggingEvent eventObject) {
                     Thread.currentThread().interrupt();
                     break;
                 }
+            }
+        }
+
+        // Final drain: flush all remaining queued events before shutdown
+        while (!eventQueue.isEmpty()) {
+            try {
+                processBatch();
+            } catch (Exception e) {
+                logger.log(Level.WARNING, "Error during final queue drain", e);
+                break;
             }
         }
     }
@@ -290,20 +298,24 @@ protected void append(ILoggingEvent eventObject) {
             
             try (PreparedStatement stmt = conn.prepareStatement(INSERT_EVENT_SQL)) {
                 int count = 0;
-                
+
                 ParsedEvent event;
                 while (count < batchSize && (event = eventQueue.poll(100, TimeUnit.MILLISECONDS)) != null) {
-                    stmt.setString(1, event.getEventId());
-                    stmt.setString(2, event.getConfigFile());
-                    stmt.setLong(3, event.getTimestamp());
-                    stmt.setString(4, event.getThreadId());
-                    stmt.setString(5, event.getPriority());
-                    stmt.setString(6, event.getNamespace());
-                    stmt.setString(7, event.getAid());
-                    stmt.setString(8, event.getCid());
-                    
+                    stmt.setString(1, event.getConfigFile());
+                    stmt.setLong(2, event.getTimestamp());
+                    stmt.setString(3, event.getThreadId());
+                    stmt.setString(4, event.getPriority());
+                    stmt.setString(5, event.getNamespace());
+                    stmt.setString(6, event.getAid());
+                    stmt.setString(7, event.getCid());
+
+                    // Extract trace_id from keypairs for dedicated column
+                    Map<String, String> keypairs = event.getKeyPairs();
+                    String traceId = keypairs != null ? keypairs.get("trace_id") : null;
+                    stmt.setString(8, traceId);
+
                     // Serialize keypairs as JSON string
-                    String keypairsJson = serializeKeypairs(event.getKeyPairs());
+                    String keypairsJson = serializeKeypairs(keypairs);
                     stmt.setString(9, keypairsJson);
                     
                     stmt.addBatch();
