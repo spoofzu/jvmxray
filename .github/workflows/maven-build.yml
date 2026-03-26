@@ -7,7 +7,7 @@ on:
     branches: [ master, develop ]
 
 jobs:
-  # Job 1: Test Agent and Common with JDK 11 (backward compatibility)
+  # Job 1: Test with JDK 11 (backward compatibility)
   agent-compatibility:
     name: Agent Compatibility (JDK 11)
     runs-on: ubuntu-latest
@@ -26,33 +26,29 @@ jobs:
       - name: Set Maven memory options
         run: echo "MAVEN_OPTS=-Xmx1g -XX:MaxMetaspaceSize=256m" >> $GITHUB_ENV
 
-      - name: Build Agent and Common with JDK 11
-        run: mvn clean install -pl prj-common,prj-agent -am -B -V
+      - name: Build with JDK 11
+        run: mvn clean install -B -V
 
       - name: Upload Agent JAR
         uses: actions/upload-artifact@v4
         with:
           name: agent-jdk11
-          path: prj-agent/target/prj-agent-*-shaded.jar
+          path: target/jvmxray-*-agent.jar
           retention-days: 7
 
-  # Job 2: Full Build with JDK 17 and 21
+  # Job 2: Full Build with JDK 17
   full-build:
-    name: Full Build (JDK ${{ matrix.java }})
+    name: Full Build (JDK 17)
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        java: ['17', '21']
-      fail-fast: false
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up JDK ${{ matrix.java }}
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: ${{ matrix.java }}
+          java-version: '17'
           distribution: 'temurin'
           cache: 'maven'
 
@@ -60,30 +56,21 @@ jobs:
         run: echo "MAVEN_OPTS=-Xmx1g -XX:MaxMetaspaceSize=256m" >> $GITHUB_ENV
 
       - name: Build with Maven
-        run: |
-          echo "Building with Java ${{ matrix.java }}"
-          if [ "${{ matrix.java }}" = "17" ]; then
-            echo "Skipping MCP client for Java ${{ matrix.java }}"
-            mvn clean install -DskipMcpClient -B -V
-          else
-            echo "Building all modules including MCP client for Java ${{ matrix.java }}"
-            mvn clean install -B -V
-          fi
+        run: mvn clean install -B -V
 
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results-jdk${{ matrix.java }}
+          name: test-results-jdk17
           path: |
-            **/target/surefire-reports/
-            **/target/failsafe-reports/
-            .jvmxray/*/logs/
+            target/surefire-reports/
+            target/failsafe-reports/
           retention-days: 7
 
-      - name: Upload Agent JAR (JDK ${{ matrix.java }})
+      - name: Upload Agent JAR
         uses: actions/upload-artifact@v4
         with:
-          name: agent-jdk${{ matrix.java }}
-          path: prj-agent/target/prj-agent-*-shaded.jar
+          name: agent-jdk17
+          path: target/jvmxray-*-agent.jar
           retention-days: 7
