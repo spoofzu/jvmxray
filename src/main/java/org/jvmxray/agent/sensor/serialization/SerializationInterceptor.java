@@ -2,6 +2,7 @@ package org.jvmxray.agent.sensor.serialization;
 
 import net.bytebuddy.asm.Advice;
 import org.jvmxray.agent.proxy.LogProxy;
+import org.jvmxray.platform.shared.util.MCCScope;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -50,6 +51,7 @@ public class SerializationInterceptor {
     public static void readObject(@Advice.This Object objectInputStream,
                                 @Advice.Return Object result,
                                 @Advice.Thrown Throwable throwable) {
+        MCCScope.enter("Serialization");
         try {
             Map<String, String> metadata = new HashMap<>();
             metadata.put("operation", "deserialize");
@@ -86,9 +88,11 @@ public class SerializationInterceptor {
             }
             
             logProxy.logMessage(NAMESPACE + ".deserialize", "INFO", metadata);
-            
+
         } catch (Exception e) {
             // Fail silently to avoid disrupting deserialization
+        } finally {
+            MCCScope.exit("Serialization");
         }
     }
 
@@ -97,6 +101,7 @@ public class SerializationInterceptor {
      */
     @Advice.OnMethodEnter
     public static void resolveClass(@Advice.Argument(0) Object objectStreamClass) {
+        MCCScope.enter("Serialization");
         try {
             if (objectStreamClass != null) {
                 String className = objectStreamClass.toString();
@@ -117,6 +122,8 @@ public class SerializationInterceptor {
             }
         } catch (Exception e) {
             // Fail silently
+        } finally {
+            MCCScope.exit("Serialization");
         }
     }
 
@@ -126,6 +133,7 @@ public class SerializationInterceptor {
     @Advice.OnMethodEnter
     public static void writeObject(@Advice.This Object objectOutputStream,
                                  @Advice.Argument(0) Object obj) {
+        MCCScope.enter("Serialization");
         try {
             if (obj != null) {
                 String className = obj.getClass().getName();
@@ -146,6 +154,8 @@ public class SerializationInterceptor {
             }
         } catch (Exception e) {
             // Fail silently
+        } finally {
+            MCCScope.exit("Serialization");
         }
     }
 
@@ -156,6 +166,7 @@ public class SerializationInterceptor {
     public static void jacksonReadValue(@Advice.Argument(0) Object input,
                                       @Advice.Return Object result,
                                       @Advice.Thrown Throwable throwable) {
+        MCCScope.enter("Serialization");
         try {
             Map<String, String> metadata = new HashMap<>();
             metadata.put("operation", "deserialize");
@@ -193,9 +204,11 @@ public class SerializationInterceptor {
             }
             
             logProxy.logMessage(NAMESPACE + ".json", "INFO", metadata);
-            
+
         } catch (Exception e) {
             // Fail silently
+        } finally {
+            MCCScope.exit("Serialization");
         }
     }
 
@@ -206,6 +219,7 @@ public class SerializationInterceptor {
     public static void gsonFromJson(@Advice.Argument(0) String json,
                                   @Advice.Return Object result,
                                   @Advice.Thrown Throwable throwable) {
+        MCCScope.enter("Serialization");
         try {
             Map<String, String> metadata = new HashMap<>();
             metadata.put("operation", "deserialize");
@@ -228,9 +242,11 @@ public class SerializationInterceptor {
             }
             
             logProxy.logMessage(NAMESPACE + ".gson", "INFO", metadata);
-            
+
         } catch (Exception e) {
             // Fail silently
+        } finally {
+            MCCScope.exit("Serialization");
         }
     }
 
@@ -241,6 +257,7 @@ public class SerializationInterceptor {
     public static void xstreamFromXML(@Advice.Argument(0) String xml,
                                     @Advice.Return Object result,
                                     @Advice.Thrown Throwable throwable) {
+        MCCScope.enter("Serialization");
         try {
             Map<String, String> metadata = new HashMap<>();
             metadata.put("operation", "deserialize");
@@ -272,9 +289,11 @@ public class SerializationInterceptor {
             }
             
             logProxy.logMessage(NAMESPACE + ".xml", "INFO", metadata);
-            
+
         } catch (Exception e) {
             // Fail silently
+        } finally {
+            MCCScope.exit("Serialization");
         }
     }
 

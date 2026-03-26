@@ -5,6 +5,7 @@ import org.jvmxray.agent.sensor.AbstractSensor;
 import org.jvmxray.agent.sensor.Sensor;
 import org.jvmxray.platform.shared.log.intervallogger.SecurityUtil;
 import org.jvmxray.platform.shared.property.AgentProperties;
+import org.jvmxray.platform.shared.util.MCCScope;
 
 import java.lang.instrument.Instrumentation;
 import java.util.Map;
@@ -43,33 +44,38 @@ public class AppInitSensor extends AbstractSensor implements Sensor {
      */
     @Override
     public void initialize(AgentProperties properties, String agentArgs, Instrumentation inst) {
-        // Log enhanced system context (JVM, process, container, cloud)
-        Map<String, String> systemContext = SystemContextUtils.getAllContext();
-        systemContext.put("event_type", "system_context");
-        logProxy.logMessage(NAMESPACE, "INFO", systemContext);
+        MCCScope.enter("AppInit");
+        try {
+            // Log enhanced system context (JVM, process, container, cloud)
+            Map<String, String> systemContext = SystemContextUtils.getAllContext();
+            systemContext.put("event_type", "system_context");
+            logProxy.logMessage(NAMESPACE, "INFO", systemContext);
 
-        // Create SecurityUtil instance with logProxy callback that includes sensitive value redaction
-        SecurityUtil util = new SecurityUtil(message -> {
-            // Check if this is a key=value format and redact if needed
-            if (message.contains("=")) {
-                int idx = message.indexOf("=");
-                String key = message.substring(0, idx);
-                String value = message.substring(idx + 1);
-                String redactedValue = SystemContextUtils.redactSensitiveValue(key, value);
-                logProxy.logMessage(NAMESPACE, "INFO", Map.of(
-                        "message", key + "=" + redactedValue,
-                        "is_redacted", String.valueOf(!value.equals(redactedValue))
-                ));
-            } else {
-                logProxy.logMessage(NAMESPACE, "INFO", Map.of("message", message));
-            }
-        });
+            // Create SecurityUtil instance with logProxy callback that includes sensitive value redaction
+            SecurityUtil util = new SecurityUtil(message -> {
+                // Check if this is a key=value format and redact if needed
+                if (message.contains("=")) {
+                    int idx = message.indexOf("=");
+                    String key = message.substring(0, idx);
+                    String value = message.substring(idx + 1);
+                    String redactedValue = SystemContextUtils.redactSensitiveValue(key, value);
+                    logProxy.logMessage(NAMESPACE, "INFO", Map.of(
+                            "message", key + "=" + redactedValue,
+                            "is_redacted", String.valueOf(!value.equals(redactedValue))
+                    ));
+                } else {
+                    logProxy.logMessage(NAMESPACE, "INFO", Map.of("message", message));
+                }
+            });
 
-        // Log shell environment variables
-        util.logShellEnvironmentVariables();
+            // Log shell environment variables
+            util.logShellEnvironmentVariables();
 
-        // Log Java system properties
-        util.logJavaSystemProperties();
+            // Log Java system properties
+            util.logJavaSystemProperties();
+        } finally {
+            MCCScope.exit("AppInit");
+        }
     }
 
     /**

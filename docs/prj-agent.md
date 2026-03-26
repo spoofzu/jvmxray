@@ -493,7 +493,9 @@ These fields are automatically enriched by LogProxy for every log message:
 
 #### Event Correlation Fields
 
-These fields are automatically maintained by MCC (Mapped Correlation Context) and appear in events from all sensors that participate in correlation:
+These fields are automatically maintained by MCC (Mapped Correlation Context) and appear in events from all sensors that participate in correlation.
+
+**Note:** The Memory and Thread sensors are currently disabled due to recursive logging issues. When re-enabled, they will not include MCC correlation fields (`trace_id`, `scope_chain`, `parent_scope`, `scope_depth`) — MCC scoping is not yet implemented for these sensors.
 
 | Field | Type | Description | Example Values |
 |-------|------|-------------|----------------|
