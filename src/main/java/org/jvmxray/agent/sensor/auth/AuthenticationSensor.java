@@ -7,6 +7,7 @@ import org.jvmxray.agent.sensor.Sensor;
 import org.jvmxray.agent.sensor.Transform;
 import org.jvmxray.agent.proxy.LogProxy;
 import org.jvmxray.platform.shared.property.AgentProperties;
+import org.jvmxray.platform.shared.util.MCCScope;
 import org.jvmxray.agent.init.AgentInitializer;
 
 import java.lang.instrument.Instrumentation;
@@ -46,7 +47,13 @@ public class AuthenticationSensor extends AbstractSensor implements InjectableSe
             Sensor.class,
             InjectableSensor.class,
             LogProxy.class,
-            AuthenticationInterceptor.class
+            MCCScope.class,
+            SessionSetAttributeInterceptor.class,
+            SessionGetAttributeInterceptor.class,
+            SessionInvalidateInterceptor.class,
+            LoginInterceptor.class,
+            AuthenticateInterceptor.class,
+            PrincipalInterceptor.class
         };
     }
 
@@ -67,17 +74,17 @@ public class AuthenticationSensor extends AbstractSensor implements InjectableSe
                 Class<?> sessionClass = Class.forName("javax.servlet.http.HttpSession");
                 transforms.add(new Transform(
                     sessionClass,
-                    AuthenticationInterceptor.class,
+                    SessionSetAttributeInterceptor.class,
                     new MethodSpec("setAttribute", String.class, Object.class)
                 ));
                 transforms.add(new Transform(
                     sessionClass,
-                    AuthenticationInterceptor.class,
+                    SessionGetAttributeInterceptor.class,
                     new MethodSpec("getAttribute", String.class)
                 ));
                 transforms.add(new Transform(
                     sessionClass,
-                    AuthenticationInterceptor.class,
+                    SessionInvalidateInterceptor.class,
                     new MethodSpec("invalidate")
                 ));
             } catch (ClassNotFoundException e) {
@@ -89,7 +96,7 @@ public class AuthenticationSensor extends AbstractSensor implements InjectableSe
                 Class<?> loginContextClass = Class.forName("javax.security.auth.login.LoginContext");
                 transforms.add(new Transform(
                     loginContextClass,
-                    AuthenticationInterceptor.class,
+                    LoginInterceptor.class,
                     new MethodSpec("login")
                 ));
             } catch (ClassNotFoundException e) {
@@ -102,7 +109,7 @@ public class AuthenticationSensor extends AbstractSensor implements InjectableSe
                 Class<?> authClass = Class.forName("org.springframework.security.core.Authentication");
                 transforms.add(new Transform(
                     authManagerClass,
-                    AuthenticationInterceptor.class,
+                    AuthenticateInterceptor.class,
                     new MethodSpec("authenticate", authClass)
                 ));
             } catch (ClassNotFoundException e) {
@@ -114,7 +121,7 @@ public class AuthenticationSensor extends AbstractSensor implements InjectableSe
                 Class<?> principalClass = Class.forName("java.security.Principal");
                 transforms.add(new Transform(
                     principalClass,
-                    AuthenticationInterceptor.class,
+                    PrincipalInterceptor.class,
                     new MethodSpec("getName")
                 ));
             } catch (ClassNotFoundException e) {
