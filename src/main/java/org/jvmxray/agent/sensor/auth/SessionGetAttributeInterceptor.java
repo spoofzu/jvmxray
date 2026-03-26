@@ -20,9 +20,13 @@ public class SessionGetAttributeInterceptor {
     public static final String NAMESPACE = "org.jvmxray.events.auth.session";
     public static final LogProxy logProxy = LogProxy.getInstance();
 
+    @Advice.OnMethodEnter
+    public static void enter() {
+        MCCScope.enter("Auth");
+    }
+
     @Advice.OnMethodExit
     public static void exit(@Advice.This Object session, @Advice.Argument(0) String attributeName) {
-        MCCScope.enter("Auth");
         try {
             Map<String, String> metadata = new HashMap<>();
             metadata.put("auth_action", "session_get");
