@@ -183,8 +183,8 @@ public class LibSensor extends AbstractSensor implements Sensor {
 
                 // Log new JAR file with metadata
                 Map<String, String> eventData = new HashMap<>();
-                eventData.put("method", "static");
-                eventData.put("jarPath", entry);
+                eventData.put("load_type", "static");
+                eventData.put("jar_path", entry);
                 if (sha256Hash != null) {
                     eventData.put("sha256", sha256Hash);
                 }
@@ -252,8 +252,8 @@ public class LibSensor extends AbstractSensor implements Sensor {
 
                         // Log new dynamically loaded JAR with metadata
                         Map<String, String> eventData = new HashMap<>();
-                        eventData.put("method", "dynamic");
-                        eventData.put("jarPath", jarPath);
+                        eventData.put("load_type", "dynamic");
+                        eventData.put("jar_path", jarPath);
                         if (sha256Hash != null) {
                             eventData.put("sha256", sha256Hash);
                         }
