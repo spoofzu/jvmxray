@@ -32,7 +32,15 @@ Deploy as a Java agent:
 java -javaagent:target/jvmxray-0.0.1-agent.jar -jar yourapp.jar
 ```
 
-For advanced setup (data enrichment, AI integration): [Continue Setup](docs/setup-continued.md)
+---
+
+## Benefits
+
+- **Zero code changes** — Attaches to any Java application at launch, like a debugger. No source modifications, no recompilation, no library dependencies to add.
+- **AI-ready structured events** — Sensors generate machine-readable security events, not unstructured log lines. AI tools can analyze application behavior immediately without parsing or guesswork.
+- **Fits your logging infrastructure** — Events are Logback log messages. Route them to Splunk, ELK, DataDog, Kafka, or any destination the Logback ecosystem supports.
+- **Attack chain reconstruction** — Correlated events with `trace_id` and `scope_chain` let SOC teams trace an incident from HTTP request through SQL injection to data exfiltration in a single query.
+- **Tunable overhead** — Standard Logback log-level properties control which sensors fire and at what verbosity. Turn sensors on or off per environment without rebuilding.
 
 ---
 
