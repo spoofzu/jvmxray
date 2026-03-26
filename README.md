@@ -23,10 +23,10 @@
 | &nbsp;                                  | &nbsp;                                                                                                                                                                                                                                                                                                                                |
 |-----------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **NEWS**                                | &nbsp;                                                                                                                                                                                                                                                                                                                                |
-| **Oct 7, 2025** Minor Fixes             | Sensor meta improvements, developing AI service (work in progress) OWASP Dependency Check integration (NVD metadata, CVSS scoring, etc) for 3rd party libraries (not operational at the moment).                                                                                                                                      |                                                                                                                                                                                                                                                                                       |                                                                                                                                                                                                                                                                                                         |
+| **Mar 26, 2026** Sensor Metadata Overhaul | Major sensor improvement: event correlation with scope_chain/parent_scope/scope_depth, TRACE_ID indexed column, 3 P0 sensors enriched (API, Auth, Script), spanning scopes for Process and Crypto, MCCScope added to 24 interceptors, bug fixes. See [CHANGELOG](docs/CHANGELOG.md). |
+| **Oct 7, 2025** Minor Fixes             | Sensor meta improvements, developing AI service (work in progress) OWASP Dependency Check integration (NVD metadata, CVSS scoring, etc) for 3rd party libraries (not operational at the moment).                                                                                                                                      |
 | **Sep 18, 2025** Major Update           | Significant milestone release featuring AI-powered vulnerability analysis, online/offline integration support with AI MCP clients like Claude Desktop, 15+ sensor types and growing, enhanced documentation suite, multi-database support (SQLite/MySQL/Cassandra), and complete CI/CD pipeline. Suitable for testing and evaluation. |
 | **Apr 23, 2025** Platform rearchitected | Architecture improved to remove deprecated SecurityManager and move to byte code injection approach.                                                                                                                                                                                                                                  |
-| **Feb 20, 2025** Improved architecture  | Improved documentation for new architecture. Site docs forthcoming.                                                                                                                                                                                                                                                                   |
 
 **📰 [View News Archive](ZREADME-NEWS.md)** - Complete history of project announcements and milestones
 
@@ -123,21 +123,10 @@ Get up and running in **under 5 minutes**:
    mvn clean package
    ```
 
-4. **Generate Test Data**
-   ```bash
-   ./script/data/generate-test-data
-   ```
-   **Note**: This script executes various activities to stimulate JVMXRay Agent's sensors. When finished, a SQLite database contains sensor data for experimentation.
-
-   **Explore the test data:**
-   ```bash
-   sqlite3 .jvmxray/common/data/jvmxray-test.db "SELECT EVENT_ID, TIMESTAMP, NAMESPACE, KEYPAIRS FROM STAGE0_EVENT LIMIT 10;"
-   ```
-
 **Congratulations! You've built JVMXRay successfully!**
 
 The project compiles, tests pass, and includes:
-- Complete sensor framework with 15+ monitoring capabilities
+- Complete sensor framework with 19 monitoring sensors
 - Multi-database support (SQLite/MySQL/Cassandra)
 - AI-enhanced security event analysis
 - Enterprise logging integration
@@ -177,9 +166,9 @@ Ready for advanced features? Continue with:
   ```
   C:AP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.events.monitor |  | caller=org.jvmxray.agent.sensor.monitor.MonitorSensor:45, GCCount=1, ThreadRunnable=2, MemoryFree=566.3MB, ProcessCpuLoad=0%, OpenFiles=163, AID=7KLZZAC0DM9RA1ISVXQY63NTK, CID=production
   ```
-- **Library Sensor**: Dynamic and static JAR loading detection
+- **Library Sensor**: Dynamic and static JAR loading detection with supply chain visibility
   ```
-  C:AP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.events.system.lib |  | caller=ClassLoader:123, method=dynamic, jarPath=/path/to/library.jar, AID=7KLZZAC0DM9RA1ISVXQY63NTK, CID=production
+  C:AP | 2025.09.18 at 11:23:34 CDT | main |  INFO | org.jvmxray.events.system.lib |  | caller=ClassLoader:123, load_type=dynamic, jar_path=/path/to/library.jar, sha256=a1b2c3..., groupId=com.example, artifactId=library, version=1.2.3, AID=7KLZZAC0DM9RA1ISVXQY63NTK, CID=production
   ```
 - **Serialization Sensor**: Object serialization monitoring for deserialization attacks
   ```
@@ -193,14 +182,21 @@ Ready for advanced features? Continue with:
   ```
   C:AP | 2025.09.18 at 11:23:34 CDT | payment-processor-1 |  INFO | org.jvmxray.events.system.uncaughtexception |  | caller=com.example.PaymentProcessor:145, thread_name=payment-processor-1, thread_id=42, thread_group=main, exception_type=java.lang.NullPointerException, exception_location=com.example.PaymentProcessor:145, exception_method=processPayment, exception_message=Cannot process null payment, stack_depth=28, memory_pressure=HIGH, heap_used_mb=756.2, command_line=java -jar payment-service.jar --port=8080, jvm_uptime_minutes=47, incident_id=f3d4e5a6-b7c8-4d9e-a1b2-3c4d5e6f7a8b, AID=7KLZZAC0DM9RA1ISVXQY63NTK, CID=production
   ```
-- **API Sensor**: REST and web service call monitoring
-- **Configuration Sensor**: Application configuration access and modification tracking
+- **API Sensor**: REST and web service call monitoring with full request/response metadata (URI, method, host, status code, response time, TLS detection)
+- **Authentication Sensor**: 6 specialized interceptors tracking login attempts (JAAS, Spring Security), session operations, and principal queries with success/failure tracking and hashed session IDs
+- **ScriptEngine Sensor**: Script execution monitoring with engine identification, content hashing, suspicious pattern detection (Runtime.exec, ProcessBuilder, Class.forName), and risk classification
+- **Configuration Sensor**: Application configuration access and modification tracking with security classification
+- **HTTP Sensor**: Web request and response pattern analysis with security header analysis
+- **Cryptographic Sensor**: Encryption/decryption operations with weak algorithm detection, key strength validation, and spanning scope correlation
+- **Reflection Sensor**: Dynamic code loading and class manipulation detection with threat classification
 - **Data Transfer Sensor**: Large data movement and export detection
 - **Thread Sensor**: Thread lifecycle and synchronization monitoring
-- **Authentication Sensor**: Login attempts and credential usage tracking
-- **Cryptographic Sensor**: Encryption/decryption operations and key usage
-- **Reflection Sensor**: Dynamic code loading and class manipulation detection
-- **HTTP Sensor**: Web request and response pattern analysis
+
+### 🔗 Event Correlation
+- **Security Stacktraces**: Every event includes `trace_id`, `scope_chain`, `parent_scope`, and `scope_depth` for reconstructing attack chains across sensors
+- **Scope Chain Visualization**: See nested sensor activations like `HTTP>Serialization>Reflection>Process` — a deserialization attack signature at a glance
+- **Indexed TRACE_ID**: Dedicated database column with index for fast correlation queries across events sharing the same trace
+- **Automatic Context Propagation**: HTTP requests, SQL queries, file I/O, crypto operations, and process executions are automatically linked within the same execution context
 
 ### 🏗️ Enterprise Architecture
 - **Database Support**: SQLite (testing), MySQL, Cassandra (production)
@@ -227,11 +223,11 @@ JVMXRay's MCP server enables AI clients like Claude Desktop to become instant se
 
 ### Component Documentation
 - **[🔧 JVMXRay Agent](docs/prj-agent.md)** - Java agent setup and sensor configuration
-- **[🤖 MCP Client](docs/prj-mcp-client.md)** - Claude Desktop integration guide
 - **[📊 Common Components](docs/prj-common.md)** - Database setup and utilities
 
 ### Quick Links
-- **[📰 News Archive](README-NEWS.md)** - Complete project history
+- **[📋 Changelog](docs/CHANGELOG.md)** - Detailed release changes and improvements
+- **[📰 News Archive](ZREADME-NEWS.md)** - Complete project history
 
 ## Project Contributors(s)
 Milton Smith - Project creator, leader

@@ -442,7 +442,7 @@ The agent posts structured events directly to database tables¹ for processing b
 | NAMESPACE   | varchar(255)     | NO   |     | NULL    |       |
 | AID         | varchar(50)      | NO   |     | NULL    |       |
 | CID         | varchar(50)      | NO   |     | NULL    |       |
-| IS_STABLE   | boolean          | NO   |     | false   |       |
+| TRACE_ID    | varchar(255)     | YES  | IDX | NULL    |       |
 | KEYPAIRS    | text             | YES  |     | NULL    |       |
 +-------------+------------------+------+-----+---------+-------+
 ```
@@ -454,6 +454,7 @@ The agent posts structured events directly to database tables¹ for processing b
 | idx_stage0_timestamp | TIMESTAMP | Time-based queries |
 | idx_stage0_namespace | NAMESPACE | Sensor-type filtering |
 | idx_stage0_aid_cid | AID, CID | Agent instance queries |
+| idx_stage0_trace_id | TRACE_ID | Event correlation queries |
 
 **Sample Data:**
 ```sql
@@ -499,13 +500,33 @@ These fields are automatically enriched by LogProxy for every log message:
 | `AID` | String | Agent Instance ID - unique identifier for this agent instance, configured in agent.properties | `agent-001`, `prod-server-1` |
 | `CID` | String | Configuration ID - identifies the configuration profile, configured in agent.properties | `production`, `staging`, `development` |
 
-#### Sensor-Specific Common Fields
+#### Event Correlation Fields
 
-These fields appear in events from specific sensors:
+These fields are automatically maintained by MCC (Mapped Correlation Context) and appear in events from all sensors that participate in correlation:
 
 | Field | Type | Description | Example Values |
 |-------|------|-------------|----------------|
-| `trace_id` | String | Unique correlation ID for tracing related events across sensors within a request. Set by MCC (Mapped Correlation Context) when sensors enter scope. | `a1b2c3d4e5f6` |
+| `trace_id` | String | Unique correlation ID linking all events within the same execution context. Generated on first scope entry, inherited by nested scopes. Also stored as dedicated TRACE_ID column in STAGE0_EVENT. | `a1b2c3d4e5f6` |
+| `scope_chain` | String | Nested sensor activation path from root to current scope, delimited by `>`. Shows how execution flowed through sensors — the "security stacktrace". | `HTTP>SQL>FileIO`, `HTTP>Serialization>Reflection>Process` |
+| `parent_scope` | String | Name of the immediate parent sensor scope. Enables event tree reconstruction. | `HTTP`, `SQL`, `none` (for root scope) |
+| `scope_depth` | String | Integer nesting level. Normal requests nest 2-3 deep; depth 6+ warrants investigation as potential attack chain. | `1`, `3`, `6` |
+
+**Correlation example:** An HTTP request triggers a SQL query which triggers file I/O:
+```
+trace_id=ABC123, scope_chain=HTTP,                 scope_depth=1, parent_scope=none
+trace_id=ABC123, scope_chain=HTTP>SQL,              scope_depth=2, parent_scope=HTTP
+trace_id=ABC123, scope_chain=HTTP>SQL>FileIO,       scope_depth=3, parent_scope=SQL
+```
+
+All three events share `trace_id=ABC123` and can be queried efficiently via the TRACE_ID index:
+```sql
+SELECT * FROM STAGE0_EVENT WHERE TRACE_ID = 'ABC123' ORDER BY TIMESTAMP;
+```
+
+#### Sensor-Specific Common Fields
+
+| Field | Type | Description | Example Values |
+|-------|------|-------------|----------------|
 | `error` | String | Exception class name when an error occurs | `IOException`, `SecurityException` |
 | `error_message` | String | Detailed error message when an exception is thrown | `Permission denied` |
 | `risk_level` | String | Security risk classification for the event | `CRITICAL`, `HIGH`, `MEDIUM`, `LOW` |

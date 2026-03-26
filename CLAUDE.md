@@ -46,7 +46,7 @@ The agent uses ByteBuddy for bytecode injection to install sensors:
   - Delegates to `org.jvmxray.agent.bin.jvmxrayagent.start()` for actual agent initialization
 - **Sensor Types**: Modular monitoring system
   - API call monitoring (`api/` package)
-  - Authentication tracking (`auth/` package)
+  - Authentication tracking (`auth/` package) — 6 specialized interceptors: SessionSet/Get/Invalidate, Login, Authenticate, Principal
   - Configuration access (`configuration/` package)
   - Cryptographic operations (`crypto/` package)
   - Data transfer monitoring (`data/` package)
@@ -69,7 +69,8 @@ The project includes a comprehensive database schema management system for stori
 - **SchemaManager**: CLI tool for creating, validating, and managing database schemas
 - **Multi-Database Support**: Cassandra, MySQL, and SQLite implementations
 - **Event Storage Tables**:
-  - `STAGE0_EVENT`: Raw events with fields EVENT_ID, CONFIG_FILE, TIMESTAMP, THREAD_ID, PRIORITY, NAMESPACE, AID, CID, IS_STABLE, KEYPAIRS
+  - `STAGE0_EVENT`: Raw events with fields EVENT_ID, CONFIG_FILE, TIMESTAMP, THREAD_ID, PRIORITY, NAMESPACE, AID, CID, TRACE_ID, KEYPAIRS
+  - **TRACE_ID Column**: Dedicated indexed column extracted from keypairs during INSERT for efficient correlation queries
   - `STAGE0_EVENT_KEYPAIR`: Key-value pairs extracted from event messages (EVENT_ID, KEY, VALUE) - used for parsed/processed events
   - **Agent Events**: Agents post complete log messages with keypairs directly to STAGE0_EVENT.KEYPAIRS column (not STAGE0_EVENT_KEYPAIR table)
 - **Consistency Management**: IS_STABLE flag ensures data consistency between tables for NoSQL databases
@@ -122,6 +123,18 @@ Each component follows the pattern (test mode uses `target/test-jvmxray/`, produ
 
 MCC provides thread-scoped correlation context for security events, enabling event tracking across execution paths.
 - **Location**: `src/main/java/org/jvmxray/platform/shared/util/MCC.java`
+
+#### **Correlation Fields (Auto-Maintained)**
+MCC automatically maintains these fields in the context on each `enterScope()`/`exitScope()`:
+- `trace_id`: Unique correlation ID generated on first scope entry, inherited by nested scopes
+- `scope_chain`: Nested sensor path delimited by `>` (e.g., `HTTP>SQL>FileIO`). The `>` character is reserved as delimiter in scope IDs.
+- `parent_scope`: Immediate parent scope name, or `"none"` for root scope
+- `scope_depth`: Integer nesting level as string (e.g., `"1"`, `"3"`)
+
+#### **Sensor Scope Coverage**
+- **Spanning scopes** (enter in @OnMethodEnter, exit in @OnMethodExit): FileIO, SQL, HTTP, Socket/Connect, Process, Crypto (5 sub-interceptors)
+- **Degenerate scopes** (enter/exit within same advice method): APICall, Auth, Script, Config (8), Reflection (6), Serialization (6), DataTransfer, Socket/Bind/Accept/Close
+- **No scope** (standalone): Monitor, AppInit, Lib, UncaughtException
 
 #### **Memory Cleanup Strategy**
 - **Primary Cleanup**: Scope-based cleanup when sensor stack empties (thread pool safe)
