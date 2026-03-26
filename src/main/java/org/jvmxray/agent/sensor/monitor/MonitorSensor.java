@@ -6,6 +6,7 @@ import org.jvmxray.agent.proxy.LogProxy;
 import org.jvmxray.agent.sensor.*;
 import org.jvmxray.agent.util.StatsRegistry;
 import org.jvmxray.platform.shared.property.AgentProperties;
+import org.jvmxray.platform.shared.util.MCCScope;
 
 import java.lang.instrument.Instrumentation;
 import java.lang.management.*;
@@ -186,7 +187,12 @@ public class MonitorSensor extends AbstractSensor implements Sensor {
         }
 
         // Log the system statistics
-        logProxy.logMessage(NAMESPACE, "INFO", stats);
+        MCCScope.enter("Monitor");
+        try {
+            logProxy.logMessage(NAMESPACE, "INFO", stats);
+        } finally {
+            MCCScope.exit("Monitor");
+        }
     }
 
     /**

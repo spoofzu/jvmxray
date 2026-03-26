@@ -7,6 +7,7 @@ import org.jvmxray.agent.util.JarMetadataExtractor;
 import org.jvmxray.agent.util.JarMetadataExtractor.JarMetadata;
 import org.jvmxray.agent.util.StatsRegistry;
 import org.jvmxray.platform.shared.property.AgentProperties;
+import org.jvmxray.platform.shared.util.MCCScope;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -214,7 +215,12 @@ public class LibSensor extends AbstractSensor implements Sensor {
                     eventData.put("packages", String.join(",", metadata.packageNames));
                 }
 
-                logProxy.logMessage(NAMESPACE, "INFO", eventData);
+                MCCScope.enter("Lib");
+                try {
+                    logProxy.logMessage(NAMESPACE, "INFO", eventData);
+                } finally {
+                    MCCScope.exit("Lib");
+                }
                 // Cache JAR to avoid duplicate logging
                 knownJars.put(entry, true);
 
@@ -283,7 +289,12 @@ public class LibSensor extends AbstractSensor implements Sensor {
                             eventData.put("packages", String.join(",", metadata.packageNames));
                         }
 
-                        logProxy.logMessage(NAMESPACE, "INFO", eventData);
+                        MCCScope.enter("Lib");
+                        try {
+                            logProxy.logMessage(NAMESPACE, "INFO", eventData);
+                        } finally {
+                            MCCScope.exit("Lib");
+                        }
                         // Cache JAR to avoid duplicate logging
                         knownJars.put(jarPath, true);
 

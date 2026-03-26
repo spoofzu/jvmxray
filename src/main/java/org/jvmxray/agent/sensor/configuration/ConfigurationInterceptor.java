@@ -2,6 +2,7 @@ package org.jvmxray.agent.sensor.configuration;
 
 import net.bytebuddy.asm.Advice;
 import org.jvmxray.agent.proxy.LogProxy;
+import org.jvmxray.platform.shared.util.MCCScope;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -68,36 +69,39 @@ public class ConfigurationInterceptor {
     public static void systemGetProperty(@Advice.Argument(0) String key,
                                        @Advice.Return String result,
                                        @Advice.Thrown Throwable throwable) {
+        MCCScope.enter("Config");
         try {
             Map<String, String> metadata = new HashMap<>();
             metadata.put("operation", "system_getProperty");
             metadata.put("property_key", key != null ? key : "unknown");
             metadata.put("value_retrieved", result != null ? "true" : "false");
-            
+
             if (key != null && isSensitiveProperty(key)) {
                 metadata.put("sensitive_property", "true");
                 metadata.put("risk_level", "MEDIUM");
             }
-            
+
             // Flag access to security-related properties
             if (key != null && (key.contains("security") || key.contains("policy"))) {
                 metadata.put("security_property_access", "true");
                 metadata.put("risk_level", "HIGH");
             }
-            
+
             if (throwable != null) {
                 metadata.put("error", throwable.getClass().getSimpleName());
             }
-            
+
             // Don't log the actual value for sensitive properties
             if (result != null && !isSensitiveProperty(key)) {
                 metadata.put("property_value", truncateValue(result));
             }
-            
+
             logProxy.logMessage(NAMESPACE + ".property", "INFO", metadata);
-            
+
         } catch (Exception e) {
             // Fail silently
+        } finally {
+            MCCScope.exit("Config");
         }
     }
 
@@ -109,6 +113,7 @@ public class ConfigurationInterceptor {
                                        @Advice.Argument(1) String value,
                                        @Advice.Return String result,
                                        @Advice.Thrown Throwable throwable) {
+        MCCScope.enter("Config");
         try {
             Map<String, String> metadata = new HashMap<>();
             metadata.put("operation", "system_setProperty");
@@ -150,9 +155,11 @@ public class ConfigurationInterceptor {
             }
             
             logProxy.logMessage(NAMESPACE + ".property", "INFO", metadata);
-            
+
         } catch (Exception e) {
             // Fail silently
+        } finally {
+            MCCScope.exit("Config");
         }
     }
 
@@ -163,6 +170,7 @@ public class ConfigurationInterceptor {
     public static void systemGetEnv(@Advice.Argument(0) String name,
                                   @Advice.Return String result,
                                   @Advice.Thrown Throwable throwable) {
+        MCCScope.enter("Config");
         try {
             Map<String, String> metadata = new HashMap<>();
             metadata.put("operation", "system_getenv");
@@ -196,9 +204,11 @@ public class ConfigurationInterceptor {
             }
             
             logProxy.logMessage(NAMESPACE + ".environment", "INFO", metadata);
-            
+
         } catch (Exception e) {
             // Fail silently
+        } finally {
+            MCCScope.exit("Config");
         }
     }
 
@@ -209,6 +219,7 @@ public class ConfigurationInterceptor {
     public static void propertiesLoad(@Advice.This Object properties,
                                     @Advice.Argument(0) Object inputStream,
                                     @Advice.Thrown Throwable throwable) {
+        MCCScope.enter("Config");
         try {
             Map<String, String> metadata = new HashMap<>();
             metadata.put("operation", "properties_load");
@@ -229,9 +240,11 @@ public class ConfigurationInterceptor {
             }
             
             logProxy.logMessage(NAMESPACE + ".file", "INFO", metadata);
-            
+
         } catch (Exception e) {
             // Fail silently
+        } finally {
+            MCCScope.exit("Config");
         }
     }
 
@@ -243,6 +256,7 @@ public class ConfigurationInterceptor {
                                      @Advice.Argument(0) Object outputStream,
                                      @Advice.Argument(1) String comments,
                                      @Advice.Thrown Throwable throwable) {
+        MCCScope.enter("Config");
         try {
             Map<String, String> metadata = new HashMap<>();
             metadata.put("operation", "properties_store");
@@ -266,9 +280,11 @@ public class ConfigurationInterceptor {
             metadata.put("risk_level", "MEDIUM");
             
             logProxy.logMessage(NAMESPACE + ".file", "INFO", metadata);
-            
+
         } catch (Exception e) {
             // Fail silently
+        } finally {
+            MCCScope.exit("Config");
         }
     }
 
@@ -281,6 +297,7 @@ public class ConfigurationInterceptor {
                                     @Advice.Argument(1) String defaultValue,
                                     @Advice.Return String result,
                                     @Advice.Thrown Throwable throwable) {
+        MCCScope.enter("Config");
         try {
             Map<String, String> metadata = new HashMap<>();
             metadata.put("operation", "preferences_get");
@@ -293,9 +310,11 @@ public class ConfigurationInterceptor {
             }
             
             logProxy.logMessage(NAMESPACE + ".preferences", "INFO", metadata);
-            
+
         } catch (Exception e) {
             // Fail silently
+        } finally {
+            MCCScope.exit("Config");
         }
     }
 
@@ -307,6 +326,7 @@ public class ConfigurationInterceptor {
                                     @Advice.Argument(0) String key,
                                     @Advice.Argument(1) String value,
                                     @Advice.Thrown Throwable throwable) {
+        MCCScope.enter("Config");
         try {
             Map<String, String> metadata = new HashMap<>();
             metadata.put("operation", "preferences_put");
@@ -322,9 +342,11 @@ public class ConfigurationInterceptor {
             metadata.put("risk_level", "LOW");
             
             logProxy.logMessage(NAMESPACE + ".preferences", "INFO", metadata);
-            
+
         } catch (Exception e) {
             // Fail silently
+        } finally {
+            MCCScope.exit("Config");
         }
     }
 

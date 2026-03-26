@@ -5,6 +5,7 @@ import org.jvmxray.agent.proxy.LogProxy;
 import org.jvmxray.agent.proxy.ManagementProxy;
 import org.jvmxray.agent.util.SystemStateCollector;
 import org.jvmxray.platform.shared.util.GUID;
+import org.jvmxray.platform.shared.util.MCCScope;
 
 import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.HashMap;
@@ -227,6 +228,11 @@ public class UncaughtExceptionInterceptor {
         
         // Log at appropriate level
         String logLevel = isDebug ? "DEBUG" : "INFO";
-        logProxy.logMessage(NAMESPACE, logLevel, metadata);
+        MCCScope.enter("UncaughtException");
+        try {
+            logProxy.logMessage(NAMESPACE, logLevel, metadata);
+        } finally {
+            MCCScope.exit("UncaughtException");
+        }
     }
 }
