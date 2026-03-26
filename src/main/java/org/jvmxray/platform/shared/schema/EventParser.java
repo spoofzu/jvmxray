@@ -5,10 +5,8 @@ import java.time.format.DateTimeFormatter;
 import java.time.ZoneId;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.logging.Logger;
 import java.util.logging.Level;
-import org.jvmxray.platform.shared.util.GUID;
 
 /**
  * Parser for JVMXRay logback event format.
@@ -143,9 +141,6 @@ public class EventParser {
             event.setPriority(fields[3].trim());
             event.setNamespace(fields[4].trim());
             
-            // Generate unique event ID
-            event.setEventId(generateEventId());
-            
             // Parse key-value pairs from message field (if present)
             if (fields.length > 5 && !fields[5].trim().isEmpty()) {
                 String keyValueSection = fields[5].trim();
@@ -255,23 +250,13 @@ public class EventParser {
     }
     
     /**
-     * Generate a unique event ID for database storage.
-     * Uses Base36-encoded GUID format for uniqueness and compactness.
-     *
-     * @return Unique event ID string
-     */
-    private static String generateEventId() {
-        return GUID.generate();
-    }
-    
-    /**
      * Create a sample parsed event for testing purposes.
-     * 
+     * Note: eventId is not set here — it is auto-assigned by the database.
+     *
      * @return Sample ParsedEvent object
      */
     public static ParsedEvent createSampleEvent() {
         ParsedEvent event = new ParsedEvent();
-        event.setEventId(generateEventId());
         event.setConfigFile("C:AP");
         event.setTimestamp(System.currentTimeMillis());
         event.setThreadId("jvmxray.sensor-1");
@@ -304,9 +289,8 @@ public class EventParser {
             return false;
         }
         
-        // Check required fields
-        return event.getEventId() != null && !event.getEventId().trim().isEmpty() &&
-               event.getConfigFile() != null && !event.getConfigFile().trim().isEmpty() &&
+        // Check required fields (eventId is auto-assigned by DB, not validated here)
+        return event.getConfigFile() != null && !event.getConfigFile().trim().isEmpty() &&
                event.getTimestamp() > 0 &&
                event.getThreadId() != null && !event.getThreadId().trim().isEmpty() &&
                event.getPriority() != null && !event.getPriority().trim().isEmpty() &&
@@ -346,31 +330,37 @@ public class EventParser {
     
     /**
      * Deserializes a string from the KEYPAIRS column back to a map of key-value pairs.
-     * 
+     * Supports both JSON format ({@code {"key": "value"}}) and legacy format ({@code key=value, key=value}).
+     *
      * @param serializedKeyPairs The serialized string to deserialize
      * @return Map of key-value pairs, or empty map if string is null/empty
      */
     public static Map<String, String> deserializeKeyPairs(String serializedKeyPairs) {
         Map<String, String> keyPairs = new HashMap<>();
-        
+
         if (serializedKeyPairs == null || serializedKeyPairs.trim().isEmpty()) {
             return keyPairs;
         }
-        
+
+        String trimmed = serializedKeyPairs.trim();
+
+        // Detect JSON format
+        if (trimmed.startsWith("{") && trimmed.endsWith("}")) {
+            return deserializeJsonKeyPairs(trimmed);
+        }
+
+        // Legacy key=value format
         try {
-            // Split on unescaped comma-space separator
             String[] pairs = serializedKeyPairs.split("(?<!\\\\)" + KEYPAIR_SEPARATOR.replace(", ", ", "));
-            
+
             for (String pair : pairs) {
                 if (pair == null || pair.trim().isEmpty()) {
                     continue;
                 }
-                
-                // Split on unescaped equals sign
+
                 String[] keyValue = pair.split("(?<!\\\\)" + KEYVALUE_SEPARATOR, 2);
-                
+
                 if (keyValue.length == 2) {
-                    // Unescape special characters
                     String key = keyValue[0].replace("\\=", "=").replace("\\, ", ", ");
                     String value = keyValue[1].replace("\\=", "=").replace("\\, ", ", ");
                     keyPairs.put(key, value);
@@ -381,7 +371,84 @@ public class EventParser {
         } catch (Exception e) {
             logger.log(Level.WARNING, "Failed to deserialize keypairs: " + serializedKeyPairs, e);
         }
-        
+
         return keyPairs;
+    }
+
+    /**
+     * Parses a simple JSON object string into key-value pairs.
+     * Handles the format produced by the agent appenders: {@code {"key": "value", "key2": "value2"}}.
+     * Uses lightweight parsing without requiring a JSON library dependency.
+     */
+    private static Map<String, String> deserializeJsonKeyPairs(String json) {
+        Map<String, String> keyPairs = new HashMap<>();
+
+        try {
+            // Strip outer braces
+            String content = json.substring(1, json.length() - 1).trim();
+            if (content.isEmpty()) {
+                return keyPairs;
+            }
+
+            // Parse "key": "value" pairs — handles values containing commas and colons
+            int i = 0;
+            while (i < content.length()) {
+                // Skip whitespace and commas
+                while (i < content.length() && (content.charAt(i) == ',' || content.charAt(i) == ' ')) {
+                    i++;
+                }
+                if (i >= content.length()) break;
+
+                // Parse key (quoted string)
+                if (content.charAt(i) != '"') break;
+                int keyStart = i + 1;
+                int keyEnd = findClosingQuote(content, keyStart);
+                if (keyEnd < 0) break;
+                String key = unescapeJsonString(content.substring(keyStart, keyEnd));
+                i = keyEnd + 1;
+
+                // Skip colon and whitespace
+                while (i < content.length() && (content.charAt(i) == ':' || content.charAt(i) == ' ')) {
+                    i++;
+                }
+                if (i >= content.length()) break;
+
+                // Parse value (quoted string)
+                if (content.charAt(i) != '"') break;
+                int valStart = i + 1;
+                int valEnd = findClosingQuote(content, valStart);
+                if (valEnd < 0) break;
+                String value = unescapeJsonString(content.substring(valStart, valEnd));
+                i = valEnd + 1;
+
+                keyPairs.put(key, value);
+            }
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Failed to parse JSON keypairs: " + json, e);
+        }
+
+        return keyPairs;
+    }
+
+    /**
+     * Find the closing quote index, handling escaped quotes.
+     */
+    private static int findClosingQuote(String s, int start) {
+        for (int i = start; i < s.length(); i++) {
+            if (s.charAt(i) == '"' && (i == start || s.charAt(i - 1) != '\\')) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Unescape basic JSON string escape sequences.
+     */
+    private static String unescapeJsonString(String s) {
+        return s.replace("\\\"", "\"")
+                .replace("\\\\", "\\")
+                .replace("\\n", "\n")
+                .replace("\\t", "\t");
     }
 }

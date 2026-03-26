@@ -288,7 +288,7 @@ private static String resolveAgentJarPath() throws IllegalStateException {
         String projectBasedir = System.getProperty("project.basedir");
         if (projectBasedir != null) {
             agentLogbackDbConfig = Paths.get(projectBasedir)
-                .resolve("script/config/logback/agent-db.xml")
+                .resolve("src/test/resources/agent-db-logback-test.xml")
                 .toString();
         }
         

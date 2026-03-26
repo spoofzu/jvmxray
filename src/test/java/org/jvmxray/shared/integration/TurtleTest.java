@@ -99,13 +99,15 @@ public void testTurtleIntegrationWithJVMXRayAgent() throws Exception {
      * Executes the Turtle integration test application in a separate JVM with the JVMXRay agent.
      */
     private boolean executeTurtleTest() throws Exception {
-        // Create configuration for integration test execution
-        TurtleTestExecutor.ExecutionConfig config = 
-            TurtleTestExecutor.createDefaultConfig(TEST_DURATION, INTENSITY);
-        
+        // Create configuration with database logging enabled for integration test
+        String testHome = System.getProperty("jvmxray.test.home");
+        String defaultLogbackConfig = testHome + "/common/config/logback.xml";
+        TurtleTestExecutor.ExecutionConfig config =
+            TurtleTestExecutor.createDatabaseConfig(TEST_DURATION, INTENSITY, defaultLogbackConfig, true);
+
         // Execute using shared executor
         TurtleTestExecutor.ExecutionResult result = TurtleTestExecutor.executeTurtleTest(config);
-        
+
         return result.isSuccess();
     }
 }

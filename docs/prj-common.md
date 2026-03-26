@@ -1,4 +1,4 @@
-# JVMXRay Common Components (prj-common)
+# JVMXRay Common Components
 
 ## Table of Contents
 
@@ -17,9 +17,8 @@
    - 5.2 [System Properties](#system-properties)
    - 5.3 [Component Properties](#component-properties)
    - 5.4 [Logback XML Settings](#logback-xml-settings)
-6. [REST API Endpoints](#rest-api-endpoints)
-7. [Database Tables](#database-tables)
-8. [Common Errors](#common-errors)
+6. [Database Tables](#database-tables)
+7. [Common Errors](#common-errors)
 
 ---
 
@@ -44,12 +43,12 @@ Enable consistent database setup, component initialization, and configuration ma
 
 ### Module Structure
 
-| Module | Purpose | Dependencies |
-|--------|---------|--------------|
-| prj-common | Shared utilities and schema management | Apache Commons CLI, Jackson, SLF4J |
-| bin package | CLI tools for database and data management | Schema implementations, Commons CLI |
-| schema package | Database schema creation and validation | JDBC drivers, database-specific implementations |
-| init package | Component initialization framework | Property management, logging configuration |
+| Package | Purpose | Dependencies |
+|---------|---------|--------------|
+| platform.shared | Shared utilities and schema management | Apache Commons CLI, Jackson, SLF4J |
+| platform.shared.bin | CLI tools for database and data management | Schema implementations, Commons CLI |
+| platform.shared.schema | Database schema creation and validation | JDBC drivers, database-specific implementations |
+| platform.shared.init | Component initialization framework | Property management, logging configuration |
 
 ### Component Relationships
 
@@ -670,7 +669,7 @@ ORDER BY e2.TIMESTAMP;
 **Usage:**
 ```bash
 # Run via Maven classpath
-java -cp "prj-common/target/classes:$(mvn dependency:build-classpath -q -Dmdep.outputFile=/dev/stdout -f prj-common/pom.xml)" org.jvmxray.platform.shared.bin.SchemaManager [options]
+java -cp "target/classes:$(mvn dependency:build-classpath -q -Dmdep.outputFile=/dev/stdout)" org.jvmxray.platform.shared.bin.SchemaManager [options]
 ```
 
 **Options:**
@@ -707,111 +706,6 @@ java SchemaManager --validate-schema --database-type sqlite --connection-url jdb
 ```
 
 **¹** *SQLite is used for development and testing. Production deployments support MySQL and Cassandra databases.*
-
----
-
-#### VersionTool
-**Purpose:** Display version information from JVMXRay JAR files including git commit, build time, and implementation version.
-
-**Usage:**
-```bash
-# Run standalone with shaded JAR
-java -jar prj-common/target/prj-common-0.0.1-shaded.jar --target <jar-file>
-```
-
-**Options:**
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| --target | Path to JAR file to inspect | required |
-| --help | Display usage information | none |
-
-**Examples:**
-```bash
-# Display version info from agent JAR
-java -jar prj-common/target/prj-common-0.0.1-shaded.jar --target prj-agent/target/prj-agent-0.0.1-shaded.jar
-
-# Display help
-java -jar prj-common/target/prj-common-0.0.1-shaded.jar --help
-```
-
-**Sample Output:**
-```
-JVMXRay Version Information
-===========================
-
-JAR File: prj-agent/target/prj-agent-0.0.1-shaded.jar
-
-  Version           : 0.0.1
-  Git Commit        : c0d2187
-  Build Time        : 2025-10-08T19:11:18Z
-  Agent Class       : org.jvmxray.agent.bootstrap.AgentBootstrap
-  Can Redefine      : true
-  Can Retransform   : true
-  Build JDK         : 21
-  Created By        : Maven Jar Plugin 3.2.0
-
-GitHub Source: https://github.com/spoofzu/jvmxray/commit/c0d2187
-```
-
-**Use Cases:**
-- Verify deployed JAR version matches expected source code
-- Trace production issues back to exact git commit
-- Audit deployment history and build timestamps
-- Confirm agent capabilities (redefine/retransform)
-
----
-
-### Convenience Scripts
-
-#### versions
-**Purpose:** Display version information for all JVMXRay subproject JARs at once.
-
-**Location:** `script/misc/versions`
-
-**Usage:**
-```bash
-# Display versions for all subprojects
-./script/misc/versions
-
-# Show help
-./script/misc/versions --help
-```
-
-**Prerequisites:**
-- Run `mvn clean install` to build all JARs
-
-**Sample Output:**
-```
-JVMXRay Subproject Versions
-===========================
-
-📦 prj-common
-   JAR: prj-common/target/prj-common-0.0.1-shaded.jar
-   Git Commit: c0d2187
-   GitHub: https://github.com/spoofzu/jvmxray/commit/c0d2187
-   Build Time: 2025-10-08T19:16:33Z
-
-📦 prj-agent
-   JAR: prj-agent/target/prj-agent-0.0.1-shaded.jar
-   Git Commit: c0d2187
-   GitHub: https://github.com/spoofzu/jvmxray/commit/c0d2187
-   Build Time: 2025-10-08T19:11:18Z
-
-Found 5 subproject JAR(s)
-```
-
-**Features:**
-- Automatically discovers all subproject JARs (shaded and regular)
-- Displays version, git commit, and build time for each
-- Shows clickable GitHub source links
-- Convenient single command to audit all deployed components
-
-**Use Cases:**
-- Quick overview of all built subprojects
-- Verify all modules built from same git commit
-- Audit build consistency across modules
-- Development workflow to check build status
 
 ---
 
@@ -878,14 +772,6 @@ Found 5 subproject JAR(s)
 
 ---
 
-## REST API Endpoints
-
-**[Not Applicable]**
-
-The Common Components module does not expose REST API endpoints. It provides shared utilities and CLI tools for other modules.
-
----
-
 ## Database Tables
 
 ### Schema Overview
@@ -899,20 +785,20 @@ The common module defines the core database schema used by all JVMXRay component
 
 **Columns:**
 ```
-+-------------+------------------+------+-----+---------+-------+
-| Field       | Type             | Null | Key | Default | Extra |
-+-------------+------------------+------+-----+---------+-------+
-| EVENT_ID    | uuid             | NO   | PRI | NULL    |       |
-| CONFIG_FILE | varchar(255)     | YES  |     | NULL    |       |
-| TIMESTAMP   | timestamp        | NO   |     | NULL    |       |
++-------------+--------------------+------+-----+---------+-------+
+| Field       | Type               | Null | Key | Default | Extra |
++-------------+--------------------+------+-----+---------+-------+
+| EVENT_ID    | uuid               | NO   | PRI | NULL    |       |
+| CONFIG_FILE | varchar(255)       | YES  |     | NULL    |       |
+| TIMESTAMP   | timestamp          | NO   |     | NULL    |       |
 | CURRENT_THREAD_ID | varchar(100) | YES  |     | NULL    |       |
-| PRIORITY    | varchar(10)      | YES  |     | NULL    |       |
-| NAMESPACE   | varchar(255)     | NO   |     | NULL    |       |
-| AID         | varchar(50)      | NO   |     | NULL    |       |
-| CID         | varchar(50)      | NO   |     | NULL    |       |
-| IS_STABLE   | boolean          | NO   |     | false   |       |
-| KEYPAIRS    | text             | YES  |     | NULL    |       |
-+-------------+------------------+------+-----+---------+-------+
+| PRIORITY    | varchar(10)        | YES  |     | NULL    |       |
+| NAMESPACE   | varchar(255)       | NO   |     | NULL    |       |
+| AID         | varchar(50)        | NO   |     | NULL    |       |
+| CID         | varchar(50)        | NO   |     | NULL    |       |
+| IS_STABLE   | boolean            | NO   |     | false   |       |
+| KEYPAIRS    | text               | YES  |     | NULL    |       |
++-------------+--------------------+------+-----+---------+-------+
 ```
 
 #### STAGE1_EVENT_KEYPAIR
@@ -927,23 +813,6 @@ The common module defines the core database schema used by all JVMXRay component
 | EVENT_ID    | uuid             | NO   | FK  | NULL    |       |
 | KEY         | varchar(255)     | NO   |     | NULL    |       |
 | VALUE       | text             | YES  |     | NULL    |       |
-+-------------+------------------+------+-----+---------+-------+
-```
-
-#### API_KEY
-
-**Purpose:** REST API authentication keys
-
-**Columns:**
-```
-+-------------+------------------+------+-----+---------+-------+
-| Field       | Type             | Null | Key | Default | Extra |
-+-------------+------------------+------+-----+---------+-------+
-| API_KEY     | varchar(255)     | NO   | PRI | NULL    |       |
-| APP_NAME    | varchar(255)     | NO   |     | NULL    |       |
-| IS_SUSPENDED| boolean          | NO   |     | false   |       |
-| CREATED_AT  | timestamp        | NO   |     | NULL    |       |
-| LAST_USED   | timestamp        | YES  |     | NULL    |       |
 +-------------+------------------+------+-----+---------+-------+
 ```
 
@@ -965,7 +834,7 @@ No suitable driver found for jdbc:sqlite:/path/to/database.db
 **Resolution:**
 ```bash
 # Ensure SQLite driver is included in classpath
-mvn clean install -f prj-common/pom.xml
+mvn clean install
 ```
 
 **Prevention:** Use Maven-generated classpath or shaded JARs

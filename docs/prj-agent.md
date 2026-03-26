@@ -1,4 +1,4 @@
-# JVMXRay Agent (prj-agent)
+ # JVMXRay Agent
 
 ## Table of Contents
 
@@ -10,8 +10,7 @@
    - 4.2 [System Properties](#system-properties)
    - 4.3 [Component Properties](#component-properties)
    - 4.4 [Logback XML Settings](#logback-xml-settings)
-5. [REST API Endpoints](#rest-api-endpoints)
-6. [Database Tables](#database-tables)
+5. [Database Tables](#database-tables)
 7. [Log Message Reference](#log-message-reference)
    - 7.1 [Common Fields](#common-fields)
    - 7.2 [CONFIG Events](#config-events-configuration-sensor)
@@ -50,14 +49,14 @@ Monitor Java application behavior through transparent bytecode injection with ze
 
 ### Module Structure
 ```
-+------------------+------------------------------------------------------+---------------------------+
-| Module           | Purpose                                              | Dependencies              |
-+------------------+------------------------------------------------------+---------------------------+
-| prj-agent        | Java agent with bytecode injection sensors          | prj-common, ByteBuddy     |
-| sensor packages  | Modular monitoring components for different ops     | Agent core, LogProxy      |
-| interceptors     | Method interception classes for bytecode injection  | Sensors, ByteBuddy Advice |
-| LogProxy         | Agent-safe logging proxy for bootloader context     | ShadedSQLiteAppender      |
-+------------------+------------------------------------------------------+---------------------------+
++------------------+------------------------------------------------------+----------------------------+
+| Package          | Purpose                                              | Dependencies               |
++------------------+------------------------------------------------------+----------------------------+
+| agent            | Java agent with bytecode injection sensors           | ByteBuddy, platform.shared |
+| sensor packages  | Modular monitoring components for different ops      | Agent core, LogProxy       |
+| interceptors     | Method interception classes for bytecode injection   | Sensors, ByteBuddy Advice  |
+| LogProxy         | Agent-safe logging proxy for bootloader context      | ShadedSQLiteAppender       |
++------------------+------------------------------------------------------+----------------------------+
 ```
 
 ### Component Relationships
@@ -199,13 +198,13 @@ sequenceDiagram
 **Usage:**
 ```bash
 # Basic agent attachment
-java -javaagent:prj-agent/target/prj-agent-0.0.1-shaded.jar MyApplication
+java -javaagent:target/jvmxray-0.0.1-agent.jar MyApplication
 
 # With agent arguments
-java -javaagent:prj-agent/target/prj-agent-0.0.1-shaded.jar=config-override MyApplication
+java -javaagent:target/jvmxray-0.0.1-agent.jar=config-override MyApplication
 
 # With custom JVMXRay home
-java -Djvmxray.home=/opt/jvmxray -javaagent:prj-agent/target/prj-agent-0.0.1-shaded.jar MyApplication
+java -Djvmxray.home=/opt/jvmxray -javaagent:target/jvmxray-0.0.1-agent.jar MyApplication
 ```
 
 **Options:**
@@ -219,13 +218,13 @@ java -Djvmxray.home=/opt/jvmxray -javaagent:prj-agent/target/prj-agent-0.0.1-sha
 **Examples:**
 ```bash
 # Example 1: Basic monitoring with default sensors
-java -javaagent:prj-agent/target/prj-agent-0.0.1-shaded.jar -cp myapp.jar com.example.Application
+java -javaagent:target/jvmxray-0.0.1-agent.jar -cp myapp.jar com.example.Application
 
 # Example 2: Test mode with custom directory
-java -Djvmxray.test.home=/tmp/jvmxray-test -javaagent:prj-agent/target/prj-agent-0.0.1-shaded.jar MyApp
+java -Djvmxray.test.home=/tmp/jvmxray-test -javaagent:target/jvmxray-0.0.1-agent.jar MyApp
 
 # Example 3: Production deployment
-java -Djvmxray.home=/opt/security -javaagent:/opt/jvmxray/prj-agent-0.0.1-shaded.jar -jar application.jar
+java -Djvmxray.home=/opt/security -javaagent:/opt/jvmxray/jvmxray-0.0.1-agent.jar -jar application.jar
 ```
 
 ---
@@ -275,7 +274,7 @@ java -Djvmxray.home=/opt/security -javaagent:/opt/jvmxray/prj-agent-0.0.1-shaded
 
 #### agent.properties
 
-**Location:** `prj-agent/src/main/resources/agent.properties`
+**Location:** `src/main/resources/agent.properties`
 
 **Core Settings:**
 
@@ -376,7 +375,7 @@ Events are logged when files are closed, providing complete operation statistics
 
 #### Agent Logback Configuration
 
-**Location:** `prj-agent/src/main/resources/agent-logback-production.xml2`
+**Location:** `src/main/resources/agent-logback-production.xml2`
 
 **Key Appenders:**
 
@@ -405,14 +404,6 @@ Events are logged when files are closed, providing complete operation statistics
 |----------|-------------|---------|
 | LOG_HOME | Agent logs directory | ${jvmxray.agent.logs} |
 | MSG_FMT_LG | Message format | C:AP \| %d{YYYY.MM.dd 'at' HH:mm:ss z} \| %thread \| %5level \| %logger \| %X \| %msg%n |
-
----
-
-## REST API Endpoints
-
-**[Not Applicable]**
-
-The JVMXRay Agent does not expose REST API endpoints. It operates as a passive monitoring agent that instruments bytecode and logs events through configured appenders.
 
 ---
 
@@ -591,30 +582,6 @@ The following properties are automatically classified as sensitive:
 - `java.library.path`, `java.class.path`, `java.ext.dirs`, `java.endorsed.dirs`
 - `user.dir`, `user.home`, `java.io.tmpdir`
 - Any property containing: `password`, `secret`, `key`, `token`
-
-#### Enhanced Security Metadata Fields
-
-The CONFIG sensor now includes OWASP and CWE mappings for security-relevant properties:
-
-| Field | Type | Description | Example Values |
-|-------|------|-------------|----------------|
-| `owasp_category` | String | OWASP Top 10 (2021) category mapping | `A01` (Broken Access Control), `A05` (Security Misconfiguration), `A08` (Software and Data Integrity Failures) |
-| `cwe_id` | String | Common Weakness Enumeration ID | `CWE-426` (Untrusted Search Path), `CWE-250` (Execution with Unnecessary Privileges) |
-| `remediation_guidance` | String | Actionable fix suggestion | `Use application-specific policy files`, `Avoid modifying classpath at runtime` |
-| `risk_level` | String | Risk classification | `CRITICAL`, `HIGH`, `MEDIUM`, `LOW` |
-| `modification_impact` | String | Impact assessment for property changes | `Describes potential security impact of the modification` |
-| `access_context` | String | Classification of the calling code | `framework`, `application`, `test` |
-
-#### OWASP/CWE Mappings
-
-| Property | OWASP Category | CWE ID | Risk Level |
-|----------|---------------|--------|------------|
-| `java.security.policy` | A05 (Security Misconfiguration) | CWE-732 | CRITICAL |
-| `java.security.manager` | A05 (Security Misconfiguration) | CWE-250 | CRITICAL |
-| `java.class.path` | A08 (Software Integrity Failures) | CWE-426 | HIGH |
-| `java.library.path` | A08 (Software Integrity Failures) | CWE-426 | HIGH |
-| `javax.net.ssl.trustStore` | A02 (Cryptographic Failures) | CWE-295 | HIGH |
-| `java.io.tmpdir` | A01 (Broken Access Control) | CWE-377 | MEDIUM |
 
 ---
 
@@ -1441,10 +1408,10 @@ Unable to determine a working directory. Set -Djvmxray.home=/path/to/home or -Dj
 **Resolution:**
 ```bash
 # For production use
-java -Djvmxray.home=/opt/jvmxray -javaagent:prj-agent-0.0.1-shaded.jar MyApp
+java -Djvmxray.home=/opt/jvmxray -javaagent:jvmxray-0.0.1-agent.jar MyApp
 
 # For testing
-java -Djvmxray.test.home=/tmp/test -javaagent:prj-agent-0.0.1-shaded.jar MyApp
+java -Djvmxray.test.home=/tmp/test -javaagent:jvmxray-0.0.1-agent.jar MyApp
 ```
 
 **Prevention:** Always set exactly one of the home directory properties
@@ -1495,10 +1462,10 @@ Class resource not found: org/jvmxray/agent/sensor/SensorClass.class
 **Resolution:**
 ```bash
 # Rebuild agent with all dependencies
-mvn clean install -f prj-agent/pom.xml
+mvn clean install
 ```
 
-**Prevention:** Use the shaded JAR (prj-agent-0.0.1-shaded.jar) for deployments
+**Prevention:** Use the agent JAR (jvmxray-0.0.1-agent.jar) for deployments
 
 ---
 
@@ -1510,7 +1477,7 @@ mvn clean install -f prj-agent/pom.xml
 
 **Purpose:** Centralized, thread-safe registry for sensor statistics monitoring
 
-**Location:** `prj-agent/src/main/java/org/jvmxray/agent/util/StatsRegistry.java`
+**Location:** `src/main/java/org/jvmxray/agent/util/StatsRegistry.java`
 
 **Design:**
 - Thread-safe implementation using `ConcurrentHashMap` for lock-free updates

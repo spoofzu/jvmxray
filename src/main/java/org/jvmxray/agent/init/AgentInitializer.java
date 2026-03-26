@@ -172,8 +172,9 @@ public class AgentInitializer {
         Path configPath = jvmxrayHome.resolve("agent").resolve("config");
         File targetFile = configPath.resolve("logback.xml").toFile();
 
-        // Determine which logback config to copy based on test/production mode
-        String resourceName = isMavenTestMode() ? "agent-logback-shaded.xml2" : "agent-logback-shaded.xml2";
+        // Use production (non-shaded) logback config - the JoranConfigurator used by
+        // initializeLogging() is non-shaded, so appender classes must be non-shaded too
+        String resourceName = "agent-logback-production.xml2";
 
         // In test mode, always refresh to avoid stale config from previous runs
         if (isMavenTestMode() && targetFile.exists()) {
@@ -280,6 +281,11 @@ public class AgentInitializer {
                 loggerContext.reset();
                 loggerContext.putProperty("jvmxray.agent.logs", agentLogsPath);
                 loggerContext.putProperty("jvmxray.agent.config", agentConfigPath);
+                // Propagate test home for database path resolution in test logback configs
+                String testHome = System.getProperty("jvmxray.test.home");
+                if (testHome != null) {
+                    loggerContext.putProperty("jvmxray.test.home", testHome);
+                }
 
                 // Load the shaded logback configuration
                 String xml = new String(java.nio.file.Files.readAllBytes(logbackConfig.toPath()), java.nio.charset.StandardCharsets.UTF_8);
@@ -290,6 +296,13 @@ public class AgentInitializer {
                     configurator.doConfigure(in);
                 }
                 loggerContext.start();
+
+                // Register shutdown hook to flush appenders (especially database appenders)
+                // The isolated LoggerContext doesn't get the default logback shutdown hook
+                final LoggerContext ctx = loggerContext;
+                Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                    ctx.stop();
+                }, "JVMXRayAgent-LogbackShutdown"));
             }
 
         } catch (NoClassDefFoundError e) {

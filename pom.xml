@@ -127,39 +127,6 @@
       <version>1.5.0</version>
     </dependency>
 
-    <!-- MCP SDK (system-scope SNAPSHOTs from libs/) -->
-    <dependency>
-      <groupId>io.modelcontextprotocol.sdk</groupId>
-      <artifactId>mcp</artifactId>
-      <version>0.13.0-SNAPSHOT</version>
-      <scope>system</scope>
-      <systemPath>${basedir}/libs/mcp-0.13.0-SNAPSHOT.jar</systemPath>
-    </dependency>
-    <dependency>
-      <groupId>io.modelcontextprotocol.sdk</groupId>
-      <artifactId>mcp-json-jackson2</artifactId>
-      <version>0.13.0-SNAPSHOT</version>
-      <scope>system</scope>
-      <systemPath>${basedir}/libs/mcp-json-jackson2-0.13.0-SNAPSHOT.jar</systemPath>
-    </dependency>
-
-    <!-- MCP runtime support -->
-    <dependency>
-      <groupId>org.apache.httpcomponents</groupId>
-      <artifactId>httpclient</artifactId>
-      <version>4.5.14</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.httpcomponents</groupId>
-      <artifactId>httpcore</artifactId>
-      <version>4.4.16</version>
-    </dependency>
-    <dependency>
-      <groupId>io.projectreactor</groupId>
-      <artifactId>reactor-core</artifactId>
-      <version>3.7.0</version>
-    </dependency>
-
     <!-- Test -->
     <dependency>
       <groupId>junit</groupId>
@@ -256,6 +223,13 @@
                     <exclude>META-INF/*.SF</exclude>
                     <exclude>META-INF/*.DSA</exclude>
                     <exclude>META-INF/*.RSA</exclude>
+                    <exclude>META-INF/MANIFEST.MF</exclude>
+                    <exclude>META-INF/LICENSE</exclude>
+                    <exclude>META-INF/LICENSE.txt</exclude>
+                    <exclude>META-INF/NOTICE</exclude>
+                    <exclude>META-INF/io.netty.versions.properties</exclude>
+                    <exclude>module-info.class</exclude>
+                    <exclude>META-INF/versions/*/module-info.class</exclude>
                   </excludes>
                 </filter>
               </filters>
@@ -275,69 +249,6 @@
             </configuration>
           </execution>
 
-          <!-- Execution 2: version-tool shaded JAR -->
-          <execution>
-            <id>shade-version-tool</id>
-            <phase>package</phase>
-            <goals><goal>shade</goal></goals>
-            <configuration>
-              <shadedArtifactAttached>true</shadedArtifactAttached>
-              <shadedClassifierName>version-tool</shadedClassifierName>
-              <createDependencyReducedPom>false</createDependencyReducedPom>
-              <filters>
-                <filter>
-                  <artifact>*:*</artifact>
-                  <excludes>
-                    <exclude>META-INF/*.SF</exclude>
-                    <exclude>META-INF/*.DSA</exclude>
-                    <exclude>META-INF/*.RSA</exclude>
-                  </excludes>
-                </filter>
-              </filters>
-              <transformers>
-                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <mainClass>org.jvmxray.platform.shared.bin.VersionTool</mainClass>
-                  <manifestEntries>
-                    <Implementation-Version>${project.version}</Implementation-Version>
-                    <Git-Commit>${git.commit.id.abbrev}</Git-Commit>
-                    <Build-Time>${maven.build.timestamp}</Build-Time>
-                  </manifestEntries>
-                </transformer>
-              </transformers>
-            </configuration>
-          </execution>
-
-        </executions>
-      </plugin>
-
-      <!-- Assembly: MCP client fat JAR (handles system-scope JARs correctly) -->
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-assembly-plugin</artifactId>
-        <version>3.6.0</version>
-        <configuration>
-          <descriptors>
-            <descriptor>src/assembly/standalone.xml</descriptor>
-          </descriptors>
-          <finalName>jvmxray-mcp-client</finalName>
-          <appendAssemblyId>false</appendAssemblyId>
-          <archive>
-            <manifest>
-              <mainClass>org.jvmxray.platform.client.mcp.bridge.JvmxrayMcpClient</mainClass>
-            </manifest>
-            <manifestEntries>
-              <Implementation-Version>${project.version}</Implementation-Version>
-              <Git-Commit>${git.commit.id.abbrev}</Git-Commit>
-              <Build-Time>${maven.build.timestamp}</Build-Time>
-            </manifestEntries>
-          </archive>
-        </configuration>
-        <executions>
-          <execution>
-            <id>make-mcp-client</id>
-            <phase>package</phase>
-            <goals><goal>single</goal></goals>
-          </execution>
         </executions>
       </plugin>
 
@@ -360,7 +271,6 @@
                 <copy file="${project.basedir}/src/main/resources/agent-logback-production.xml2"
                       tofile="${project.build.directory}/test-jvmxray/agent/config/logback.xml"
                       overwrite="false"/>
-                <echo message="Seeded test-jvmxray/agent with config/logs"/>
               </target>
             </configuration>
           </execution>
@@ -375,7 +285,6 @@
                 <mkdir dir="${project.build.directory}/test-jvmxray/common/data"/>
                 <mkdir dir="${project.build.directory}/test-jvmxray/common/config"/>
                 <mkdir dir="${project.build.directory}/test-jvmxray/common/logs"/>
-                <echo message="Created test-jvmxray/common directory structure"/>
                 <java classname="org.jvmxray.platform.shared.bin.SchemaManager"
                       fork="true"
                       failonerror="false">
@@ -391,7 +300,6 @@
                   <arg value="jdbc:sqlite:${project.build.directory}/test-jvmxray/common/data/jvmxray-test.db"/>
                   <sysproperty key="jvmxray.test.home" value="${project.build.directory}/test-jvmxray"/>
                 </java>
-                <echo message="Test database schema creation completed"/>
               </target>
             </configuration>
           </execution>
@@ -430,6 +338,7 @@
             </goals>
             <configuration>
               <useModulePath>false</useModulePath>
+              <forkNode implementation="org.apache.maven.plugin.surefire.extensions.SurefireForkNodeFactory"/>
               <includes>
                 <include>**/TurtleTest.java</include>
               </includes>

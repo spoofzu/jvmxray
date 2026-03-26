@@ -100,10 +100,6 @@ public class SQLiteSchema extends AbstractDatabaseSchema {
             executeSQL(connection, SchemaConstants.SQLTemplates.CREATE_STAGE1_EVENT_KEYPAIR_SQLITE);
             logger.info("Created STAGE1_EVENT_KEYPAIR table");
 
-            // Create API_KEY table for REST service authentication
-            executeSQL(connection, SchemaConstants.SQLTemplates.CREATE_API_KEY_SQLITE);
-            logger.info("Created API_KEY table");
-
             connection.commit();
             logger.info("Successfully created all SQLite tables");
             
@@ -201,9 +197,6 @@ public class SQLiteSchema extends AbstractDatabaseSchema {
             connection.setAutoCommit(false); // Use transaction
             
             // Drop tables in reverse order (dependent tables first)
-            executeSQL(connection, SchemaConstants.SQLTemplates.DROP_API_KEY);
-            logger.info("Dropped API_KEY table");
-
             executeSQL(connection, SchemaConstants.SQLTemplates.DROP_STAGE1_EVENT_KEYPAIR);
             logger.info("Dropped STAGE1_EVENT_KEYPAIR table");
 
@@ -253,17 +246,13 @@ public class SQLiteSchema extends AbstractDatabaseSchema {
             // Check if STAGE1_EVENT_KEYPAIR table exists
             boolean stage1KeypairExists = checkTableExists(connection, SchemaConstants.STAGE1_EVENT_KEYPAIR_TABLE);
 
-            // Check if API_KEY table exists
-            boolean apiKeyExists = checkTableExists(connection, SchemaConstants.API_KEY_TABLE);
-
-            boolean allTablesExist = stage0EventExists && stage1EventExists && stage1KeypairExists &&
-                                   apiKeyExists;
+            boolean allTablesExist = stage0EventExists && stage1EventExists && stage1KeypairExists;
 
             if (allTablesExist) {
                 logger.info("All required SQLite tables exist");
             } else {
-                logger.warning(String.format("Missing SQLite tables - Stage0Event: %b, Stage1Event: %b, Stage1KeyPair: %b, ApiKey: %b",
-                    stage0EventExists, stage1EventExists, stage1KeypairExists, apiKeyExists));
+                logger.warning(String.format("Missing SQLite tables - Stage0Event: %b, Stage1Event: %b, Stage1KeyPair: %b",
+                    stage0EventExists, stage1EventExists, stage1KeypairExists));
             }
             
             return allTablesExist;

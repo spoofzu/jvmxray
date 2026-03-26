@@ -111,3 +111,6 @@ CLAUDE.md
 ##############################
 # Prevent logs from being created in source tree
 */logs/
+# Don't include planning docs
+docs/planning/
+docs/superpowers/

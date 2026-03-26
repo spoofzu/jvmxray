@@ -37,10 +37,12 @@ java -javaagent:target/jvmxray-0.0.1-agent.jar -jar yourapp.jar
 ## Benefits
 
 - **Zero code changes** — Attaches to any Java application at launch, like a debugger. No source modifications, no recompilation, no library dependencies to add.
-- **AI-ready structured events** — Sensors generate machine-readable security events, not unstructured log lines. AI tools can analyze application behavior immediately without parsing or guesswork.
+- **AI-ready structured events** — Sensors generate machine-readable security events, not unstructured log lines. Use your AI tools to analyze application behavior like you application logs.
 - **Fits your logging infrastructure** — Events are Logback log messages. Route them to Splunk, ELK, DataDog, Kafka, or any destination the Logback ecosystem supports.
 - **Attack chain reconstruction** — Correlated events with `trace_id` and `scope_chain` let SOC teams trace an incident from HTTP request through SQL injection to data exfiltration in a single query.
 - **Tunable overhead** — Standard Logback log-level properties control which sensors fire and at what verbosity. Turn sensors on or off per environment without rebuilding.
+
+Keep in mind, JVMXRay is a source of truth for what a Java application is doing, not an analysis engine.  Analysis is provided by your centralized logging solution and/or your AI tooling projects.
 
 ---
 
@@ -112,8 +114,15 @@ java -javaagent:jvmxray-agent.jar -jar app.jar
 - [Changelog](docs/CHANGELOG.md) — Detailed release changes
 - [News Archive](docs/CHANGELOG.md) — Project history
 
-## Contributors
+## Acknowledgements
+This project was developed using ideas, architecture, and code in some cases from the following,
+- Claude Code CLI by Anthropic, [Anthropic](https://www.anthropic.com/claude-code)
+- Byte-code architecture based in part from ideas by Terse Systems, [Terse Systems](https://tersesystems.com/)
+- Logback logging framework by QOS.ch Sarl Sweitzerland, [QOS.ch](https://www.qos.ch/)
+- Apache Software Foundation, [Apache Software Foundation](https://www.apache.org/)
 
-Milton Smith — Project creator
+## Contributor(s)
+
+Milton Smith — Project creator, leader
 
 Disclosure: JVMXRay is not approved, endorsed by, or affiliated with Oracle Corporation.

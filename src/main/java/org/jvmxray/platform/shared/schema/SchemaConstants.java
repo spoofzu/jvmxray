@@ -22,8 +22,6 @@ public final class SchemaConstants {
     public static final String STAGE0_EVENT_TABLE = "STAGE0_EVENT";
     public static final String STAGE1_EVENT_TABLE = "STAGE1_EVENT";
     public static final String STAGE1_EVENT_KEYPAIR_TABLE = "STAGE1_EVENT_KEYPAIR";
-    public static final String API_KEY_TABLE = "API_KEY";
-    
     // Common Column Names
     public static final String COL_EVENT_ID = "EVENT_ID";
     public static final String COL_CONFIG_FILE = "CONFIG_FILE";
@@ -41,13 +39,6 @@ public final class SchemaConstants {
     public static final String COL_KEY = "KEY";
     public static final String COL_VALUE = "VALUE";
     
-    // API_KEY table column names
-    public static final String COL_API_KEY = "API_KEY";
-    public static final String COL_APP_NAME = "APP_NAME";
-    public static final String COL_IS_SUSPENDED = "IS_SUSPENDED";
-    public static final String COL_CREATED_AT = "CREATED_AT";
-    public static final String COL_LAST_USED = "LAST_USED";
-
 
     // Data Type Mappings
     public static final class DataTypes {
@@ -194,34 +185,6 @@ public final class SchemaConstants {
             COL_VALUE + " " + DataTypes.Cassandra.TEXT + ", " +
             "PRIMARY KEY (" + COL_EVENT_ID + ", " + COL_KEY + ")" +
             ")";
-        // API_KEY table creation templates
-        public static final String CREATE_API_KEY_MYSQL = 
-            "CREATE TABLE IF NOT EXISTS " + API_KEY_TABLE + " (" +
-            COL_API_KEY + " " + DataTypes.MySQL.VARCHAR_255 + " PRIMARY KEY, " +
-            COL_APP_NAME + " " + DataTypes.MySQL.VARCHAR_255 + " NOT NULL, " +
-            COL_IS_SUSPENDED + " " + DataTypes.MySQL.BOOLEAN + " DEFAULT FALSE, " +
-            COL_CREATED_AT + " " + DataTypes.MySQL.BIGINT + ", " +
-            COL_LAST_USED + " " + DataTypes.MySQL.BIGINT +
-            ")";
-            
-        public static final String CREATE_API_KEY_SQLITE = 
-            "CREATE TABLE IF NOT EXISTS " + API_KEY_TABLE + " (" +
-            COL_API_KEY + " " + DataTypes.SQLite.TEXT + " PRIMARY KEY, " +
-            COL_APP_NAME + " " + DataTypes.SQLite.TEXT + " NOT NULL, " +
-            COL_IS_SUSPENDED + " " + DataTypes.SQLite.BOOLEAN + " DEFAULT 0, " +
-            COL_CREATED_AT + " " + DataTypes.SQLite.INTEGER + ", " +
-            COL_LAST_USED + " " + DataTypes.SQLite.INTEGER +
-            ")";
-            
-        public static final String CREATE_API_KEY_CASSANDRA =
-            "CREATE TABLE IF NOT EXISTS %s." + API_KEY_TABLE + " (" +
-            COL_API_KEY + " " + DataTypes.Cassandra.TEXT + " PRIMARY KEY, " +
-            COL_APP_NAME + " " + DataTypes.Cassandra.TEXT + ", " +
-            COL_IS_SUSPENDED + " " + DataTypes.Cassandra.BOOLEAN + ", " +
-            COL_CREATED_AT + " " + DataTypes.Cassandra.BIGINT + ", " +
-            COL_LAST_USED + " " + DataTypes.Cassandra.BIGINT +
-            ")";
-
         // Drop table statements
         public static final String DROP_STAGE0_EVENT = "DROP TABLE IF EXISTS " + STAGE0_EVENT_TABLE;
         public static final String DROP_STAGE1_EVENT = "DROP TABLE IF EXISTS " + STAGE1_EVENT_TABLE;
@@ -229,9 +192,6 @@ public final class SchemaConstants {
         public static final String DROP_STAGE0_EVENT_CASSANDRA = "DROP TABLE IF EXISTS %s." + STAGE0_EVENT_TABLE;
         public static final String DROP_STAGE1_EVENT_CASSANDRA = "DROP TABLE IF EXISTS %s." + STAGE1_EVENT_TABLE;
         public static final String DROP_STAGE1_EVENT_KEYPAIR_CASSANDRA = "DROP TABLE IF EXISTS %s." + STAGE1_EVENT_KEYPAIR_TABLE;
-        public static final String DROP_API_KEY = "DROP TABLE IF EXISTS " + API_KEY_TABLE;
-        public static final String DROP_API_KEY_CASSANDRA = "DROP TABLE IF EXISTS %s." + API_KEY_TABLE;
-        
         // Table existence check queries
         public static final String CHECK_TABLE_EXISTS_MYSQL = 
             "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = ? AND table_name = ?";
