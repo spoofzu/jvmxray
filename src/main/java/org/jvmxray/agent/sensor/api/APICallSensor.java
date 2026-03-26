@@ -7,6 +7,7 @@ import org.jvmxray.agent.sensor.Sensor;
 import org.jvmxray.agent.sensor.Transform;
 import org.jvmxray.agent.proxy.LogProxy;
 import org.jvmxray.agent.init.AgentInitializer;
+import org.jvmxray.platform.shared.util.MCCScope;
 import org.jvmxray.platform.shared.property.AgentProperties;
 
 import java.lang.instrument.Instrumentation;
@@ -45,6 +46,7 @@ public class APICallSensor extends AbstractSensor implements InjectableSensor {
             Sensor.class,
             InjectableSensor.class,
             LogProxy.class,
+            MCCScope.class,
             APICallInterceptor.class
         };
     }
