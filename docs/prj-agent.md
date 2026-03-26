@@ -35,14 +35,14 @@
 The JVMXRay Agent is a runtime security monitoring tool that uses bytecode injection to instrument Java applications without requiring code changes. It monitors file access, network connections, system calls, and other security-relevant operations in real-time.
 
 ### Core Mission
-Monitor Java applications for security vulnerabilities and suspicious activity through transparent bytecode injection with zero application modifications.
+Monitor Java application behavior through transparent bytecode injection with zero application modifications. JVMXRay is a source of structured security events — analysis is performed by your centralized logging solution, AI tooling, or SIEM.
 
 ### Key Capabilities
-- 17+ modular sensors monitoring different aspects of application behavior
+- 19 modular sensors monitoring different aspects of application behavior
 - Real-time bytecode injection using ByteBuddy framework
-- Structured event generation for AI-enhanced security analysis
+- Structured event generation compatible with AI analysis tools and centralized logging
 - Enterprise logging integration (Logback/SLF4J) with Splunk/ELK compatibility
-- Zero-performance-impact monitoring with configurable sensor activation
+- Configurable sensor activation with tunable overhead via standard Logback properties
 
 ---
 

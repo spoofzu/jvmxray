@@ -77,10 +77,9 @@ All notable changes to this project are documented in this file.
 ## [0.0.1-alpha] - 2025-09-18
 
 ### Major Update
-- AI-powered vulnerability analysis
+- Structured security events compatible with AI analysis tools
 - 15+ sensor types
 - Multi-database support (SQLite/MySQL/Cassandra)
-- MCP server for Claude Desktop integration
 - Enhanced documentation suite
 - Complete CI/CD pipeline
 
