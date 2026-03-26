@@ -4,6 +4,7 @@ import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -504,6 +505,22 @@ public class MCC {
 
         stack.push(scopeId);
 
+        // Record nesting depth
+        Map<String, String> ctx = context.get();
+        ctx.put("scope_depth", String.valueOf(stack.size()));
+
+        // Record parent scope
+        if (stack.size() > 1) {
+            Iterator<String> it = stack.iterator();
+            it.next(); // skip current (top)
+            ctx.put("parent_scope", it.next());
+        } else {
+            ctx.put("parent_scope", "none");
+        }
+
+        // Build scope chain (bottom-to-top, e.g., "HTTP>SQL>FileIO")
+        ctx.put("scope_chain", buildScopeChain(stack));
+
         // Update stats registry
         updateStats();
     }
@@ -549,6 +566,20 @@ public class MCC {
 
         if (!stack.isEmpty() && scopeId.equals(stack.peek())) {
             stack.pop();
+
+            if (!stack.isEmpty()) {
+                // Update scope tracking fields for remaining scopes
+                Map<String, String> ctx = context.get();
+                ctx.put("scope_depth", String.valueOf(stack.size()));
+                ctx.put("scope_chain", buildScopeChain(stack));
+                if (stack.size() > 1) {
+                    Iterator<String> it = stack.iterator();
+                    it.next(); // skip current top
+                    ctx.put("parent_scope", it.next());
+                } else {
+                    ctx.put("parent_scope", "none");
+                }
+            }
 
             if (stack.isEmpty()) {
                 // Last exit - clear all correlation context and ThreadLocals
@@ -630,6 +661,26 @@ public class MCC {
         }
         Map<String, String> capturedContext = captureContext();
         return new CorrelationAwareCallable<>(task, capturedContext);
+    }
+
+    /**
+     * Builds a scope chain string from bottom-to-top of the scope stack.
+     *
+     * <p>The resulting string shows the nesting order from outermost to innermost scope,
+     * delimited by "&gt;". For example, if HTTP entered first, then SQL, then FileIO,
+     * the chain would be "HTTP&gt;SQL&gt;FileIO".</p>
+     *
+     * @param stack the current scope stack (head is top/most-recent)
+     * @return scope chain string, e.g., "HTTP&gt;SQL&gt;FileIO"
+     */
+    private static String buildScopeChain(Deque<String> stack) {
+        StringBuilder sb = new StringBuilder();
+        Iterator<String> it = stack.descendingIterator(); // bottom to top
+        while (it.hasNext()) {
+            if (sb.length() > 0) sb.append(">");
+            sb.append(it.next());
+        }
+        return sb.toString();
     }
 
     /**
