@@ -1,9 +1,9 @@
-# JVMXRay: AI-Enhanced Java Security Monitoring
+# JVMXRay: Java Application Security Monitoring
 
 [![Black Hat Arsenal](https://raw.githubusercontent.com/toolswatch/badges/master/arsenal/usa/2020.svg?sanitize=true)](https://www.toolswatch.org/blackhat-arsenal-us-2020-archive/)
 [![Java](https://img.shields.io/badge/Java-17+-orange.svg)](https://openjdk.java.net/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0.txt)
-[![Development Status](https://img.shields.io/badge/Status-Alpha-red.svg)](ZREADME-ALPHA.md)
+[![Development Status](https://img.shields.io/badge/Status-POC-red.svg)](#)
 
 <div align="left">
 <picture>
@@ -16,8 +16,6 @@
 **[Duke history](https://dev.java/duke/)**
 
 JVMXRay monitors Java applications in real-time via bytecode injection, detecting vulnerabilities and suspicious activity without code changes. 19 modular sensors track file access, network connections, SQL queries, cryptographic operations, authentication, process execution, and more — generating structured, machine-readable security events with automatic cross-sensor correlation.
-
-> **Alpha software** — for testing and evaluation only. [Details](ZREADME-ALPHA.md)
 
 ---
 
@@ -104,7 +102,7 @@ java -javaagent:jvmxray-agent.jar -jar app.jar
 - [Agent Reference](docs/prj-agent.md) — Sensor configuration, event fields, database schema
 - [Common Components](docs/prj-common.md) — Database setup and utilities
 - [Changelog](docs/CHANGELOG.md) — Detailed release changes
-- [News Archive](ZREADME-NEWS.md) — Project history
+- [News Archive](docs/CHANGELOG.md) — Project history
 
 ## Contributors
 
