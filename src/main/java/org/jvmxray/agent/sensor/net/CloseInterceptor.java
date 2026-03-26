@@ -2,6 +2,7 @@ package org.jvmxray.agent.sensor.net;
 
 import net.bytebuddy.asm.Advice;
 import org.jvmxray.agent.proxy.LogProxy;
+import org.jvmxray.platform.shared.util.MCCScope;
 
 import java.net.InetSocketAddress;
 import java.net.Socket;
@@ -26,12 +27,14 @@ public class CloseInterceptor {
     public static final LogProxy logProxy = LogProxy.getInstance();
 
     /**
-     * Intercepts the entry of the {@code Socket.close} method to record the start time.
+     * Intercepts the entry of the {@code Socket.close} method to record the start time
+     * and enter MCC correlation scope.
      *
      * @param socket The {@code Socket} instance being closed.
      */
     @Advice.OnMethodEnter
     public static void enter(@Advice.This Socket socket) {
+        MCCScope.enter("Network");
         // Record the start time of the close operation
         startTime.set(System.currentTimeMillis());
     }
@@ -47,23 +50,33 @@ public class CloseInterceptor {
     public static void exit(
             @Advice.This Socket socket,
             @Advice.Thrown Throwable thrown) {
-        // Retrieve remote address and port, handling null case
-        InetSocketAddress remoteAddr = (InetSocketAddress) socket.getRemoteSocketAddress();
-        String remote = remoteAddr != null ? remoteAddr.getAddress().getHostAddress() + ":" + remoteAddr.getPort() : "unknown:0";
-        // Retrieve local address and port
-        String local = socket.getLocalAddress().getHostAddress() + ":" + socket.getLocalPort();
+        try {
+            // Retrieve remote address and port, handling null case
+            InetSocketAddress remoteAddr = (InetSocketAddress) socket.getRemoteSocketAddress();
+            String remote = remoteAddr != null ? remoteAddr.getAddress().getHostAddress() + ":" + remoteAddr.getPort() : "unknown:0";
+            // Retrieve local address and port
+            String local = socket.getLocalAddress().getHostAddress() + ":" + socket.getLocalPort();
 
-        // Initialize metadata for logging
-        Map<String, String> metadata = new HashMap<>();
-        metadata.put("bind_src", local);
-        metadata.put("dst", remote);
-        metadata.put("status", thrown != null ?
-                "threw " + thrown.getClass().getSimpleName() + ": " + thrown.getMessage() : "closed");
+            // Initialize metadata for logging
+            Map<String, String> metadata = new HashMap<>();
+            metadata.put("bind_src", local);
+            metadata.put("dst", remote);
+            metadata.put("status", thrown != null ?
+                    "threw " + thrown.getClass().getSimpleName() + ": " + thrown.getMessage() : "closed");
 
-        // Log the socket close event
-        logProxy.logMessage(NAMESPACE, "INFO", metadata);
+            // Calculate and add connection duration if start time was captured
+            Long start = startTime.get();
+            if (start != null) {
+                long durationMs = System.currentTimeMillis() - start;
+                metadata.put("connection_duration_ms", String.valueOf(durationMs));
+            }
 
-        // Clean up thread-local storage
-        startTime.remove();
+            // Log the socket close event
+            logProxy.logMessage(NAMESPACE, "INFO", metadata);
+        } finally {
+            // Clean up thread-local storage
+            startTime.remove();
+            MCCScope.exit("Network");
+        }
     }
 }

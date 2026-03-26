@@ -2,6 +2,7 @@ package org.jvmxray.agent.sensor.net;
 
 import net.bytebuddy.asm.Advice;
 import org.jvmxray.agent.proxy.LogProxy;
+import org.jvmxray.platform.shared.util.MCCScope;
 
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
@@ -27,7 +28,7 @@ public class BindInterceptor {
 
     /**
      * Intercepts the entry of the {@code ServerSocket.bind} method.
-     * This implementation performs no operations but is included for potential future use.
+     * Enters MCC correlation scope for network event tracking.
      *
      * @param serverSocket The {@code ServerSocket} instance being bound.
      * @param endpoint     The {@code SocketAddress} to bind to.
@@ -38,7 +39,7 @@ public class BindInterceptor {
             @Advice.This ServerSocket serverSocket,
             @Advice.Argument(0) SocketAddress endpoint,
             @Advice.Argument(1) int backlog) {
-        // No operations required on method entry
+        MCCScope.enter("Network");
     }
 
     /**
@@ -47,27 +48,39 @@ public class BindInterceptor {
      *
      * @param serverSocket The {@code ServerSocket} instance being bound.
      * @param endpoint     The {@code SocketAddress} to bind to.
+     * @param backlog      The backlog for the socket's connection queue.
      * @param thrown       The {@code Throwable} thrown during the bind operation, or null if successful.
      */
     @Advice.OnMethodExit(onThrowable = Throwable.class)
     public static void exit(
             @Advice.This ServerSocket serverSocket,
             @Advice.Argument(0) SocketAddress endpoint,
+            @Advice.Argument(1) int backlog,
             @Advice.Thrown Throwable thrown) {
-        // Cast endpoint to InetSocketAddress for address and port details
-        InetSocketAddress localAddr = (InetSocketAddress) endpoint;
+        try {
+            // Initialize metadata for logging
+            Map<String, String> metadata = new HashMap<>();
 
-        // Initialize metadata for logging
-        Map<String, String> metadata = new HashMap<>();
-        metadata.put("bind_src", localAddr.getAddress().getHostAddress() + ":" + localAddr.getPort());
-        // Note: The following line overwrites the previous "status" entry, likely a bug.
-        // Only the second "status" value ("accepted" or exception details) is logged.
-        metadata.put("status", thrown != null ?
-                "threw " + thrown.getClass().getSimpleName() + ": " + thrown.getMessage() : "bound");
-        metadata.put("status", thrown != null ?
-                "threw " + thrown.getClass().getSimpleName() + ": " + thrown.getMessage() : "accepted");
+            // Extract bind address details
+            try {
+                InetSocketAddress localAddr = (InetSocketAddress) endpoint;
+                metadata.put("bind_src", localAddr.getAddress().getHostAddress() + ":" + localAddr.getPort());
+                metadata.put("local_port", String.valueOf(localAddr.getPort()));
+            } catch (Exception e) {
+                metadata.put("bind_src", "unknown:0");
+            }
 
-        // Log the socket bind event
-        logProxy.logMessage(NAMESPACE, "INFO", metadata);
+            // Add backlog value
+            metadata.put("backlog", String.valueOf(backlog));
+
+            // Set status based on success or failure
+            metadata.put("status", thrown != null ?
+                    "threw " + thrown.getClass().getSimpleName() + ": " + thrown.getMessage() : "bound");
+
+            // Log the socket bind event
+            logProxy.logMessage(NAMESPACE, "INFO", metadata);
+        } finally {
+            MCCScope.exit("Network");
+        }
     }
 }
