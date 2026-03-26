@@ -61,27 +61,18 @@ public class ProcessInterceptor {
         });
     }
 
-    /**
-     * Logs a process execution operation with the specified details.
-     */
-    public static void logProcessExecution(String command, String[] args, String workingDir) {
-        Map<String, String> metadata = new HashMap<>();
-        metadata.put("operation", "EXECUTE");
-        metadata.put("command", command);
-        if (args != null && args.length > 0) {
-            metadata.put("args", String.join(" ", args));
-        }
-        if (workingDir != null) {
-            metadata.put("working_dir", workingDir);
-        }
-        logProxy.logMessage(NAMESPACE, "INFO", metadata);
-    }
-
     // ProcessBuilder.start() interception
     public static class ProcessBuilderStart {
         @Advice.OnMethodEnter
-        public static void enter(@Advice.This ProcessBuilder pb) {
+        public static long enter() {
             MCCScope.enter("Process");
+            return System.nanoTime();
+        }
+
+        @Advice.OnMethodExit(onThrowable = Throwable.class)
+        public static void exit(@Advice.Enter long startTime,
+                                @Advice.This ProcessBuilder pb,
+                                @Advice.Thrown Throwable thrown) {
             try {
                 if (shouldCapture('E')) {
                     try {
@@ -93,7 +84,26 @@ public class ProcessInterceptor {
                                 new String[0];
                             File workingDir = pb.directory();
                             String workingDirPath = workingDir != null ? workingDir.getAbsolutePath() : null;
-                            logProcessExecution(executable, args, workingDirPath);
+
+                            Map<String, String> metadata = new HashMap<>();
+                            metadata.put("operation", "EXECUTE");
+                            metadata.put("command", executable);
+                            if (args.length > 0) {
+                                metadata.put("args", String.join(" ", args));
+                            }
+                            if (workingDirPath != null) {
+                                metadata.put("working_dir", workingDirPath);
+                            }
+                            long durationMs = (System.nanoTime() - startTime) / 1_000_000;
+                            metadata.put("execution_time_ms", String.valueOf(durationMs));
+                            if (thrown != null) {
+                                metadata.put("status", "failed");
+                                metadata.put("error_class", thrown.getClass().getSimpleName());
+                                metadata.put("error_message", thrown.getMessage());
+                            } else {
+                                metadata.put("status", "started");
+                            }
+                            logProxy.logMessage(NAMESPACE, "INFO", metadata);
                         }
                     } catch (Exception e) {
                         // Silently ignore errors in logging to avoid breaking the application
@@ -108,32 +118,63 @@ public class ProcessInterceptor {
     // Runtime.exec() interceptions
     public static class RuntimeExec {
         @Advice.OnMethodEnter
-        public static void enter(@Advice.AllArguments Object[] args) {
+        public static long enter() {
             MCCScope.enter("Process");
+            return System.nanoTime();
+        }
+
+        @Advice.OnMethodExit(onThrowable = Throwable.class)
+        public static void exit(@Advice.Enter long startTime,
+                                @Advice.AllArguments Object[] args,
+                                @Advice.Thrown Throwable thrown) {
             try {
                 if (shouldCapture('E')) {
                     try {
                         if (args.length >= 1) {
+                            String command = null;
+                            String[] processArgs = null;
+                            String workingDirPath = null;
+
                             if (args[0] instanceof String) {
                                 // Runtime.exec(String command) or Runtime.exec(String command, String[] envp)
                                 // or Runtime.exec(String command, String[] envp, File dir)
-                                String command = (String) args[0];
+                                command = (String) args[0];
                                 File workingDir = args.length >= 3 && args[2] instanceof File ? (File) args[2] : null;
-                                String workingDirPath = workingDir != null ? workingDir.getAbsolutePath() : null;
-                                logProcessExecution(command, null, workingDirPath);
+                                workingDirPath = workingDir != null ? workingDir.getAbsolutePath() : null;
                             } else if (args[0] instanceof String[]) {
                                 // Runtime.exec(String[] cmdarray) or Runtime.exec(String[] cmdarray, String[] envp)
                                 // or Runtime.exec(String[] cmdarray, String[] envp, File dir)
                                 String[] cmdarray = (String[]) args[0];
                                 if (cmdarray.length > 0) {
-                                    String executable = cmdarray[0];
-                                    String[] processArgs = cmdarray.length > 1 ?
+                                    command = cmdarray[0];
+                                    processArgs = cmdarray.length > 1 ?
                                         java.util.Arrays.copyOfRange(cmdarray, 1, cmdarray.length) :
                                         new String[0];
                                     File workingDir = args.length >= 3 && args[2] instanceof File ? (File) args[2] : null;
-                                    String workingDirPath = workingDir != null ? workingDir.getAbsolutePath() : null;
-                                    logProcessExecution(executable, processArgs, workingDirPath);
+                                    workingDirPath = workingDir != null ? workingDir.getAbsolutePath() : null;
                                 }
+                            }
+
+                            if (command != null) {
+                                Map<String, String> metadata = new HashMap<>();
+                                metadata.put("operation", "EXECUTE");
+                                metadata.put("command", command);
+                                if (processArgs != null && processArgs.length > 0) {
+                                    metadata.put("args", String.join(" ", processArgs));
+                                }
+                                if (workingDirPath != null) {
+                                    metadata.put("working_dir", workingDirPath);
+                                }
+                                long durationMs = (System.nanoTime() - startTime) / 1_000_000;
+                                metadata.put("execution_time_ms", String.valueOf(durationMs));
+                                if (thrown != null) {
+                                    metadata.put("status", "failed");
+                                    metadata.put("error_class", thrown.getClass().getSimpleName());
+                                    metadata.put("error_message", thrown.getMessage());
+                                } else {
+                                    metadata.put("status", "started");
+                                }
+                                logProxy.logMessage(NAMESPACE, "INFO", metadata);
                             }
                         }
                     } catch (Exception e) {
