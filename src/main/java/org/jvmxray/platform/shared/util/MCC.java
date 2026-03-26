@@ -40,6 +40,9 @@ import java.util.concurrent.atomic.AtomicLong;
  * <li><code>session_id</code> - HTTP session or equivalent session identifier</li>
  * <li><code>client_ip</code> - Source IP address of request</li>
  * <li><code>request_uri</code> - HTTP request URI (for web requests)</li>
+ * <li><code>scope_depth</code> - Current nesting depth of sensor scopes (managed by enterScope/exitScope)</li>
+ * <li><code>parent_scope</code> - Name of the parent scope, or "none" if at root (managed by enterScope/exitScope)</li>
+ * <li><code>scope_chain</code> - Full scope nesting chain from outermost to innermost, delimited by "&gt;" (managed by enterScope/exitScope)</li>
  * </ul>
  *
  * <h2>Usage Example - HTTP Request Correlation</h2>
@@ -462,6 +465,7 @@ public class MCC {
      * <li>If this is the FIRST scope (stack empty), initializes correlation context with new trace_id</li>
      * <li>If scopes already exist, inherits existing trace_id (nested sensor)</li>
      * <li>Pushes scope ID onto owner stack for proper cleanup on exit</li>
+     * <li>Sets scope_depth, parent_scope, and scope_chain fields to reflect current nesting state</li>
      * <li>Updates metrics for monitoring</li>
      * </ul>
      *
@@ -479,7 +483,8 @@ public class MCC {
      * <p><strong>Design Principle:</strong> ANY sensor can be first entry point.
      * HTTP, SQL, File I/O, or any other sensor - whichever fires first owns the correlation root.</p>
      *
-     * @param scopeId Unique identifier for this scope (typically sensor name like "HTTP", "SQL", "FileIO")
+     * @param scopeId Unique identifier for this scope (typically sensor name like "HTTP", "SQL", "FileIO").
+     *                The "&gt;" character is reserved as a delimiter in scope_chain and must not appear in scopeId.
      * @throws IllegalArgumentException if scopeId is null or empty
      */
     public static void enterScope(String scopeId) {
@@ -521,6 +526,13 @@ public class MCC {
         // Build scope chain (bottom-to-top, e.g., "HTTP>SQL>FileIO")
         ctx.put("scope_chain", buildScopeChain(stack));
 
+        // Track max context size (direct ctx.put() calls above bypass public put() tracking)
+        int currentSize = ctx.size();
+        int currentMax = maxContextSizeEverSeen.get();
+        if (currentSize > currentMax) {
+            maxContextSizeEverSeen.compareAndSet(currentMax, currentSize);
+        }
+
         // Update stats registry
         updateStats();
     }
@@ -533,8 +545,8 @@ public class MCC {
      * <li>Performs defensive TTL-based cleanup check (throttled to once per 100ms)</li>
      * <li>Verifies scope ID matches top of stack (safety check for proper pairing)</li>
      * <li>Pops scope ID from owner stack</li>
+     * <li>If scopes remain (nested sensors), updates scope_depth, parent_scope, and scope_chain to reflect new nesting state</li>
      * <li>If this was the LAST scope (stack now empty), clears ALL correlation context and ThreadLocals</li>
-     * <li>If scopes remain (nested sensors), preserves correlation context for parent scopes</li>
      * <li>Updates metrics for monitoring</li>
      * </ul>
      *
