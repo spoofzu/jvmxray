@@ -2,6 +2,7 @@ package org.jvmxray.agent.sensor.crypto;
 
 import net.bytebuddy.asm.Advice;
 import org.jvmxray.agent.proxy.LogProxy;
+import org.jvmxray.platform.shared.util.MCCScope;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -18,24 +19,34 @@ public class SSLInterceptor {
     public static final LogProxy logProxy = LogProxy.getInstance();
 
     /**
+     * Enter advice for SSLSocket.setEnabledCipherSuites() — establishes MCCScope.
+     */
+    @Advice.OnMethodEnter
+    public static long enter() {
+        MCCScope.enter("Crypto");
+        return System.nanoTime();
+    }
+
+    /**
      * Intercepts SSLSocket.setEnabledCipherSuites() to detect weak SSL configurations.
      */
     @Advice.OnMethodExit(onThrowable = Throwable.class)
-    public static void sslSetCipherSuites(@Advice.This Object sslSocket,
+    public static void sslSetCipherSuites(@Advice.Enter long startTime,
+                                        @Advice.This Object sslSocket,
                                         @Advice.Argument(0) String[] cipherSuites,
                                         @Advice.Thrown Throwable throwable) {
         try {
             Map<String, String> metadata = new HashMap<>();
             metadata.put("operation", "ssl_setCipherSuites");
             metadata.put("socket_class", sslSocket.getClass().getName());
-            
+
             if (cipherSuites != null) {
                 metadata.put("cipher_count", String.valueOf(cipherSuites.length));
-                
+
                 // Check for weak SSL cipher suites
                 int weakCount = 0;
                 StringBuilder weakCiphers = new StringBuilder();
-                
+
                 for (String cipher : cipherSuites) {
                     for (String weakCipher : CryptoUtils.WEAK_SSL_CIPHERS) {
                         if (cipher.contains(weakCipher)) {
@@ -46,22 +57,24 @@ public class SSLInterceptor {
                         }
                     }
                 }
-                
+
                 if (weakCount > 0) {
                     metadata.put("weak_cipher_count", String.valueOf(weakCount));
                     metadata.put("weak_ciphers", weakCiphers.toString());
                     metadata.put("risk_level", "HIGH");
                 }
             }
-            
+
             if (throwable != null) {
                 metadata.put("error", throwable.getClass().getSimpleName());
             }
-            
+
             logProxy.logMessage(NAMESPACE + ".ssl", "INFO", metadata);
-            
+
         } catch (Exception e) {
             // Fail silently
+        } finally {
+            MCCScope.exit("Crypto");
         }
     }
 }

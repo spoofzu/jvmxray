@@ -2,6 +2,7 @@ package org.jvmxray.agent.sensor.crypto;
 
 import net.bytebuddy.asm.Advice;
 import org.jvmxray.agent.proxy.LogProxy;
+import org.jvmxray.platform.shared.util.MCCScope;
 
 import java.io.FileInputStream;
 import java.lang.reflect.Field;
@@ -44,10 +45,20 @@ public class KeyStoreInterceptor {
     }
 
     /**
+     * Enter advice for KeyStore.load() — establishes MCCScope.
+     */
+    @Advice.OnMethodEnter
+    public static long enter() {
+        MCCScope.enter("Crypto");
+        return System.nanoTime();
+    }
+
+    /**
      * Intercepts KeyStore.load() to monitor keystore operations.
      */
     @Advice.OnMethodExit(onThrowable = Throwable.class)
-    public static void keyStoreLoad(@Advice.This Object keyStore,
+    public static void keyStoreLoad(@Advice.Enter long startTime,
+                                  @Advice.This Object keyStore,
                                   @Advice.Argument(0) Object inputStream,
                                   @Advice.Argument(1) char[] password,
                                   @Advice.Thrown Throwable throwable) {
@@ -81,6 +92,8 @@ public class KeyStoreInterceptor {
 
         } catch (Exception e) {
             // Fail silently
+        } finally {
+            MCCScope.exit("Crypto");
         }
     }
 }

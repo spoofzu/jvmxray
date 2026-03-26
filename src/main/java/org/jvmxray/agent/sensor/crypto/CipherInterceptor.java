@@ -2,6 +2,7 @@ package org.jvmxray.agent.sensor.crypto;
 
 import net.bytebuddy.asm.Advice;
 import org.jvmxray.agent.proxy.LogProxy;
+import org.jvmxray.platform.shared.util.MCCScope;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -18,22 +19,32 @@ public class CipherInterceptor {
     public static final LogProxy logProxy = LogProxy.getInstance();
 
     /**
+     * Enter advice for Cipher.getInstance() — establishes MCCScope.
+     */
+    @Advice.OnMethodEnter
+    public static long enter() {
+        MCCScope.enter("Crypto");
+        return System.nanoTime();
+    }
+
+    /**
      * Intercepts Cipher.getInstance() to detect weak cipher algorithms.
      */
     @Advice.OnMethodExit(onThrowable = Throwable.class)
-    public static void cipherGetInstance(@Advice.Argument(0) String transformation,
+    public static void cipherGetInstance(@Advice.Enter long startTime,
+                                       @Advice.Argument(0) String transformation,
                                        @Advice.Return Object result,
                                        @Advice.Thrown Throwable throwable) {
         try {
             Map<String, String> metadata = new HashMap<>();
             metadata.put("operation", "cipher_getInstance");
             metadata.put("transformation", transformation != null ? transformation : "unknown");
-            
+
             if (transformation != null) {
                 String[] parts = transformation.split("/");
                 String algorithm = parts[0].toUpperCase();
                 metadata.put("algorithm", algorithm);
-                
+
                 // Check for weak algorithms
                 for (String weakCipher : CryptoUtils.WEAK_CIPHERS) {
                     if (algorithm.contains(weakCipher)) {
@@ -43,27 +54,29 @@ public class CipherInterceptor {
                         break;
                     }
                 }
-                
+
                 // Check for missing padding or mode
                 if (parts.length < 3) {
                     metadata.put("incomplete_transformation", "true");
                     metadata.put("risk_level", metadata.getOrDefault("risk_level", "MEDIUM"));
                 }
             }
-            
+
             if (result != null) {
                 metadata.put("cipher_class", result.getClass().getName());
             }
-            
+
             if (throwable != null) {
                 metadata.put("error", throwable.getClass().getSimpleName());
                 metadata.put("error_message", throwable.getMessage());
             }
-            
+
             logProxy.logMessage(NAMESPACE + ".cipher", "INFO", metadata);
-            
+
         } catch (Exception e) {
             // Fail silently to avoid disrupting crypto operations
+        } finally {
+            MCCScope.exit("Crypto");
         }
     }
 }
