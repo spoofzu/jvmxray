@@ -27,7 +27,9 @@ cd jvmxray
 mvn clean install
 ```
 
-Deploy as a Java agent:
+During Maven's test phase a small program called Turtle runs under the freshly built JVMXRay agent. Turtle performs file I/O, cryptography, process execution, serialization, reflection, and other activities that trigger the sensors — so a successful build already gives you real security event logs to explore in `./target/test-jvmxray/`. A SQLite database is also created at `./target/test-jvmxray/common/data/jvmxray-test.db` for quick experimentation. See the [docs](docs/) for further details.
+
+Deploy as a Java agent in your own applications:
 ```bash
 java -javaagent:target/jvmxray-0.0.1-agent.jar -jar yourapp.jar
 ```
