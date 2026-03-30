@@ -212,7 +212,7 @@ java -Djvmxray.home=/opt/jvmxray -javaagent:target/jvmxray-0.0.1-agent.jar MyApp
 | Option | Description | Default |
 |--------|-------------|---------|
 | agentArgs | Optional configuration override arguments | null |
-| -Djvmxray.home | Production mode base directory | ${user.home} |
+| -Djvmxray.home | Production mode base directory | ${user.dir}/.jvmxray |
 | -Djvmxray.test.home | Test mode base directory (does NOT append /jvmxray/ subdirectory) | null |
 
 **Examples:**
@@ -252,7 +252,7 @@ java -Djvmxray.home=/opt/security -javaagent:/opt/jvmxray/jvmxray-0.0.1-agent.ja
 
 | Property | Description | Default | Required |
 |----------|-------------|---------|----------|
-| -Djvmxray.home | Production mode base directory (creates ${home}/jvmxray/agent/logs/) | ${user.home} | No |
+| -Djvmxray.home | Production mode base directory (creates ${home}/jvmxray/agent/logs/) | ${user.dir}/.jvmxray | No |
 | -Djvmxray.test.home | Test mode base directory (creates ${test.home}/agent/logs/ directly) | null | No |
 | -Djvmxray.agent.logs | Agent logs directory path | auto-detected | No |
 | -Djvmxray.agent.config | Agent config directory path | auto-detected | No |

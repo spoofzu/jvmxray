@@ -731,7 +731,7 @@ java SchemaManager --validate-schema --database-type sqlite --connection-url jdb
 
 | Property | Description | Default | Required |
 |----------|-------------|---------|----------|
-| -Djvmxray.home | Production mode base directory | ${user.home} | No |
+| -Djvmxray.home | Production mode base directory | ${user.dir}/.jvmxray | No |
 | -Djvmxray.test.home | Test mode base directory | null | No |
 | -Djvmxray.common.logs | Common logs directory path | auto-detected | No |
 | -Djvmxray.common.config | Common config directory path | auto-detected | No |
