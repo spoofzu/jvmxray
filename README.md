@@ -15,7 +15,7 @@
 
 **[Duke history](https://dev.java/duke/)**
 
-[Documentation](docs/prj-agent.md) | [Changes from Upstream](docs/CHANGES.md) |  [Project Blog](https://www.sipsjava.com/blog/)
+<a href="docs/prj-agent.md" target="_blank">Documentation</a> | <a href="docs/CHANGES.md" target="_blank">Changes from Upstream</a> | <a href="https://www.sipsjava.com/blog/" target="_blank">Project Blog</a>
 
 JVMXRay monitors Java applications in real-time via bytecode injection, detecting vulnerabilities and suspicious activity without code changes. 19 modular sensors track file access, network connections, SQL queries, cryptographic operations, authentication, process execution, and more — generating structured, machine-readable security events with automatic cross-sensor correlation.
 
