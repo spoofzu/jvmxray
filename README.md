@@ -14,7 +14,6 @@
 </div>
 
 **[Duke history](https://dev.java/duke/)**
-
 [Documentation](docs/prj-agent.md) |
 [Changes from Upstream](docs/CHANGES.md) |
 [Project Blog](https://www.sipsjava.com/blog/)
