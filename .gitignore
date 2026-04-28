@@ -113,4 +113,5 @@ CLAUDE.md
 */logs/
 # Don't include planning docs
 docs/planning/
-docs/superpowers/
+docs/superpowers/.worktrees/
+.worktrees/
