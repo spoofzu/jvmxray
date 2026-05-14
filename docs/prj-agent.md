@@ -11,20 +11,20 @@
    - 4.3 [Component Properties](#component-properties)
    - 4.4 [Logback XML Settings](#logback-xml-settings)
 5. [Database Tables](#database-tables)
-7. [Log Message Reference](#log-message-reference)
-   - 7.1 [Common Fields](#common-fields)
-   - 7.2 [CONFIG Events](#config-events-configuration-sensor)
-   - 7.3 [CRYPTO Events](#crypto-events-cryptographic-sensor)
-   - 7.4 [HTTP Events](#http-events-http-sensor)
-   - 7.5 [IO Events](#io-events-file-io-sensor)
-   - 7.6 [MONITOR Events](#monitor-events-system-monitor-sensor)
-   - 7.7 [NET Events](#net-events-network-sensor)
-   - 7.8 [SERIALIZATION Events](#serialization-events-serialization-sensor)
-   - 7.9 [SQL Events](#sql-events-sql-sensor)
-   - 7.10 [SYSTEM Events](#system-events-system-sensor)
-   - 7.11 [Risk Level Classification](#risk-level-classification)
-8. [Common Errors](#common-errors)
-9. [Developer Guide](#developer-guide)
+6. [Log Message Reference](#log-message-reference)
+   - 6.1 [Common Fields](#common-fields)
+   - 6.2 [CONFIG Events](#config-events-configuration-sensor)
+   - 6.3 [CRYPTO Events](#crypto-events-cryptographic-sensor)
+   - 6.4 [HTTP Events](#http-events-http-sensor)
+   - 6.5 [IO Events](#io-events-file-io-sensor)
+   - 6.6 [MONITOR Events](#monitor-events-system-monitor-sensor)
+   - 6.7 [NET Events](#net-events-network-sensor)
+   - 6.8 [SERIALIZATION Events](#serialization-events-serialization-sensor)
+   - 6.9 [SQL Events](#sql-events-sql-sensor)
+   - 6.10 [SYSTEM Events](#system-events-system-sensor)
+   - 6.11 [Risk Level Classification](#risk-level-classification)
+7. [Common Errors](#common-errors)
+8. [Developer Guide](#developer-guide)
 
 ---
 
@@ -37,11 +37,22 @@ The JVMXRay Agent is a runtime security monitoring tool that uses bytecode injec
 Monitor Java application behavior through transparent bytecode injection with zero application modifications. JVMXRay is a source of structured security events — analysis is performed by your centralized logging solution, AI tooling, or SIEM.
 
 ### Key Capabilities
-- 19 modular sensors monitoring different aspects of application behavior
+- 18 modular sensors monitoring different aspects of application behavior (see status table below)
 - Real-time bytecode injection using ByteBuddy framework
 - Structured event generation compatible with AI analysis tools and centralized logging
-- Enterprise logging integration (Logback/SLF4J) with Splunk/ELK compatibility
+- Logging integration (Logback/SLF4J) with Splunk/ELK compatibility
 - Configurable sensor activation with tunable overhead via standard Logback properties
+
+### Sensor status
+
+18 sensors ship with the agent. Most are enabled by default; three are conditionally disabled for the reasons noted.
+
+| Sensor | Default state | Notes |
+|---|---|---|
+| API Call, App Init, Authentication, Configuration, Crypto, Data Transfer, File I/O, HTTP, Library, Monitor, Network (Socket), Process, Script Engine, Serialization, SQL, Uncaught Exception | enabled | wired in `agent.properties` and active in default `logback.xml` |
+| Reflection | disabled by default | commented out in `agent.properties` (`#jvmxray.sensor.reflection=...`); high overhead; enable per environment |
+| Memory | wired, disabled in logback | recursive-logging issue; logger removed from default `logback.xml`. Aggregate memory metrics over time are still emitted by `MonitorSensor`. |
+| Thread | wired, disabled in logback | recursive-logging issue; logger removed from default `logback.xml` |
 
 ---
 
@@ -186,6 +197,31 @@ sequenceDiagram
     Note over DB,F: Events stored for analysis
 ```
 
+### Sensor discovery
+
+Sensors are not hard-coded into the agent and are not discovered via Java SPI. Instead, the agent uses a property-driven registry: at premain time, `SensorUtils.loadSensors(properties, "jvmxray.sensor.")` enumerates every entry in `agent.properties` whose key starts with `jvmxray.sensor.` and instantiates the class named by the value.
+
+```properties
+# Each line names one sensor. The suffix after "jvmxray.sensor." is the
+# property suffix passed to the sensor constructor.
+jvmxray.sensor.http=org.jvmxray.agent.sensor.http.HttpSensor
+jvmxray.sensor.io=org.jvmxray.agent.sensor.io.FileIOSensor
+jvmxray.sensor.sql=org.jvmxray.agent.sensor.sql.SQLSensor
+
+# Comment a line out to disable the sensor.
+#jvmxray.sensor.reflection=org.jvmxray.agent.sensor.reflection.ReflectionSensor
+```
+
+Each sensor class must expose a public single-argument constructor that takes the property suffix as a `String`. `SensorUtils` resolves the class with `Class.forName(...).getDeclaredConstructor(String.class).newInstance(suffix)`. Failures during one sensor's construction are logged and the next sensor is attempted, so a malformed entry does not stop the agent.
+
+Practical consequences:
+
+- **Add a sensor** in deployment: drop a JAR with your sensor class on the agent's classpath and add a `jvmxray.sensor.<suffix>=<fqcn>` line.
+- **Disable a sensor**: comment out its property line. Restart required.
+- **Reorder**: order in `agent.properties` is the load order, but the agent does not depend on it for correctness.
+
+The discovery mechanism is the bridge between configuration and code: every sensor that participates in monitoring shows up here.
+
 ---
 
 ## CLI Commands
@@ -230,6 +266,17 @@ java -Djvmxray.home=/opt/security -javaagent:/opt/jvmxray/jvmxray-0.0.1-agent.ja
 ---
 
 ## Properties
+
+### Precedence
+
+The agent reads configuration from four sources. When the same value is set in more than one, this is the order that wins (highest priority first):
+
+1. **JVM system properties** (`-D...` on the `java` command line) — read first by the bootstrap and treated as authoritative.
+2. **Agent arguments** (the string after `=` in `-javaagent:agent.jar=arg1,arg2`) — sensor-specific tuning like `lib.interval=30`.
+3. **`agent.properties`** file in the agent config directory — durable per-deployment configuration; this is the typical place to enable or disable sensors.
+4. **Built-in defaults** baked into each sensor class — used when none of the above set a value.
+
+Logback configuration (`logback.xml`) controls which loggers and appenders are active, which is a separate axis from the four above. It can disable a sensor's *output* even when the sensor itself is wired in `agent.properties`.
 
 ### Environment Variables
 
@@ -409,67 +456,19 @@ Events are logged when files are closed, providing complete operation statistics
 
 ## Database Tables
 
-### Schema Overview
-The agent posts structured events directly to database tables¹ for processing by log aggregation services. Events contain metadata and key-value pairs for security analysis.
+The agent emits every event as a Logback log record, so persistence is whatever Logback appenders you wire up — rolling files, sockets to a remote log server, syslog, JDBC, Kafka, or any other Logback-compatible sink. **There is no required database.**
 
-**¹** *SQLite is used for development and testing. Production deployments support MySQL and Cassandra databases via SchemaManager configuration.*
+JVMXRay ships with a `ShadedSQLiteAppender` and a `SchemaManager` CLI that handles SQLite, MySQL, and Cassandra schemas. These exist for **testing and demos**: they let you spin up a working event store locally without standing up a log pipeline first. Production deployments typically route events through existing log infrastructure (Splunk, ELK, Datadog, OpenSearch) via Logback appenders rather than the bundled SQL stores.
 
-### Table Definitions
+### Schema reference
 
-#### STAGE0_EVENT
+If you do use the bundled SQL appender, the single table written by the agent is `STAGE0_EVENT`, holding raw events with metadata and a `KEYPAIRS` payload. Indexes on `TIMESTAMP`, `NAMESPACE`, `AID`/`CID`, and `TRACE_ID` support time-based, sensor-type, agent-instance, and correlation queries.
 
-**Purpose:** Raw agent events with structured metadata and key-value pairs
+The full schema — column types, indexes, and the parallel `STAGE0_EVENT_KEYPAIR` table for parsed pipelines — is documented in [docs/prj-common.md](prj-common.md) alongside the `SchemaManager` CLI. Read that doc if you are setting up storage; this section exists only to point you to it.
 
-**Columns:**
-```
-+-------------+------------------+------+-----+---------+-------+
-| Field       | Type             | Null | Key | Default | Extra |
-+-------------+------------------+------+-----+---------+-------+
-| EVENT_ID    | uuid             | NO   | PRI | NULL    |       |
-| CONFIG_FILE | varchar(255)     | YES  |     | NULL    |       |
-| TIMESTAMP   | timestamp        | NO   |     | NULL    |       |
-| THREAD_ID   | varchar(100)     | YES  |     | NULL    |       |
-| PRIORITY    | varchar(10)      | YES  |     | NULL    |       |
-| NAMESPACE   | varchar(255)     | NO   |     | NULL    |       |
-| AID         | varchar(50)      | NO   |     | NULL    |       |
-| CID         | varchar(50)      | NO   |     | NULL    |       |
-| TRACE_ID    | varchar(255)     | YES  | IDX | NULL    |       |
-| KEYPAIRS    | text             | YES  |     | NULL    |       |
-+-------------+------------------+------+-----+---------+-------+
-```
+### Event format
 
-**Indexes:**
-
-| Index Name | Columns | Purpose |
-|------------|---------|---------|
-| idx_stage0_timestamp | TIMESTAMP | Time-based queries |
-| idx_stage0_namespace | NAMESPACE | Sensor-type filtering |
-| idx_stage0_aid_cid | AID, CID | Agent instance queries |
-| idx_stage0_trace_id | TRACE_ID | Event correlation queries |
-
-**Sample Data:**
-```sql
--- HTTP sensor event example
-INSERT INTO STAGE0_EVENT (EVENT_ID, CONFIG_FILE, TIMESTAMP, THREAD_ID, PRIORITY, NAMESPACE, AID, CID, IS_STABLE, KEYPAIRS)
-VALUES (
-  '550e8400-e29b-41d4-a716-446655440000',
-  'C:AP',
-  '2024-09-15 14:30:25.123',
-  'http-nio-8080-exec-1',
-  'INFO',
-  'org.jvmxray.agent.sensor.http.HttpSensor',
-  'agent-001',
-  'production',
-  true,
-  'method=GET|url=https://api.example.com/users|statusCode=200|responseTime=145ms'
-);
-```
-
-#### Event Format Details
-
-**Message Structure:** `CONFIG_FILE | timestamp | thread | priority | namespace | keypairs`
-
-**Key-Value Pairs:** Pipe-separated key=value pairs containing sensor-specific metadata specific to each sensor type. See the [Log Message Reference](#log-message-reference) section below for detailed field documentation.
+Every emitted log line follows: `CONFIG_FILE | timestamp | thread | priority | namespace | keypairs`. The `KEYPAIRS` segment is pipe-separated `key=value` pairs whose contents depend on the sensor — see [Log Message Reference](#log-message-reference) for per-sensor field documentation.
 
 ---
 
@@ -1631,6 +1630,24 @@ status=failed|error_class=IOException|error_message=Cannot run program "/usr/bin
 
 Monitors JAR library loading on the classpath, capturing SHA-256 hashes, Maven coordinates, and package inventories for supply chain security.
 
+#### Static vs dynamic loading
+
+LibSensor reports each JAR with a `load_type` of `static` or `dynamic`. The distinction reflects *when* and *how* the JAR was detected, and the two paths have different characteristics worth understanding:
+
+- **Static (`load_type=static`)** — JARs present on the JVM's classpath at startup. LibSensor reads `System.getProperty("java.class.path")` once during `initialize()` and processes every `.jar` entry. Detection is deterministic: every classpath entry is reported exactly once, before any application code runs.
+
+- **Dynamic (`load_type=dynamic`)** — JARs that appear after startup, typically loaded by plugin frameworks, OSGi containers, custom classloaders, or `URLClassLoader.addURL(...)`. LibSensor runs a background daemon thread that polls every 60 seconds via `Instrumentation.getAllLoadedClasses()`, derives each class's source JAR from `ProtectionDomain.getCodeSource()`, and emits a `dynamic` event for any JAR not seen previously.
+
+The poll interval is tunable through the agent argument `lib.interval=<seconds>`:
+
+```bash
+java -javaagent:jvmxray-0.0.1-agent.jar=lib.interval=30 -jar app.jar
+```
+
+**Tradeoff to be aware of.** Dynamic detection is poll-based, not event-based. A JAR loaded and fully unloaded between two polls — for example a short-lived classloader inside a test harness — will not be reported. Reducing `lib.interval` narrows but does not close this window. For workloads that load and unload classes frequently, treat the dynamic event stream as a *sample*, not a complete trace.
+
+Both event types carry the same field schema below. Static events are typically followed by complete Maven coordinates (from `META-INF/maven/.../pom.properties`); dynamic events from custom JARs often have only `jar_path`, `sha256`, and `packages`.
+
 #### Sample Log Entries
 
 **Static Classpath JAR:**
@@ -1840,170 +1857,190 @@ mvn clean install
 
 ## Developer Guide
 
+This guide is for developers writing new sensors or modifying existing ones. It assumes you have read the [Architecture](#architecture) section, particularly [Sensor discovery](#sensor-discovery), and are comfortable with Java instrumentation concepts.
+
+### Writing a sensor
+
+A sensor is a Java class that JVMXRay loads at agent startup. Sensors fall into two flavors based on what they do:
+
+- **Standalone sensors** observe the JVM externally (timers, polling daemons, JMX scrapes, classpath walks). They implement `Sensor` and use their `initialize()` hook to start whatever work they need.
+- **Injectable sensors** observe specific Java methods by inserting bytecode-level advice into them. They implement `InjectableSensor` and declare their target methods via `Transform[]`.
+
+`LibSensor` is a standalone sensor (polls `Instrumentation.getAllLoadedClasses()`). `FileIOSensor`, `SQLSensor`, and `HttpSensor` are injectable.
+
+#### Required contract: `Sensor`
+
+Every sensor implements four methods from the `Sensor` interface (`src/main/java/org/jvmxray/agent/sensor/Sensor.java`):
+
+```java
+public interface Sensor {
+    String getIdentity();
+    String getDisplayName();
+    void initialize(AgentProperties props, String agentArgs, Instrumentation inst);
+    void shutdown();
+}
+```
+
+- `getIdentity()` — return a **hardcoded GUID** that uniquely identifies this sensor across versions and deployments. Hardcoded means a literal string in the source, not a runtime-generated value; it lets event sinks deduplicate and tag events by sensor identity.
+- `getDisplayName()` — return a human-readable name (typically derived from the property suffix passed in the constructor).
+- `initialize(...)` — runs once at agent premain. Read agent arguments, parse properties, start background threads, register with `StatsRegistry`.
+- `shutdown()` — runs on JVM shutdown. Stop threads, flush state. Default implementation is a no-op.
+
+#### Required constructor
+
+Sensors are instantiated by the registry via reflection. Every sensor class **must** expose a single-argument constructor that takes its property suffix as a `String`:
+
+```java
+public class MyCustomSensor extends AbstractSensor {
+    public MyCustomSensor(String propertySuffix) {
+        super(propertySuffix);
+    }
+    // ...
+}
+```
+
+The suffix is the part of the property key after `jvmxray.sensor.` — e.g., `mycustom` in `jvmxray.sensor.mycustom=org.example.MyCustomSensor`. If this constructor is missing, the agent logs a discovery error and skips the sensor.
+
+#### Base class: `AbstractSensor`
+
+In practice you extend `AbstractSensor` rather than implementing `Sensor` directly. It provides:
+
+- No-op defaults for `initialize()` and `shutdown()` so you only override what you need.
+- A `displayName` derived from the property suffix.
+- The **sensor guard** — `executeSafely(BooleanSupplier)` — described below.
+
+#### The sensor guard
+
+Sensors monitor JVM activity, which means they themselves run inside the JVM and can trigger other sensors. Without protection, a sensor that, say, opens a log file would fire the FileIO sensor, whose own logging would fire FileIO again, ad infinitum.
+
+`AbstractSensor.executeSafely(BooleanSupplier work)` sets a thread-local flag for the duration of the call. Any sensor advice running inside that scope is short-circuited. Use it whenever your sensor performs an operation that another sensor might be watching:
+
+```java
+private void persistMetadata(String jarPath) {
+    executeSafely(() -> {
+        try (var out = new FileOutputStream(getCacheFile())) {
+            out.write(jarPath.getBytes(StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            return false;
+        }
+        return true;
+    });
+}
+```
+
+If you skip the guard and your sensor touches files, sockets, reflection, or scripts, you will produce a recursive cascade and the JVM will OOM. `MemorySensor` and `ThreadSensor` are currently disabled in the default `logback.xml` for precisely this reason.
+
+#### Injectable sensors: bytecode advice
+
+If your sensor needs to fire when application code calls specific Java methods (`File.delete`, `Socket.connect`, `Class.forName`...), implement `InjectableSensor` and use ByteBuddy advice.
+
+```java
+public interface InjectableSensor extends Sensor {
+    Class<?>[] inject();       // classes pushed into the bootstrap classloader
+    Transform[] configure();   // class+method patterns and advice
+}
+```
+
+`inject()` returns the advice classes (and any helper classes they reference) that must be visible from the bootstrap classloader. The bootstrap classloader is the only one capable of seeing both JDK classes and the agent's helpers, which is why standard reflection-based loading does not work for advice code.
+
+`configure()` returns one `Transform` per target class. Each `Transform` names a class and an array of `MethodSpec`s; each `MethodSpec` names a method (and optionally its parameter types) plus the advice class to apply. ByteBuddy rewrites the target classes' bytecode at class-load time to call your advice at method entry, exit, or both.
+
+A minimal example, modelled on `FileIOSensor`:
+
+```java
+public class MyIOSensor extends AbstractSensor implements InjectableSensor {
+    public MyIOSensor(String propertySuffix) { super(propertySuffix); }
+
+    @Override public String getIdentity() { return "C0FFEE00-...-..."; }
+
+    @Override public Class<?>[] inject() {
+        return new Class<?>[] { MyDeleteInterceptor.class };
+    }
+
+    @Override public Transform[] configure() {
+        return new Transform[] {
+            new Transform(
+                "java.io.File",
+                new MethodSpec[] {
+                    new MethodSpec("delete", MyDeleteInterceptor.class)
+                }
+            )
+        };
+    }
+}
+
+// Advice runs at method entry/exit. Use ByteBuddy's @Advice annotations.
+public class MyDeleteInterceptor {
+    @Advice.OnMethodEnter
+    public static void onEnter(@Advice.This File self) {
+        MCC.enterScope("MyIO");
+        try {
+            LogProxy.logMessage(NAMESPACE, "INFO",
+                Map.of("op", "delete", "path", self.getAbsolutePath()));
+        } catch (Throwable ignored) { }
+    }
+
+    @Advice.OnMethodExit
+    public static void onExit() {
+        MCC.exitScope("MyIO");
+    }
+}
+```
+
+A few things this example illustrates:
+
+- The interceptor is a plain class with `static` methods annotated with `@Advice.OnMethodEnter` / `@Advice.OnMethodExit`. ByteBuddy inlines them; the methods cannot reference instance state.
+- Always wrap event emission in `try { ... } catch (Throwable ignored) { }`. A throw from advice corrupts the application's stack — there is no safe way to recover.
+- Always pair `MCC.enterScope` / `MCC.exitScope` (see [MCC correlation](#mcc-correlation) below).
+
+The shipped sensors are the best reference. Read `FileIOSensor` and its `*Interceptor` classes for a complete worked example.
+
+### MCC correlation
+
+`MCC` (Mapped Correlation Context, at `src/main/java/org/jvmxray/platform/shared/util/MCC.java`) is what makes the "security stacktrace" feature work — `trace_id`, `scope_chain`, `parent_scope`, and `scope_depth` fields that appear on every event are maintained by MCC.
+
+For sensor authors there are two patterns:
+
+- **Spanning scope** — your sensor wraps an entire method call (most injectable sensors). Call `MCC.enterScope("YourSensorName")` in `@OnMethodEnter` advice and `MCC.exitScope("YourSensorName")` in `@OnMethodExit`, paired symmetrically. The scope name appears in `scope_chain`.
+- **Degenerate scope** — your sensor emits a single event with no nested work (`AppInitSensor`, `ConfigurationSensor`). Call `enterScope` and `exitScope` back-to-back inside one advice method, with the event emission between them.
+
+The two scope names are reserved: `>` is the chain delimiter and may not appear in a scope name.
+
+If you forget to call `exitScope`, MCC's TTL-based defensive cleanup (default 300 seconds) will eventually collect the leaked ThreadLocal — but the `mcc_ttl_cleanups` metric will increment and your events between the leak and the cleanup will be miscorrelated. Watch that metric in `MonitorSensor` output during sensor development.
+
 ### Utility Classes
 
 #### StatsRegistry
 
-**Purpose:** Centralized, thread-safe registry for sensor statistics monitoring
+`src/main/java/org/jvmxray/agent/util/StatsRegistry.java` is a centralized, thread-safe registry for sensor statistics. Sensors register named string values; `MonitorSensor` reads a snapshot every 60 seconds and emits one consolidated metrics event.
 
-**Location:** `src/main/java/org/jvmxray/agent/util/StatsRegistry.java`
+Key methods:
 
-**Design:**
-- Thread-safe implementation using `ConcurrentHashMap` for lock-free updates
-- Sensors update statistics on lifecycle events (enter/exit scope)
-- MonitorSensor reads periodic snapshots (default: 60 seconds) for logging
-- Supports both counter and gauge metrics via string key-value storage
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `StatsRegistry.register(String key, String value)` | `void` | Set or update a metric, thread-safe |
+| `StatsRegistry.getSnapshot()` | `Map<String, String>` | Immutable snapshot of all current metrics |
+| `StatsRegistry.clear()` | `void` | Remove all entries |
 
-**Key Methods:**
-
-| Method | Parameters | Returns | Description |
-|--------|------------|---------|-------------|
-| register() | String key, String value | void | Register or update a metric value (thread-safe) |
-| getSnapshot() | none | Map<String, String> | Get immutable snapshot of all current metrics |
-| clear() | none | void | Clear all registered metrics |
-
-**Integration Example:**
-```java
-// Sensor updates statistics
-public class MySensor extends AbstractSensor {
-    private final AtomicLong operationCount = new AtomicLong(0);
-
-    @Override
-    public void beforeMethod(Method method, Object target, Object[] args) {
-        // Update counter
-        long count = operationCount.incrementAndGet();
-
-        // Register with StatsRegistry
-        StatsRegistry.register("my_sensor_operations", String.valueOf(count));
-        StatsRegistry.register("my_sensor_last_target", target.getClass().getName());
-    }
-}
-
-// MonitorSensor collects all statistics
-public class MonitorSensor extends AbstractSensor {
-    @Override
-    public void run() {
-        // Collect snapshot from all sensors
-        Map<String, String> allStats = StatsRegistry.getSnapshot();
-
-        // Log to monitoring system
-        logProxy.logMessage(NAMESPACE, "INFO", allStats);
-    }
-}
-```
-
-**Registered Metrics:**
-
-The following metrics are automatically registered by JVMXRay sensors:
-
-**MCC Metrics** (registered by `MCC` class):
-- `mcc_contexts_created`: Lifetime count of correlation contexts created
-- `mcc_active_contexts`: Current active contexts across all threads
-- `mcc_max_context_size`: Maximum context size observed (field count)
-- `mcc_ttl_cleanups`: Defensive cleanups triggered (should be 0)
-- `mcc_ttl_seconds`: Configured TTL for defensive cleanup
-
-**LibSensor Metrics** (registered by `LibSensor`):
-- `lib_static_loaded`: Static classpath JARs detected at startup
-- `lib_dynamic_loaded`: Dynamically loaded JARs at runtime
-- `lib_total_packages`: Total unique Java packages discovered
-- `lib_cache_size`: Current size of known JARs cache
-
-**Best Practices:**
-- Use descriptive metric names with component prefix (e.g., `my_sensor_metric_name`)
-- Update metrics atomically to avoid race conditions
-- Keep values simple (strings representing numbers or states)
-- Let MonitorSensor handle periodic collection - don't read snapshot frequently
-- Watch for non-zero `mcc_ttl_cleanups` - indicates sensor scope management bugs
-
-### Development Patterns
-
-#### Sensor Statistics Integration
-
-**Purpose:** Enable sensors to contribute metrics to centralized monitoring
-
-**Pattern Steps:**
-
-1. **Track State in Sensor**
-   ```java
-   public class MySensor extends AbstractSensor {
-       private final AtomicLong counter = new AtomicLong(0);
-       private final AtomicLong errors = new AtomicLong(0);
-   ```
-
-2. **Update StatsRegistry on Events**
-   ```java
-       @Override
-       public void beforeMethod(Method method, Object target, Object[] args) {
-           try {
-               long count = counter.incrementAndGet();
-               StatsRegistry.register("my_sensor_count", String.valueOf(count));
-           } catch (Exception e) {
-               long errorCount = errors.incrementAndGet();
-               StatsRegistry.register("my_sensor_errors", String.valueOf(errorCount));
-           }
-       }
-   ```
-
-3. **MonitorSensor Collects Automatically**
-   ```java
-   // No action needed - MonitorSensor periodically reads all metrics
-   // via StatsRegistry.getSnapshot() and logs them
-   ```
-
-**Complete Example:**
+Pattern: increment a counter inside your advice or sensor loop, then push the new value to `StatsRegistry`:
 
 ```java
-package org.jvmxray.agent.sensor.custom;
+private final AtomicLong opCount = new AtomicLong(0);
 
-import org.jvmxray.agent.sensor.AbstractSensor;
-import org.jvmxray.agent.util.StatsRegistry;
-import java.util.concurrent.atomic.AtomicLong;
-import java.lang.reflect.Method;
-
-public class CustomSensor extends AbstractSensor {
-    private static final String NAMESPACE = "org.jvmxray.agent.sensor.custom.CustomSensor";
-
-    // Track statistics
-    private final AtomicLong totalOperations = new AtomicLong(0);
-    private final AtomicLong successCount = new AtomicLong(0);
-    private final AtomicLong failureCount = new AtomicLong(0);
-
-    @Override
-    public void beforeMethod(Method method, Object target, Object[] args) {
-        // Increment operation counter
-        long ops = totalOperations.incrementAndGet();
-
-        // Register with StatsRegistry
-        StatsRegistry.register("custom_sensor_operations", String.valueOf(ops));
-
-        try {
-            // Perform sensor logic
-            performMonitoring(method, target, args);
-
-            // Update success counter
-            long success = successCount.incrementAndGet();
-            StatsRegistry.register("custom_sensor_success", String.valueOf(success));
-
-        } catch (Exception e) {
-            // Update failure counter
-            long failures = failureCount.incrementAndGet();
-            StatsRegistry.register("custom_sensor_failures", String.valueOf(failures));
-        }
-    }
-
-    private void performMonitoring(Method method, Object target, Object[] args) {
-        // Custom sensor logic here
-    }
+@Advice.OnMethodEnter
+public static void onEnter() {
+    long n = opCount.incrementAndGet();
+    StatsRegistry.register("my_sensor_ops", String.valueOf(n));
 }
 ```
 
-**Metrics Visibility:**
+Choose metric names with your sensor's prefix (`my_sensor_*`) so they're easy to grep in `MonitorSensor` output.
 
-Once registered, metrics appear in MonitorSensor logs every 60 seconds:
-```
-org.jvmxray.agent.sensor.monitor.MonitorSensor | INFO | ... |
-custom_sensor_operations=1523|custom_sensor_success=1498|custom_sensor_failures=25|...
-```
+**Registered metrics shipped with the agent:**
+
+- *MCC* — `mcc_contexts_created`, `mcc_active_contexts`, `mcc_max_context_size`, `mcc_ttl_cleanups`, `mcc_ttl_seconds`
+- *LibSensor* — `lib_static_loaded`, `lib_dynamic_loaded`, `lib_total_packages`, `lib_cache_size`
+
+Non-zero `mcc_ttl_cleanups` is the canonical signal of a sensor with mismatched `enterScope` / `exitScope` calls.
 
 ---
