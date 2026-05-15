@@ -1,0 +1,835 @@
+================================================================================
+JVMXRay Agent — Log Sample Catalog
+================================================================================
+
+One sample per event type per relevant log level, for every shipped sensor.
+Use this as a quick reference for what fields each event carries so you can
+write parsers, dashboards, alerts, and SIEM rules.
+
+LINE FORMAT
+-----------
+Every emitted event follows:
+
+    CONFIG_FILE | timestamp | thread | priority | namespace |
+    key1=value1|key2=value2|...
+
+LogProxy automatically merges these fields into every event:
+
+    caller        application stack frame that triggered the event
+    AID           agent instance ID (from agent.properties)
+    CID           configuration ID (from agent.properties)
+    trace_id      MCC correlation ID, links nested sensor events
+    scope_chain   nested sensor path (e.g., HTTP>SQL>FileIO)
+    parent_scope  immediate parent scope, or "none" at root
+    scope_depth   nesting level, integer as string
+
+CAVEAT
+------
+Values are illustrative. AID, CID, timestamps, paths, hashes are
+placeholders. Field presence varies — `error*` fields appear only on
+failure; many fields are conditional on the runtime detecting the
+relevant condition. Lines in this catalog are hard-wrapped at column
+80 for readability; real log lines are emitted as a single physical
+line.
+
+DISABLED SENSORS
+----------------
+Reflection is the only fully-operational sensor that ships disabled by
+default. It is commented out in agent.properties because of the overhead
+of intercepting every reflective call; enable it per environment if
+reflection-based attacks are in scope.
+
+Two sensors — Memory and Thread — are wired but currently non-operational
+due to unresolved recursive-logging issues; their loggers are removed
+from the default logback.xml. Sample output for them is at the end of
+this catalog under "Non-operational tbd".
+
+================================================================================
+1. APICall  —  HTTP client invocations (HttpClient.send)
+================================================================================
+Namespace: org.jvmxray.events.api.call
+
+-- INFO: successful API call
+C:AP | 2026.05.14 at 10:23:14 EDT | http-client-pool-1 | INFO |
+org.jvmxray.events.api.call | caller=com.acme.PaymentClient:88|
+AID=agent-001|CID=production|trace_id=a1b2c3d4e5f6|scope_chain=APICall|
+parent_scope=none|scope_depth=1|operation=send|request_method=POST|
+request_uri=https://api.stripe.com/v1/charges|
+request_host=api.stripe.com|request_scheme=https|uses_tls=true|
+request_port=443|response_status=200|status_class=2xx|
+response_time_ms=145|content_type=application/json|status=success
+
+-- INFO: API call failure
+C:AP | 2026.05.14 at 10:23:18 EDT | http-client-pool-1 | INFO |
+org.jvmxray.events.api.call | caller=com.acme.PaymentClient:88|
+AID=agent-001|CID=production|trace_id=b2c3d4e5f6a7|scope_chain=APICall|
+parent_scope=none|scope_depth=1|operation=send|request_method=GET|
+request_uri=https://internal-svc.example.com/health|status=error|
+error_class=java.net.ConnectException|error_message=Connection refused
+
+
+================================================================================
+2. AppInit  —  JVM startup snapshot
+================================================================================
+Namespace: org.jvmxray.events.system.settings
+
+Fires once at agent premain; captures the runtime environment.
+
+-- INFO: startup snapshot
+C:AP | 2026.05.14 at 10:22:01 EDT | main | INFO |
+org.jvmxray.events.system.settings | caller=main:0|AID=agent-001|
+CID=production|trace_id=c3d4e5f6a7b8|scope_chain=AppInit|
+parent_scope=none|scope_depth=1|java_version=17.0.10|
+java_vendor=Eclipse Adoptium|os_name=Mac OS X|os_version=14.4.1|
+os_arch=aarch64|num_processors=10|user_home=/Users/jdoe|
+user_dir=/opt/app|user_country=US|tz=America/New_York|
+container_detected=false|jvm_uptime_ms=42
+
+-- INFO: one row per environment variable (sensitive values masked)
+C:AP | 2026.05.14 at 10:22:01 EDT | main | INFO |
+org.jvmxray.events.system.settings | caller=main:0|AID=agent-001|
+CID=production|trace_id=c3d4e5f6a7b8|scope_chain=AppInit|
+parent_scope=none|scope_depth=1|env_name=PATH|
+env_value=/usr/local/bin:/usr/bin:/bin:/sbin
+
+C:AP | 2026.05.14 at 10:22:01 EDT | main | INFO |
+org.jvmxray.events.system.settings | caller=main:0|AID=agent-001|
+CID=production|trace_id=c3d4e5f6a7b8|scope_chain=AppInit|
+parent_scope=none|scope_depth=1|env_name=DATABASE_PASSWORD|
+env_value=***REDACTED***
+
+
+================================================================================
+3. Authentication  —  login, session, principal operations
+================================================================================
+Two namespaces:
+  - org.jvmxray.events.auth          general auth events
+  - org.jvmxray.events.auth.session  Servlet HttpSession + Spring Security
+
+-- INFO: successful login
+C:AP | 2026.05.14 at 10:24:03 EDT | http-nio-8080-exec-3 | INFO |
+org.jvmxray.events.auth | caller=com.acme.SessionFilter:42|
+AID=agent-001|CID=production|trace_id=d4e5f6a7b8c9|scope_chain=Auth|
+parent_scope=none|scope_depth=1|auth_action=login|auth_mechanism=form|
+auth_success=true
+
+-- INFO: failed authentication
+C:AP | 2026.05.14 at 10:24:07 EDT | http-nio-8080-exec-7 | INFO |
+org.jvmxray.events.auth.session | caller=com.acme.SessionFilter:42|
+AID=agent-001|CID=production|trace_id=e5f6a7b8c9d0|scope_chain=Auth|
+parent_scope=none|scope_depth=1|auth_action=authenticate|
+auth_mechanism=basic|auth_success=false|
+auth_failure_reason=BadCredentialsException|principal_name=jdoe@acme.com
+
+-- INFO: session attribute set
+C:AP | 2026.05.14 at 10:24:04 EDT | http-nio-8080-exec-3 | INFO |
+org.jvmxray.events.auth | caller=com.acme.SessionFilter:42|
+AID=agent-001|CID=production|trace_id=d4e5f6a7b8c9|scope_chain=Auth|
+parent_scope=none|scope_depth=1|auth_action=session_set|
+session_id=B7C9D4E2-1A53-4E91-8F12-CC4D2E5F0A1B|
+attribute_name=user_role
+
+-- INFO: session attribute retrieved
+C:AP | 2026.05.14 at 10:24:05 EDT | http-nio-8080-exec-3 | INFO |
+org.jvmxray.events.auth | caller=com.acme.SessionFilter:42|
+AID=agent-001|CID=production|trace_id=d4e5f6a7b8c9|scope_chain=Auth|
+parent_scope=none|scope_depth=1|auth_action=session_get|
+session_id=B7C9D4E2-1A53-4E91-8F12-CC4D2E5F0A1B|
+attribute_name=user_role
+
+-- INFO: session invalidated (logout)
+C:AP | 2026.05.14 at 10:35:11 EDT | http-nio-8080-exec-5 | INFO |
+org.jvmxray.events.auth | caller=com.acme.SessionFilter:42|
+AID=agent-001|CID=production|trace_id=f6a7b8c9d0e1|scope_chain=Auth|
+parent_scope=none|scope_depth=1|auth_action=session_invalidate|
+session_id=B7C9D4E2-1A53-4E91-8F12-CC4D2E5F0A1B
+
+-- INFO: principal queried
+C:AP | 2026.05.14 at 10:24:10 EDT | http-nio-8080-exec-3 | INFO |
+org.jvmxray.events.auth | caller=com.acme.SessionFilter:42|
+AID=agent-001|CID=production|trace_id=d4e5f6a7b8c9|scope_chain=Auth|
+parent_scope=none|scope_depth=1|auth_action=principal|
+principal_name=jdoe@acme.com
+
+
+================================================================================
+4. Configuration  —  property, env, file, preferences access
+================================================================================
+Four namespaces:
+  - org.jvmxray.events.config.property
+  - org.jvmxray.events.config.environment
+  - org.jvmxray.events.config.file
+  - org.jvmxray.events.config.preferences
+
+-- INFO: System.getProperty / System.setProperty
+C:AP | 2026.05.14 at 10:23:00 EDT | main | INFO |
+org.jvmxray.events.config.property | caller=com.acme.AppMain:23|
+AID=agent-001|CID=production|trace_id=a7b8c9d0e1f2|scope_chain=Config|
+parent_scope=none|scope_depth=1|operation=getProperty|
+property_key=java.io.tmpdir|value_retrieved=true|
+security_property_access=false|sensitive_property=false
+
+-- INFO: getenv with sensitive flag
+C:AP | 2026.05.14 at 10:23:00 EDT | main | INFO |
+org.jvmxray.events.config.environment | caller=com.acme.AppMain:23|
+AID=agent-001|CID=production|trace_id=a7b8c9d0e1f2|scope_chain=Config|
+parent_scope=none|scope_depth=1|operation=getenv|
+env_var_name=DATABASE_PASSWORD|value_retrieved=true|
+sensitive_env_access=true|credential_env_access=true
+
+-- INFO: Properties.load from input stream
+C:AP | 2026.05.14 at 10:23:01 EDT | main | INFO |
+org.jvmxray.events.config.file | caller=com.acme.AppMain:23|
+AID=agent-001|CID=production|trace_id=b8c9d0e1f2a3|scope_chain=Config|
+parent_scope=none|scope_depth=1|operation=load|load_success=true|
+property_count=47|input_stream_class=java.io.FileInputStream|
+has_comments=true
+
+-- INFO: Preferences.put modification
+C:AP | 2026.05.14 at 10:23:02 EDT | main | INFO |
+org.jvmxray.events.config.preferences | caller=com.acme.AppMain:23|
+AID=agent-001|CID=production|trace_id=c9d0e1f2a3b4|scope_chain=Config|
+parent_scope=none|scope_depth=1|operation=put|
+preference_key=user.theme|preference_modification=true|
+modification_success=true
+
+
+================================================================================
+5. Crypto  —  cipher, digest, keystore, SSL operations
+================================================================================
+Five namespaces under org.jvmxray.events.crypto:
+  - .cipher         Cipher.getInstance and lifecycle
+  - .cipher_init    Cipher.init (key bound to cipher)
+  - .digest         MessageDigest.getInstance
+  - .keystore       KeyStore.load / store
+  - .ssl            SSLSocket / SSLEngine init
+
+-- INFO: cipher requested (algorithm strength annotated)
+C:AP | 2026.05.14 at 10:24:30 EDT | tls-handler-1 | INFO |
+org.jvmxray.events.crypto.cipher | caller=com.acme.TlsHandler:71|
+AID=agent-001|CID=production|trace_id=d0e1f2a3b4c5|scope_chain=Crypto|
+parent_scope=none|scope_depth=1|operation=getInstance|
+transformation=AES/GCM/NoPadding|algorithm=AES|weak_algorithm=false|
+risk_level=LOW|cipher_class=com.sun.crypto.provider.AESCipher
+
+-- INFO: cipher requested with weak algorithm
+C:AP | 2026.05.14 at 10:24:31 EDT | tls-handler-1 | INFO |
+org.jvmxray.events.crypto.cipher | caller=com.acme.TlsHandler:71|
+AID=agent-001|CID=production|trace_id=e1f2a3b4c5d6|scope_chain=Crypto|
+parent_scope=none|scope_depth=1|operation=getInstance|
+transformation=DES/ECB/PKCS5Padding|algorithm=DES|weak_algorithm=true|
+risk_level=HIGH|weakness_type=broken_cipher
+
+-- INFO: cipher init with key (length classified)
+C:AP | 2026.05.14 at 10:24:30 EDT | tls-handler-1 | INFO |
+org.jvmxray.events.crypto.cipher_init | caller=com.acme.TlsHandler:71|
+AID=agent-001|CID=production|trace_id=d0e1f2a3b4c5|scope_chain=Crypto|
+parent_scope=none|scope_depth=1|operation=init|cipher_class=AESCipher|
+operation_mode=ENCRYPT_MODE|key_class=SecretKeySpec|key_algorithm=AES|
+key_length=256|weak_key_length=false|moderate_key_length=false|
+risk_level=LOW
+
+-- INFO: message digest with weak algorithm
+C:AP | 2026.05.14 at 10:24:35 EDT | worker-2 | INFO |
+org.jvmxray.events.crypto.digest | caller=com.acme.TlsHandler:71|
+AID=agent-001|CID=production|trace_id=f2a3b4c5d6e7|scope_chain=Crypto|
+parent_scope=none|scope_depth=1|operation=getInstance|algorithm=MD5|
+weak_algorithm=true|risk_level=HIGH|weakness_type=collision_vulnerable|
+digest_class=sun.security.provider.MD5
+
+-- INFO: keystore loaded
+C:AP | 2026.05.14 at 10:22:05 EDT | main | INFO |
+org.jvmxray.events.crypto.keystore | caller=com.acme.TlsHandler:71|
+AID=agent-001|CID=production|trace_id=a3b4c5d6e7f8|scope_chain=Crypto|
+parent_scope=none|scope_depth=1|operation=load|keystore_class=JKS|
+has_inputstream=true|has_password=true|weak_password=false|
+risk_level=LOW
+
+-- INFO: SSL socket initialized with weak ciphers in enabled set
+C:AP | 2026.05.14 at 10:25:01 EDT | https-1 | INFO |
+org.jvmxray.events.crypto.ssl | caller=com.acme.TlsHandler:71|
+AID=agent-001|CID=production|trace_id=b4c5d6e7f8a9|scope_chain=Crypto|
+parent_scope=none|scope_depth=1|operation=setEnabledCipherSuites|
+socket_class=SSLSocketImpl|cipher_count=18|weak_cipher_count=2|
+weak_ciphers=TLS_RSA_WITH_RC4_128_SHA,TLS_RSA_WITH_3DES_EDE_CBC_SHA|
+risk_level=HIGH
+
+
+================================================================================
+6. DataTransfer  —  InputStream / OutputStream byte counting
+================================================================================
+Namespace: org.jvmxray.events.data.transfer
+
+NOTE: this sensor is wired but produces high event volume in default
+configuration. Many deployments lower its logger level to OFF in
+logback.xml.
+
+-- INFO: bulk read/write completed
+C:AP | 2026.05.14 at 10:25:14 EDT | worker-3 | INFO |
+org.jvmxray.events.data.transfer | caller=com.acme.StreamWorker:55|
+AID=agent-001|CID=production|trace_id=c5d6e7f8a9b0|
+scope_chain=DataTransfer|parent_scope=none|scope_depth=1|
+operation=read|size=4096|duration_ms=2|status=success
+
+
+================================================================================
+7. FileIO  —  file reads, writes, deletes, permissions, symlinks
+================================================================================
+Namespace: org.jvmxray.events.io.fileio
+
+Single namespace for all file operations; the `operation` field
+distinguishes read/write/delete/etc.
+
+-- INFO: file read
+C:AP | 2026.05.14 at 10:25:20 EDT | worker-2 | INFO |
+org.jvmxray.events.io.fileio | caller=com.acme.CacheManager:120|
+AID=agent-001|CID=production|trace_id=d6e7f8a9b0c1|scope_chain=FileIO|
+parent_scope=none|scope_depth=1|file=/var/app/data/customers.csv|
+operation=read|is_sensitive=false|bytes_read=8192|duration_ms=3
+
+-- INFO: file write (new file)
+C:AP | 2026.05.14 at 10:25:21 EDT | worker-2 | INFO |
+org.jvmxray.events.io.fileio | caller=com.acme.CacheManager:120|
+AID=agent-001|CID=production|trace_id=e7f8a9b0c1d2|scope_chain=FileIO|
+parent_scope=none|scope_depth=1|
+file=/var/app/cache/session-B7C9.cache|operation=write|
+is_new_file=true|bytes_written=1024|duration_ms=1
+
+-- INFO: file delete on a sensitive path
+C:AP | 2026.05.14 at 10:25:25 EDT | worker-2 | INFO |
+org.jvmxray.events.io.fileio | caller=com.acme.CacheManager:120|
+AID=agent-001|CID=production|trace_id=f8a9b0c1d2e3|scope_chain=FileIO|
+parent_scope=none|scope_depth=1|file=/etc/passwd|operation=delete|
+is_sensitive=true
+
+-- INFO: permissions changed
+C:AP | 2026.05.14 at 10:25:26 EDT | worker-2 | INFO |
+org.jvmxray.events.io.fileio | caller=com.acme.CacheManager:120|
+AID=agent-001|CID=production|trace_id=a9b0c1d2e3f4|scope_chain=FileIO|
+parent_scope=none|scope_depth=1|file=/var/app/bin/launcher.sh|
+operation=chmod|new_permissions=rwxr-xr-x
+
+-- INFO: symlink created
+C:AP | 2026.05.14 at 10:25:27 EDT | worker-2 | INFO |
+org.jvmxray.events.io.fileio | caller=com.acme.CacheManager:120|
+AID=agent-001|CID=production|trace_id=b0c1d2e3f4a5|scope_chain=FileIO|
+parent_scope=none|scope_depth=1|file=/var/app/current|
+operation=symlink|link_path=/var/app/releases/v42
+
+
+================================================================================
+8. Http  —  Servlet request and response lifecycle
+================================================================================
+Two namespaces:
+  - org.jvmxray.events.http.request
+  - org.jvmxray.events.http.response
+
+-- INFO: incoming request (headers omitted at INFO)
+C:AP | 2026.05.14 at 10:26:00 EDT | http-nio-8080-exec-1 | INFO |
+org.jvmxray.events.http.request | caller=com.acme.OrderController:88|
+AID=agent-001|CID=production|trace_id=c1d2e3f4a5b6|scope_chain=HTTP|
+parent_scope=none|scope_depth=1|request_id=R-7F3A2B|
+client_ip=203.0.113.42|request_method=POST|uri=/api/v1/orders|
+query_string_present=false|request_size_bytes=512|
+user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)|
+security_analysis=normal
+
+-- DEBUG: incoming request with all headers
+C:AP | 2026.05.14 at 10:26:00 EDT | http-nio-8080-exec-1 | DEBUG |
+org.jvmxray.events.http.request | caller=com.acme.OrderController:88|
+AID=agent-001|CID=production|trace_id=c1d2e3f4a5b6|scope_chain=HTTP|
+parent_scope=none|scope_depth=1|request_id=R-7F3A2B|
+client_ip=203.0.113.42|request_method=POST|uri=/api/v1/orders|
+hdr_authorization=Bearer ****|hdr_content-type=application/json|
+hdr_accept=application/json|hdr_x-request-id=client-abc-123
+
+-- INFO: response with timing and status
+C:AP | 2026.05.14 at 10:26:00 EDT | http-nio-8080-exec-1 | INFO |
+org.jvmxray.events.http.response | caller=com.acme.OrderController:88|
+AID=agent-001|CID=production|trace_id=c1d2e3f4a5b6|scope_chain=HTTP|
+parent_scope=none|scope_depth=1|request_id=R-7F3A2B|
+request_uri=/api/v1/orders|status=201|status_class=2xx|
+content_type=application/json|response_time_ms=87|
+sensitive_content_type=false|
+security_headers_analysis=missing_csp;missing_hsts
+
+
+================================================================================
+9. Library  —  JAR loading (static and dynamic)
+================================================================================
+Namespace: org.jvmxray.events.system.lib
+
+See prj-agent.md → LIB Events for the full static-vs-dynamic discussion.
+
+-- INFO: static JAR (classpath at startup)
+C:AP | 2026.05.14 at 10:22:03 EDT | main | INFO |
+org.jvmxray.events.system.lib | caller=main:0|AID=agent-001|
+CID=production|trace_id=d2e3f4a5b6c7|scope_chain=Lib|parent_scope=none|
+scope_depth=1|load_type=static|
+jar_path=~/.m2/repository/.../spring-core-6.1.0.jar|
+sha256=a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2|
+groupId=org.springframework|artifactId=spring-core|version=6.1.0|
+implTitle=Spring Core|implVendor=Spring Framework|
+packages=org.springframework.core,org.springframework.util
+
+-- INFO: dynamically loaded JAR (no Maven coordinates)
+C:AP | 2026.05.14 at 10:24:18 EDT | jvmxray.libsensor-1 | INFO |
+org.jvmxray.events.system.lib | caller=main:0|AID=agent-001|
+CID=production|trace_id=e3f4a5b6c7d8|scope_chain=Lib|parent_scope=none|
+scope_depth=1|load_type=dynamic|
+jar_path=/opt/app/plugins/billing-extension.jar|
+sha256=f0e1d2c3b4a5968778695a4b3c2d1e0fa9b8c7d6e5f4a3b2c1d0e9f8a7b6c5d4|
+packages=com.acme.billing.ext
+
+-- WARN: malformed agent argument
+C:AP | 2026.05.14 at 10:22:01 EDT | main | WARN |
+org.jvmxray.events.system.lib | caller=main:0|AID=agent-001|
+CID=production|trace_id=f4a5b6c7d8e9|scope_chain=Lib|parent_scope=none|
+scope_depth=1|
+message=Invalid lib.interval in agentArgs, using default: 60
+
+
+================================================================================
+10. Monitor  —  periodic JVM health + sensor stats (every 60s)
+================================================================================
+Namespace: org.jvmxray.events.monitor
+
+One event every 60 seconds; field list grows as sensors register stats
+with StatsRegistry.
+
+-- INFO: periodic stats snapshot
+C:AP | 2026.05.14 at 10:23:00 EDT | jvmxray-monitor | INFO |
+org.jvmxray.events.monitor | caller=jvmxray-monitor:0|AID=agent-001|
+CID=production|trace_id=e9f0a1b2c3d4|scope_chain=Monitor|
+parent_scope=none|scope_depth=1|MemoryTotal=536870912|
+MemoryFree=314572800|MemoryMax=2147483648|ThreadNew=0|
+ThreadRunnable=12|ThreadBlocked=0|ThreadWaiting=8|ThreadTerminated=0|
+OpenFiles=128|ProcessCpuLoad=0.18|GCCount=4|GCTime=82|
+NonHeapUsed=83886080|DeadlockedThreads=0|LogBufferUtilization=0.04|
+LogQueueSize=12|LogDiscardCount=0|LogFlushRate=320|
+LogTotalEvents=14721|mcc_contexts_created=312|mcc_active_contexts=14|
+mcc_max_context_size=11|mcc_ttl_cleanups=0|mcc_ttl_seconds=300|
+lib_static_loaded=87|lib_dynamic_loaded=2|lib_total_packages=1244|
+lib_cache_size=89
+
+
+================================================================================
+11. Process  —  ProcessBuilder.start / Runtime.exec
+================================================================================
+Namespace: org.jvmxray.events.system.process
+
+-- INFO: ProcessBuilder.start
+C:AP | 2026.05.14 at 10:28:00 EDT | worker-4 | INFO |
+org.jvmxray.events.system.process | caller=com.acme.GitWorker:42|
+AID=agent-001|CID=production|trace_id=f0a1b2c3d4e5|scope_chain=Process|
+parent_scope=none|scope_depth=1|operation=ProcessBuilder.start|
+command=/usr/bin/git|
+args=clone,https://github.com/acme/repo.git,/tmp/repo|
+working_dir=/var/app|execution_time_ms=2103|status=success
+
+-- INFO: Runtime.exec failure
+C:AP | 2026.05.14 at 10:28:05 EDT | worker-4 | INFO |
+org.jvmxray.events.system.process | caller=com.acme.GitWorker:42|
+AID=agent-001|CID=production|trace_id=a1b2c3d4e5f6|scope_chain=Process|
+parent_scope=none|scope_depth=1|operation=Runtime.exec|
+command=/usr/bin/missing-tool|args=|execution_time_ms=4|status=error|
+error_class=java.io.IOException|
+error_message=Cannot run program: No such file or directory
+
+
+================================================================================
+12. Reflection  —  Class.forName, Method.invoke, Field.get/set,
+                   setAccessible  [DISABLED]
+================================================================================
+Seven sub-namespaces under org.jvmxray.events.reflection:
+  - .class_forname
+  - .method_invoke
+  - .constructor_invoke
+  - .constructor_newInstance
+  - .field_get
+  - .field_set
+  - .set_accessible
+
+Status: commented out in agent.properties by default; high overhead.
+Enable per environment if reflection-based attacks are in scope.
+
+-- INFO: Class.forName resolution
+C:AP | 2026.05.14 at 10:29:00 EDT | worker-1 | INFO |
+org.jvmxray.events.reflection.class_forname |
+caller=com.acme.PluginLoader:31|AID=agent-001|CID=production|
+trace_id=b2c3d4e5f6a7|scope_chain=Reflection|parent_scope=none|
+scope_depth=1|operation=forName|
+class_name=javax.naming.InitialContext
+
+-- INFO: Method.invoke (sensitive)
+C:AP | 2026.05.14 at 10:29:01 EDT | worker-1 | INFO |
+org.jvmxray.events.reflection.method_invoke |
+caller=com.acme.PluginLoader:31|AID=agent-001|CID=production|
+trace_id=c3d4e5f6a7b8|scope_chain=Reflection|parent_scope=none|
+scope_depth=1|operation=invoke|method_name=exec|
+declaring_class=java.lang.Runtime|instance_provided=true|
+parameter_count=1|sensitive_method=true|risk_level=HIGH
+
+-- INFO: Field.set on a sensitive field
+C:AP | 2026.05.14 at 10:29:02 EDT | worker-1 | INFO |
+org.jvmxray.events.reflection.field_set |
+caller=com.acme.PluginLoader:31|AID=agent-001|CID=production|
+trace_id=d4e5f6a7b8c9|scope_chain=Reflection|parent_scope=none|
+scope_depth=1|operation=set|field_name=modifiers|
+declaring_class=java.lang.reflect.Field|sensitive_field=true|
+risk_level=HIGH|security_manager_modification=false|
+final_field_modification=true
+
+-- INFO: setAccessible(true)
+C:AP | 2026.05.14 at 10:29:03 EDT | worker-1 | INFO |
+org.jvmxray.events.reflection.set_accessible |
+caller=com.acme.PluginLoader:31|AID=agent-001|CID=production|
+trace_id=e5f6a7b8c9d0|scope_chain=Reflection|parent_scope=none|
+scope_depth=1|operation=setAccessible|
+accessible_member=java.lang.String.value|member_type=field|
+declared=true|risk_level=MEDIUM
+
+
+================================================================================
+13. ScriptEngine  —  javax.script.ScriptEngine.eval
+================================================================================
+Namespace: org.jvmxray.events.script.execution
+
+-- INFO: successful script execution
+C:AP | 2026.05.14 at 10:31:00 EDT | worker-2 | INFO |
+org.jvmxray.events.script.execution | caller=com.acme.RuleEngine:65|
+AID=agent-001|CID=production|trace_id=f6a7b8c9d0e1|scope_chain=Script|
+parent_scope=none|scope_depth=1|operation=eval|engine_name=Nashorn|
+script_language=ECMAScript|script_size=482|script_hash=7a3e9c1b...|
+execution_time_ms=18|status=success
+
+-- ERROR: script execution exception
+C:AP | 2026.05.14 at 10:31:04 EDT | worker-2 | ERROR |
+org.jvmxray.events.script.execution | caller=com.acme.RuleEngine:65|
+AID=agent-001|CID=production|trace_id=a7b8c9d0e1f2|scope_chain=Script|
+parent_scope=none|scope_depth=1|operation=eval|engine_name=Nashorn|
+script_language=ECMAScript|script_size=482|script_hash=7a3e9c1b...|
+execution_time_ms=12|status=error|
+error_message=ReferenceError: undef is not defined at line 1
+
+
+================================================================================
+14. Serialization  —  Java, JSON, XML object serialization
+================================================================================
+Six sub-namespaces under org.jvmxray.events.serialization:
+  - .serialize       ObjectOutputStream.writeObject
+  - .deserialize     ObjectInputStream.readObject
+  - .resolve         resolveClass / resolveProxyClass (gadget detection)
+  - .json            Jackson ObjectMapper
+  - .gson            Google Gson
+  - .xml             XStream / JAXB
+
+-- INFO: writeObject on a dangerous class (CVE annotated)
+C:AP | 2026.05.14 at 10:32:00 EDT | http-nio-8080-exec-2 | INFO |
+org.jvmxray.events.serialization.serialize |
+caller=com.acme.ApiController:99|AID=agent-001|CID=production|
+trace_id=b8c9d0e1f2a3|scope_chain=Serialization|parent_scope=none|
+scope_depth=1|operation=writeObject|
+serialized_class=org.apache.commons.collections.functors.InvokerTransformer|
+serialization_type=java|dangerous_class=true|risk_level=HIGH|
+cve_references=CVE-2015-4852,CVE-2015-7501
+
+-- INFO: readObject of a benign class
+C:AP | 2026.05.14 at 10:32:01 EDT | http-nio-8080-exec-2 | INFO |
+org.jvmxray.events.serialization.deserialize |
+caller=com.acme.ApiController:99|AID=agent-001|CID=production|
+trace_id=c9d0e1f2a3b4|scope_chain=Serialization|parent_scope=none|
+scope_depth=1|operation=readObject|
+deserialized_class=java.util.HashMap|serialization_type=java|
+dangerous_class=false|risk_level=LOW
+
+-- INFO: resolveClass for gadget chain class
+C:AP | 2026.05.14 at 10:32:01 EDT | http-nio-8080-exec-2 | INFO |
+org.jvmxray.events.serialization.resolve |
+caller=com.acme.ApiController:99|AID=agent-001|CID=production|
+trace_id=c9d0e1f2a3b4|scope_chain=Serialization|parent_scope=none|
+scope_depth=1|operation=resolveClass|
+class_name=org.apache.commons.collections.functors.InvokerTransformer|
+dangerous_class=true|threat_type=gadget_chain|risk_level=HIGH
+
+-- INFO: Jackson polymorphic deserialization
+C:AP | 2026.05.14 at 10:32:05 EDT | http-nio-8080-exec-4 | INFO |
+org.jvmxray.events.serialization.json |
+caller=com.acme.ApiController:99|AID=agent-001|CID=production|
+trace_id=d0e1f2a3b4c5|scope_chain=Serialization|parent_scope=none|
+scope_depth=1|operation=readValue|serialization_type=jackson|
+polymorphic_deserialization=true|result_class=com.acme.Event|
+risk_level=MEDIUM
+
+-- INFO: XStream with XXE risk
+C:AP | 2026.05.14 at 10:32:07 EDT | worker-2 | INFO |
+org.jvmxray.events.serialization.xml |
+caller=com.acme.ApiController:99|AID=agent-001|CID=production|
+trace_id=e1f2a3b4c5d6|scope_chain=Serialization|parent_scope=none|
+scope_depth=1|operation=fromXML|serialization_type=xstream|
+xxe_risk=true|result_class=com.acme.Config|risk_level=HIGH
+
+
+================================================================================
+15. Socket  —  bind, connect, accept, close
+================================================================================
+Four namespaces under org.jvmxray.events.net.socket:
+  - .bind     ServerSocket.bind
+  - .connect  Socket.connect
+  - .accept   ServerSocket.accept
+  - .close    Socket.close / ServerSocket.close
+
+-- INFO: server bound to a port
+C:AP | 2026.05.14 at 10:22:10 EDT | main | INFO |
+org.jvmxray.events.net.socket.bind | caller=com.acme.NetService:14|
+AID=agent-001|CID=production|trace_id=f2a3b4c5d6e7|scope_chain=Socket|
+parent_scope=none|scope_depth=1|bind_src=0.0.0.0:8080|local_port=8080|
+backlog=50|status=success
+
+-- INFO: outbound connect
+C:AP | 2026.05.14 at 10:24:00 EDT | http-client-pool-1 | INFO |
+org.jvmxray.events.net.socket.connect |
+caller=com.acme.NetService:14|AID=agent-001|CID=production|
+trace_id=a3b4c5d6e7f8|scope_chain=Socket|parent_scope=none|
+scope_depth=1|bind_src=10.0.0.42:54321|connection_time_ms=12|
+status=success
+
+-- INFO: accept (loopback flagged)
+C:AP | 2026.05.14 at 10:24:00 EDT | http-nio-8080-exec-1 | INFO |
+org.jvmxray.events.net.socket.accept |
+caller=com.acme.NetService:14|AID=agent-001|CID=production|
+trace_id=b4c5d6e7f8a9|scope_chain=Socket|parent_scope=none|
+scope_depth=1|bind_src=0.0.0.0:8080|dst=127.0.0.1:50118|
+remote_address=127.0.0.1|remote_port=50118|is_loopback=true|
+is_private_ip=false|status=success
+
+-- INFO: socket closed after some lifetime
+C:AP | 2026.05.14 at 10:24:09 EDT | http-nio-8080-exec-1 | INFO |
+org.jvmxray.events.net.socket.close |
+caller=com.acme.NetService:14|AID=agent-001|CID=production|
+trace_id=b4c5d6e7f8a9|scope_chain=Socket|parent_scope=none|
+scope_depth=1|bind_src=0.0.0.0:8080|dst=127.0.0.1:50118|
+connection_duration_ms=9210|status=success
+
+
+================================================================================
+16. SQL  —  JDBC statement and prepared-statement execution
+================================================================================
+Namespace: org.jvmxray.events.sql.query
+
+The sensor emits separate entry and exit events tied by `correlation_id`,
+plus an optional DEBUG event with parameter values when parameters are
+bound.
+
+-- INFO: query entry (the SQL is captured before execution)
+C:AP | 2026.05.14 at 10:33:00 EDT | worker-3 | INFO |
+org.jvmxray.events.sql.query | caller=com.acme.OrderRepo:120|
+AID=agent-001|CID=production|trace_id=c5d6e7f8a9b0|scope_chain=SQL|
+parent_scope=none|scope_depth=1|correlation_id=Q-9F2B|
+class=org.postgresql.jdbc.PgPreparedStatement|
+sql_text=SELECT * FROM orders WHERE customer_id = ? AND status = ?|
+sql_operation_type=SELECT|is_parameterized=true|parameter_count=2|
+sql_hash=a3c8...|
+db_url=jdbc:postgresql://db.acme.internal:5432/orders|
+db_user=app_ro|schema_name=public
+
+-- INFO: query exit (success)
+C:AP | 2026.05.14 at 10:33:00 EDT | worker-3 | INFO |
+org.jvmxray.events.sql.query | caller=com.acme.OrderRepo:120|
+AID=agent-001|CID=production|trace_id=c5d6e7f8a9b0|scope_chain=SQL|
+parent_scope=none|scope_depth=1|correlation_id=Q-9F2B|
+class=org.postgresql.jdbc.PgPreparedStatement|duration_ms=4|
+status=success|result_type=ResultSet|has_result_set=true
+
+-- ERROR: query exit (failure)
+C:AP | 2026.05.14 at 10:33:02 EDT | worker-3 | ERROR |
+org.jvmxray.events.sql.query | caller=com.acme.OrderRepo:120|
+AID=agent-001|CID=production|trace_id=d6e7f8a9b0c1|scope_chain=SQL|
+parent_scope=none|scope_depth=1|correlation_id=Q-9F2C|
+class=org.postgresql.jdbc.PgPreparedStatement|duration_ms=380|
+status=error|error_message=ERROR: relation ordrs does not exist|
+error_class=org.postgresql.util.PSQLException|sql_state=42P01|
+error_code=0
+
+-- DEBUG: parameter values for a parameterized query
+C:AP | 2026.05.14 at 10:33:00 EDT | worker-3 | DEBUG |
+org.jvmxray.events.sql.query | caller=com.acme.OrderRepo:120|
+AID=agent-001|CID=production|trace_id=c5d6e7f8a9b0|scope_chain=SQL|
+parent_scope=none|scope_depth=1|correlation_id=Q-9F2B|
+parameters=1=482,2=open
+
+
+================================================================================
+17. UncaughtException  —  crash diagnostics for unhandled throwables
+================================================================================
+Namespace: org.jvmxray.events.system.uncaughtexception
+
+Fires once per uncaught throwable on any thread. The sensor checks
+which logger is enabled and emits the event at that level. INFO carries
+the minimum useful diagnostic; DEBUG adds an extensive forensic dump
+(cause chain, per-pool memory, GC stats, OS info, security state, disk,
+detailed threads, system management info).
+
+Note on stack_trace: the real sensor emits this value with each frame
+on its own line. The samples below collapse frames into a single
+` > `-separated string for documentation readability.
+
+-- INFO: uncaught exception with base diagnostic set
+C:AP | 2026.05.14 at 10:35:00 EDT | worker-5 | INFO |
+org.jvmxray.events.system.uncaughtexception |
+caller=com.acme.OrderService:88|AID=agent-001|CID=production|
+trace_id=f8a9b0c1d2e3|scope_chain=UncaughtException|
+parent_scope=none|scope_depth=1|thread_name=worker-5|thread_id=49|
+thread_state=RUNNABLE|thread_priority=5|thread_daemon=false|
+thread_group=main|exception_type=java.lang.NullPointerException|
+exception_message=Cannot invoke User.getEmail() because user is null|
+exception_location=com.acme.OrderService:88|exception_method=notify|
+stack_depth=15|
+stack_trace=OrderService.notify:88 > WorkerPool.run:42 > ... 13 more|
+root_cause_type=java.lang.NullPointerException|
+root_cause_message=user is null|
+command_line=java -javaagent:jvmxray-0.0.1-agent.jar -jar app.jar|
+main_class=com.acme.AppMain|heap_used_mb=412.34|heap_max_mb=2048.00|
+heap_committed_mb=1024.00|heap_utilization_pct=20.13|
+non_heap_used_mb=89.12|non_heap_committed_mb=128.00|thread_count=24|
+peak_thread_count=31|daemon_thread_count=18|
+total_started_threads=187|jvm_uptime_ms=782104|
+incident_id=c3a1b2d4-e5f6-7890-abcd-ef1234567890|
+timestamp=1715688900123
+
+-- DEBUG: same INFO set PLUS the forensic additions below
+C:AP | 2026.05.14 at 10:35:00 EDT | worker-5 | DEBUG |
+org.jvmxray.events.system.uncaughtexception |
+caller=com.acme.OrderService:88|AID=agent-001|CID=production|
+trace_id=f8a9b0c1d2e3|scope_chain=UncaughtException|
+parent_scope=none|scope_depth=1|thread_name=worker-5|thread_id=49|
+thread_state=RUNNABLE|thread_priority=5|thread_daemon=false|
+thread_group=main|exception_type=java.lang.NullPointerException|
+exception_message=Cannot invoke User.getEmail() because user is null|
+exception_location=com.acme.OrderService:88|exception_method=notify|
+stack_depth=15|
+stack_trace=OrderService.notify:88 > WorkerPool.run:42 > [all 15 frames]|
+root_cause_type=java.lang.NullPointerException|
+root_cause_message=user is null|
+command_line=java -javaagent:jvmxray-0.0.1-agent.jar -jar app.jar|
+main_class=com.acme.AppMain|heap_used_mb=412.34|heap_max_mb=2048.00|
+heap_committed_mb=1024.00|heap_utilization_pct=20.13|
+non_heap_used_mb=89.12|non_heap_committed_mb=128.00|thread_count=24|
+peak_thread_count=31|daemon_thread_count=18|
+total_started_threads=187|jvm_uptime_ms=782104|
+incident_id=c3a1b2d4-e5f6-7890-abcd-ef1234567890|
+timestamp=1715688900123|cause_1_type=java.io.IOException|
+cause_1_message=Stream closed|
+cause_1_location=BufferedReader.ensureOpen:122|
+cause_2_type=java.net.SocketException|
+cause_2_message=Connection reset|
+cause_2_location=SocketChannelImpl.read:387|cause_chain_length=2|
+suppressed_count=1|
+suppressed_exceptions=IllegalStateException: cleanup failed|
+pool_g1_eden_space_used_mb=128.00|pool_g1_old_gen_used_mb=240.00|
+pool_metaspace_used_mb=72.50|
+pool_compressed_class_space_used_mb=9.10|
+gc_g1_young_generation_collections=42|
+gc_g1_young_generation_time_ms=1185|
+gc_g1_old_generation_collections=3|
+gc_g1_old_generation_time_ms=412|loaded_class_count=14823|
+total_loaded_class_count=14910|unloaded_class_count=87|os_name=Linux|
+os_version=5.15.0-92-generic|os_arch=amd64|available_processors=8|
+system_load_average=2.41|security_manager=none|
+java_security_policy=default|temp_dir_free_space_mb=58210.50|
+temp_dir_total_space_mb=102400.00|target_thread_group=main|
+target_thread_context_classloader=AppClassLoader|
+target_thread_interrupted=false|current_thread_cpu_time_ms=312|
+jvm_name=OpenJDK 64-Bit Server VM|jvm_vendor=Eclipse Adoptium|
+java_version=17.0.10|uptime_ms=782104|start_time=1715688118019|
+system_process_id=4287|system_open_file_descriptors=384|
+system_max_file_descriptors=1048576
+
+NOTE on dynamic fields at DEBUG:
+  - `pool_<poolname>_used_mb` — one field per memory pool reported by
+    MemoryPoolMXBean. Pool names are normalized to lowercase with
+    spaces converted to underscores; the set varies by collector
+    (G1, ZGC, Shenandoah).
+  - `gc_<gcname>_collections` and `gc_<gcname>_time_ms` — one pair per
+    garbage collector reported by GarbageCollectorMXBean.
+  - `system_*` — open-ended set of management-bean fields contributed
+    by ManagementProxy.getManagementInfo(); the exact keys depend on
+    the JVM and platform. Common examples: `system_process_id`,
+    `system_open_file_descriptors`.
+
+================================================================================
+Non-operational tbd
+================================================================================
+
+The sensors below are wired into agent.properties but their loggers are
+removed from the default logback.xml because of unresolved recursive-
+logging issues — enabling either currently produces a feedback loop
+that can OOM the JVM. Samples are kept here so the field schema is
+documented for whoever picks up the fix.
+
+================================================================================
+  Memory  —  direct buffers, Unsafe, GC, heap
+================================================================================
+Four sub-namespaces under org.jvmxray.events.memory:
+  - .direct_buffer  ByteBuffer.allocateDirect
+  - .unsafe         sun.misc.Unsafe allocateMemory/freeMemory
+  - .gc             System.gc invocations
+  - .query          Runtime.totalMemory / freeMemory queries
+
+Status: wired in agent.properties but logger removed from default
+logback.xml due to recursive-logging issues. Aggregate memory metrics
+over time come from MonitorSensor instead.
+
+-- INFO: large direct buffer allocation
+C:AP | 2026.05.14 at 10:30:00 EDT | netty-io-1 | INFO |
+org.jvmxray.events.memory.direct_buffer | caller=com.acme.Netty:200|
+AID=agent-001|CID=production|trace_id=a5b6c7d8e9f0|scope_chain=Memory|
+parent_scope=none|scope_depth=1|operation=allocateDirect|
+buffer_class=DirectByteBuffer|capacity=67108864|capacity_mb=64|
+allocation_success=true|large_direct_allocation=true|risk_level=MEDIUM
+
+-- INFO: Unsafe allocation
+C:AP | 2026.05.14 at 10:30:02 EDT | worker-1 | INFO |
+org.jvmxray.events.memory.unsafe | caller=com.acme.Netty:200|
+AID=agent-001|CID=production|trace_id=b6c7d8e9f0a1|scope_chain=Memory|
+parent_scope=none|scope_depth=1|operation=allocateMemory|
+allocated_address=0x7f8a1c000000|requested_size=1048576|size_mb=1|
+allocation_success=true|unsafe_class=sun.misc.Unsafe|risk_level=MEDIUM
+
+-- INFO: explicit System.gc call
+C:AP | 2026.05.14 at 10:30:10 EDT | worker-1 | INFO |
+org.jvmxray.events.memory.gc | caller=com.acme.Netty:200|
+AID=agent-001|CID=production|trace_id=c7d8e9f0a1b2|scope_chain=Memory|
+parent_scope=none|scope_depth=1|operation=System.gc|gc_call_count=3|
+frequent_gc_calls=true|time_since_last_gc_ms=4200|
+caller_class=com.acme.CacheReaper|risk_level=MEDIUM
+
+-- INFO: runtime memory query
+C:AP | 2026.05.14 at 10:30:11 EDT | monitor-thread | INFO |
+org.jvmxray.events.memory.query | caller=com.acme.Netty:200|
+AID=agent-001|CID=production|trace_id=d8e9f0a1b2c3|scope_chain=Memory|
+parent_scope=none|scope_depth=1|operation=totalMemory|
+method=Runtime.totalMemory|result_bytes=536870912|result_mb=512
+
+
+================================================================================
+  Thread  —  thread lifecycle events
+================================================================================
+Namespace: org.jvmxray.events.thread.lifecycle
+
+Status: wired in agent.properties but logger removed from default
+logback.xml due to recursive-logging issues.
+
+-- INFO: thread created
+C:AP | 2026.05.14 at 10:34:00 EDT | main | INFO |
+org.jvmxray.events.thread.lifecycle | caller=com.acme.WorkerPool:42|
+AID=agent-001|CID=production|trace_id=e7f8a9b0c1d2|scope_chain=Thread|
+parent_scope=none|scope_depth=1|operation=start|
+thread_name=worker-7|thread_id=42|thread_state=NEW|is_daemon=false|
+parent_thread_id=1|
+context_classloader=jdk.internal.loader.ClassLoaders$AppCL
+
+
+================================================================================
+End of catalog.
+================================================================================

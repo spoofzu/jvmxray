@@ -10,21 +10,29 @@
    - 4.2 [System Properties](#system-properties)
    - 4.3 [Component Properties](#component-properties)
    - 4.4 [Logback XML Settings](#logback-xml-settings)
-5. [Database Tables](#database-tables)
-6. [Log Message Reference](#log-message-reference)
-   - 6.1 [Common Fields](#common-fields)
-   - 6.2 [CONFIG Events](#config-events-configuration-sensor)
-   - 6.3 [CRYPTO Events](#crypto-events-cryptographic-sensor)
-   - 6.4 [HTTP Events](#http-events-http-sensor)
-   - 6.5 [IO Events](#io-events-file-io-sensor)
-   - 6.6 [MONITOR Events](#monitor-events-system-monitor-sensor)
-   - 6.7 [NET Events](#net-events-network-sensor)
-   - 6.8 [SERIALIZATION Events](#serialization-events-serialization-sensor)
-   - 6.9 [SQL Events](#sql-events-sql-sensor)
-   - 6.10 [SYSTEM Events](#system-events-system-sensor)
-   - 6.11 [Risk Level Classification](#risk-level-classification)
+5. [Sensor Reference](#sensor-reference)
+   - 5.1 [Common Fields](#common-fields)
+   - 5.2 [Configuration Sensor](#configuration-sensor)
+   - 5.3 [Crypto Sensor](#crypto-sensor)
+   - 5.4 [HTTP Sensor](#http-sensor)
+   - 5.5 [File I/O Sensor](#file-io-sensor)
+   - 5.6 [Monitor Sensor](#monitor-sensor)
+   - 5.7 [Socket (Network) Sensor](#socket-network-sensor)
+   - 5.8 [Serialization Sensor](#serialization-sensor)
+   - 5.9 [SQL Sensor](#sql-sensor)
+   - 5.10 [Authentication Sensor](#authentication-sensor)
+   - 5.11 [APICall Sensor](#apicall-sensor)
+   - 5.12 [Reflection Sensor](#reflection-sensor)
+   - 5.13 [Script Engine Sensor](#script-engine-sensor)
+   - 5.14 [Process Sensor](#process-sensor)
+   - 5.15 [Library Sensor](#library-sensor)
+   - 5.16 [Uncaught Exception Sensor](#uncaught-exception-sensor)
+   - 5.17 [App Init Sensor](#app-init-sensor)
+   - 5.18 [Risk Level Classification](#risk-level-classification)
+6. [Database Tables](#database-tables)
 7. [Common Errors](#common-errors)
 8. [Developer Guide](#developer-guide)
+9. [Unresolved](#unresolved)
 
 ---
 
@@ -454,27 +462,11 @@ Events are logged when files are closed, providing complete operation statistics
 
 ---
 
-## Database Tables
+## Sensor Reference
 
-The agent emits every event as a Logback log record, so persistence is whatever Logback appenders you wire up — rolling files, sockets to a remote log server, syslog, JDBC, Kafka, or any other Logback-compatible sink. **There is no required database.**
+One section per sensor that ships with the agent. Each entry names the implementing class, the sensor's default operational status, the namespace(s) it emits events under, and the log file its events land in by default, followed by sample log entries and a per-field reference for the events the sensor produces. The sensor is the unit of interest; the log message it emits is described as its output.
 
-JVMXRay ships with a `ShadedSQLiteAppender` and a `SchemaManager` CLI that handles SQLite, MySQL, and Cassandra schemas. These exist for **testing and demos**: they let you spin up a working event store locally without standing up a log pipeline first. Production deployments typically route events through existing log infrastructure (Splunk, ELK, Datadog, OpenSearch) via Logback appenders rather than the bundled SQL stores.
-
-### Schema reference
-
-If you do use the bundled SQL appender, the single table written by the agent is `STAGE0_EVENT`, holding raw events with metadata and a `KEYPAIRS` payload. Indexes on `TIMESTAMP`, `NAMESPACE`, `AID`/`CID`, and `TRACE_ID` support time-based, sensor-type, agent-instance, and correlation queries.
-
-The full schema — column types, indexes, and the parallel `STAGE0_EVENT_KEYPAIR` table for parsed pipelines — is documented in [docs/prj-common.md](prj-common.md) alongside the `SchemaManager` CLI. Read that doc if you are setting up storage; this section exists only to point you to it.
-
-### Event format
-
-Every emitted log line follows: `CONFIG_FILE | timestamp | thread | priority | namespace | keypairs`. The `KEYPAIRS` segment is pipe-separated `key=value` pairs whose contents depend on the sensor — see [Log Message Reference](#log-message-reference) for per-sensor field documentation.
-
----
-
-## Log Message Reference
-
-This section provides comprehensive documentation for each agent log message type, including message structure, sample entries, and detailed field explanations.
+Sensors that are not currently operational are listed under [Unresolved](#unresolved) at the end of this document with the reason and a sketch of possible fixes.
 
 ### Common Fields
 
@@ -484,11 +476,11 @@ The following fields appear across multiple log message types:
 
 These fields are automatically enriched by LogProxy for every log message:
 
-| Field | Type | Description | Format/Example |
-|-------|------|-------------|----------------|
-| `caller` | String | Application code location that triggered the event. Automatically captured from the stack trace, filtering out JDK, ByteBuddy, and JVMXRay framework classes to identify the actual application caller. | `com.example.MyClass:42` (className:lineNumber)<br>`unknown:0` if no application frame found |
-| `AID` | String | Agent Instance ID - unique identifier for this agent instance, configured in agent.properties | `agent-001`, `prod-server-1` |
-| `CID` | String | Configuration ID - identifies the configuration profile, configured in agent.properties | `production`, `staging`, `development` |
+| Field | Type | Log Level | Description | Format/Example |
+|-------|------|-----------|-------------|----------------|
+| `caller` | String | all | Application code location that triggered the event. Automatically captured from the stack trace, filtering out JDK, ByteBuddy, and JVMXRay framework classes to identify the actual application caller. | `com.example.MyClass:42` (className:lineNumber)<br>`unknown:0` if no application frame found |
+| `AID` | String | all | Agent Instance ID - unique identifier for this agent instance, configured in agent.properties | `agent-001`, `prod-server-1` |
+| `CID` | String | all | Configuration ID - identifies the configuration profile, configured in agent.properties | `production`, `staging`, `development` |
 
 #### Event Correlation Fields
 
@@ -496,12 +488,12 @@ These fields are automatically maintained by MCC (Mapped Correlation Context) an
 
 **Note:** The Memory and Thread sensors are currently disabled due to recursive logging issues. When re-enabled, they will not include MCC correlation fields (`trace_id`, `scope_chain`, `parent_scope`, `scope_depth`) — MCC scoping is not yet implemented for these sensors.
 
-| Field | Type | Description | Example Values |
-|-------|------|-------------|----------------|
-| `trace_id` | String | Unique correlation ID linking all events within the same execution context. Generated on first scope entry, inherited by nested scopes. Also stored as dedicated TRACE_ID column in STAGE0_EVENT. | `a1b2c3d4e5f6` |
-| `scope_chain` | String | Nested sensor activation path from root to current scope, delimited by `>`. Shows how execution flowed through sensors — the "security stacktrace". | `HTTP>SQL>FileIO`, `HTTP>Serialization>Reflection>Process` |
-| `parent_scope` | String | Name of the immediate parent sensor scope. Enables event tree reconstruction. | `HTTP`, `SQL`, `none` (for root scope) |
-| `scope_depth` | String | Integer nesting level. Normal requests nest 2-3 deep; depth 6+ warrants investigation as potential attack chain. | `1`, `3`, `6` |
+| Field | Type | Log Level | Description | Example Values |
+|-------|------|-----------|-------------|----------------|
+| `trace_id` | String | all | Unique correlation ID linking all events within the same execution context. Generated on first scope entry, inherited by nested scopes. Also stored as dedicated TRACE_ID column in STAGE0_EVENT. | `a1b2c3d4e5f6` |
+| `scope_chain` | String | all | Nested sensor activation path from root to current scope, delimited by `>`. Shows how execution flowed through sensors — the "security stacktrace". | `HTTP>SQL>FileIO`, `HTTP>Serialization>Reflection>Process` |
+| `parent_scope` | String | all | Name of the immediate parent sensor scope. Enables event tree reconstruction. | `HTTP`, `SQL`, `none` (for root scope) |
+| `scope_depth` | String | all | Integer nesting level. Normal requests nest 2-3 deep; depth 6+ warrants investigation as potential attack chain. | `1`, `3`, `6` |
 
 **Correlation example:** An HTTP request triggers a SQL query which triggers file I/O:
 ```
@@ -517,11 +509,11 @@ SELECT * FROM STAGE0_EVENT WHERE TRACE_ID = 'ABC123' ORDER BY TIMESTAMP;
 
 #### Sensor-Specific Common Fields
 
-| Field | Type | Description | Example Values |
-|-------|------|-------------|----------------|
-| `error` | String | Exception class name when an error occurs | `IOException`, `SecurityException` |
-| `error_message` | String | Detailed error message when an exception is thrown | `Permission denied` |
-| `risk_level` | String | Security risk classification for the event | `CRITICAL`, `HIGH`, `MEDIUM`, `LOW` |
+| Field | Type | Log Level | Description | Example Values |
+|-------|------|-----------|-------------|----------------|
+| `error` | String | INFO, ERROR | Exception class name when an error occurs. Most sensors emit at INFO; SQL emits at ERROR. | `IOException`, `SecurityException` |
+| `error_message` | String | INFO, ERROR | Detailed error message when an exception is thrown. Level matches `error`. | `Permission denied` |
+| `risk_level` | String | INFO | Security risk classification for the event | `CRITICAL`, `HIGH`, `MEDIUM`, `LOW` |
 
 #### Caller Field Details
 
@@ -545,10 +537,12 @@ The `caller` field uses stack trace analysis to identify the application code th
 
 ---
 
-### CONFIG Events (Configuration Sensor)
+### Configuration Sensor
 
-**Log File:** `agent-CONFIG-events.log`
-**Namespace:** `org.jvmxray.events.config.property`
+**Class:** `org.jvmxray.agent.sensor.configuration.ConfigurationSensor`
+**Status:** Active by default.
+**Namespace(s):** `org.jvmxray.events.config.property`, `.environment`, `.file`, `.preferences`
+**Log file:** `agent-CONFIG-events.log`
 
 Monitors system property access and modifications, environment variable access, and configuration file operations.
 
@@ -561,21 +555,21 @@ sensitive_property=true|risk_level=HIGH|security_property_access=true
 
 #### Field Reference
 
-| Field | Type | Description | Possible Values |
-|-------|------|-------------|-----------------|
-| `operation` | String | Type of configuration operation performed | `system_getProperty` - Reading a system property<br>`system_setProperty` - Modifying a system property<br>`system_getenv` - Reading an environment variable |
-| `property_key` | String | Name of the system property being accessed | Any Java system property name (e.g., `java.home`, `user.dir`, `java.security.policy`) |
-| `value_retrieved` | Boolean | Whether a value was successfully retrieved (not null) | `true` - Property exists and has a value<br>`false` - Property does not exist or is null |
-| `property_value` | String | The value of the property (truncated to 100 chars). **Omitted for sensitive properties** | Property value or `...[truncated]` if over 100 chars |
-| `sensitive_property` | Boolean | Whether this is classified as a sensitive property | `true` - Property is security-sensitive (contains password, secret, key, token, or is in SENSITIVE_PROPERTIES list) |
-| `security_property_access` | Boolean | Whether this is a security-related property | `true` - Property name contains "security" or "policy" |
-| `modification_success` | Boolean | Whether a setProperty operation succeeded | `true` - Property was successfully set<br>`false` - Operation failed (exception thrown) |
-| `new_value` | String | The new value being set (truncated). **Omitted for sensitive properties** | New property value |
-| `previous_value_existed` | Boolean | Whether the property had a previous value before modification | `true` - Property existed before setProperty call |
-| `sensitive_property_modification` | Boolean | Indicates modification of a sensitive property | `true` - A sensitive property was modified |
-| `critical_security_modification` | Boolean | Indicates modification of critical security properties | `true` - Modification of `java.security.manager` or `java.security.policy` |
-| `path_modification` | Boolean | Indicates modification of path-related properties | `true` - Property name contains "path" or "dir" |
-| `threat_type` | String | Classification of potential threat | `privilege_escalation` - Attempting to modify security boundaries |
+| Field | Type | Log Level | Description | Possible Values |
+|-------|------|-----------|-------------|-----------------|
+| `operation` | String | INFO | Type of configuration operation performed | `system_getProperty` - Reading a system property<br>`system_setProperty` - Modifying a system property<br>`system_getenv` - Reading an environment variable |
+| `property_key` | String | INFO | Name of the system property being accessed | Any Java system property name (e.g., `java.home`, `user.dir`, `java.security.policy`) |
+| `value_retrieved` | Boolean | INFO | Whether a value was successfully retrieved (not null) | `true` - Property exists and has a value<br>`false` - Property does not exist or is null |
+| `property_value` | String | INFO | The value of the property (truncated to 100 chars). **Omitted for sensitive properties** | Property value or `...[truncated]` if over 100 chars |
+| `sensitive_property` | Boolean | INFO | Whether this is classified as a sensitive property | `true` - Property is security-sensitive (contains password, secret, key, token, or is in SENSITIVE_PROPERTIES list) |
+| `security_property_access` | Boolean | INFO | Whether this is a security-related property | `true` - Property name contains "security" or "policy" |
+| `modification_success` | Boolean | INFO | Whether a setProperty operation succeeded | `true` - Property was successfully set<br>`false` - Operation failed (exception thrown) |
+| `new_value` | String | INFO | The new value being set (truncated). **Omitted for sensitive properties** | New property value |
+| `previous_value_existed` | Boolean | INFO | Whether the property had a previous value before modification | `true` - Property existed before setProperty call |
+| `sensitive_property_modification` | Boolean | INFO | Indicates modification of a sensitive property | `true` - A sensitive property was modified |
+| `critical_security_modification` | Boolean | INFO | Indicates modification of critical security properties | `true` - Modification of `java.security.manager` or `java.security.policy` |
+| `path_modification` | Boolean | INFO | Indicates modification of path-related properties | `true` - Property name contains "path" or "dir" |
+| `threat_type` | String | INFO | Classification of potential threat | `privilege_escalation` - Attempting to modify security boundaries |
 
 #### Sensitive Properties List
 The following properties are automatically classified as sensitive:
@@ -586,15 +580,14 @@ The following properties are automatically classified as sensitive:
 
 ---
 
-### CRYPTO Events (Cryptographic Sensor)
+### Crypto Sensor
 
-**Log File:** `agent-CRYPTO-events.log`
-**Namespaces:**
-- `org.jvmxray.events.crypto.cipher` - Cipher operations
-- `org.jvmxray.events.crypto.digest` - Message digest/hash operations
-- `org.jvmxray.events.crypto.keystore` - KeyStore operations
+**Class:** `org.jvmxray.agent.sensor.crypto.CryptoSensor`
+**Status:** Active by default.
+**Namespace(s):** `org.jvmxray.events.crypto.cipher`, `.cipher_init`, `.digest`, `.keystore`, `.ssl`
+**Log file:** `agent-CRYPTO-events.log`
 
-Monitors cryptographic operations including cipher instantiation, message digest creation, and keystore access.
+Monitors cryptographic operations including cipher instantiation, key configuration, message digest, keystore loading, and SSL/TLS socket setup.
 
 #### Sample Log Entries
 
@@ -623,22 +616,22 @@ has_password=true|keystore_file=/etc/pki/java/cacerts|weak_password=true|risk_le
 
 #### Field Reference
 
-| Field | Type | Description | Possible Values |
-|-------|------|-------------|-----------------|
-| `operation` | String | Type of cryptographic operation | `cipher_getInstance` - Creating a Cipher instance<br>`messageDigest_getInstance` - Creating a MessageDigest<br>`keyStore_load` - Loading a KeyStore |
-| `transformation` | String | Full cipher transformation string | `AES/CBC/PKCS5Padding`, `DES/ECB/NoPadding`, etc. |
-| `algorithm` | String | Cryptographic algorithm name (uppercase) | `AES`, `DES`, `RSA`, `MD5`, `SHA-256`, etc. |
-| `weak_algorithm` | Boolean | Whether the algorithm is considered cryptographically weak | `true` - Algorithm is deprecated or vulnerable |
-| `weakness_type` | String | Specific type of cryptographic weakness | `deprecated_algorithm` - Algorithm is outdated (DES, RC4, 3DES)<br>`collision_vulnerable` - Hash has known collisions (MD5)<br>`deprecated_hash` - Hash is no longer recommended (SHA1) |
-| `incomplete_transformation` | Boolean | Whether the cipher transformation is missing mode or padding | `true` - Transformation has fewer than 3 parts (missing mode or padding) |
-| `cipher_class` | String | Fully qualified class name of the Cipher implementation | `javax.crypto.Cipher`, provider-specific class |
-| `digest_class` | String | Fully qualified class name of the MessageDigest implementation | `java.security.MessageDigest` |
-| `keystore_class` | String | Fully qualified class name of the KeyStore implementation | `java.security.KeyStore` |
-| `has_inputstream` | Boolean | Whether keystore load was called with an InputStream | `true` - Loading from a file/stream<br>`false` - Creating an empty keystore |
-| `has_password` | Boolean | Whether a password was provided for keystore operations | `true` - Password provided<br>`false` - No password (security concern) |
-| `keystore_file` | String | Fully qualified path to the keystore file (when loaded from FileInputStream) | `/etc/pki/java/cacerts`, `/app/config/keystore.jks` |
-| `stream_class` | String | Class name of the InputStream (when file path unavailable) | `java.io.BufferedInputStream`, `java.io.ByteArrayInputStream` |
-| `weak_password` | Boolean | Whether the provided password is considered weak | `true` - Password length is less than 8 characters |
+| Field | Type | Log Level | Description | Possible Values |
+|-------|------|-----------|-------------|-----------------|
+| `operation` | String | INFO | Type of cryptographic operation | `cipher_getInstance` - Creating a Cipher instance<br>`messageDigest_getInstance` - Creating a MessageDigest<br>`keyStore_load` - Loading a KeyStore |
+| `transformation` | String | INFO | Full cipher transformation string | `AES/CBC/PKCS5Padding`, `DES/ECB/NoPadding`, etc. |
+| `algorithm` | String | INFO | Cryptographic algorithm name (uppercase) | `AES`, `DES`, `RSA`, `MD5`, `SHA-256`, etc. |
+| `weak_algorithm` | Boolean | INFO | Whether the algorithm is considered cryptographically weak | `true` - Algorithm is deprecated or vulnerable |
+| `weakness_type` | String | INFO | Specific type of cryptographic weakness | `deprecated_algorithm` - Algorithm is outdated (DES, RC4, 3DES)<br>`collision_vulnerable` - Hash has known collisions (MD5)<br>`deprecated_hash` - Hash is no longer recommended (SHA1) |
+| `incomplete_transformation` | Boolean | INFO | Whether the cipher transformation is missing mode or padding | `true` - Transformation has fewer than 3 parts (missing mode or padding) |
+| `cipher_class` | String | INFO | Fully qualified class name of the Cipher implementation | `javax.crypto.Cipher`, provider-specific class |
+| `digest_class` | String | INFO | Fully qualified class name of the MessageDigest implementation | `java.security.MessageDigest` |
+| `keystore_class` | String | INFO | Fully qualified class name of the KeyStore implementation | `java.security.KeyStore` |
+| `has_inputstream` | Boolean | INFO | Whether keystore load was called with an InputStream | `true` - Loading from a file/stream<br>`false` - Creating an empty keystore |
+| `has_password` | Boolean | INFO | Whether a password was provided for keystore operations | `true` - Password provided<br>`false` - No password (security concern) |
+| `keystore_file` | String | INFO | Fully qualified path to the keystore file (when loaded from FileInputStream) | `/etc/pki/java/cacerts`, `/app/config/keystore.jks` |
+| `stream_class` | String | INFO | Class name of the InputStream (when file path unavailable) | `java.io.BufferedInputStream`, `java.io.ByteArrayInputStream` |
+| `weak_password` | Boolean | INFO | Whether the provided password is considered weak | `true` - Password length is less than 8 characters |
 
 #### Weak Algorithm Detection
 The following algorithms trigger `weak_algorithm=true`:
@@ -649,19 +642,19 @@ The following algorithms trigger `weak_algorithm=true`:
 
 The CRYPTO sensor now includes regulatory compliance metadata:
 
-| Field | Type | Description | Example Values |
-|-------|------|-------------|----------------|
-| `fips_140_compliant` | Boolean | Whether the algorithm meets FIPS 140-2/3 requirements | `true`, `false` |
-| `fips_140_status` | String | Detailed FIPS compliance status | `approved`, `deprecated`, `not_approved` |
-| `pci_dss_compliant` | Boolean | Whether the configuration meets PCI-DSS requirements | `true`, `false` |
-| `pci_dss_notes` | String | PCI-DSS compliance notes | `Minimum 128-bit key required`, `Algorithm prohibited` |
-| `nist_status` | String | NIST recommendation status | `current`, `deprecated`, `prohibited` |
-| `nist_deprecation_year` | String | Year algorithm was deprecated by NIST | `2015`, `2020`, etc. |
-| `suggested_replacement` | String | Recommended alternative algorithm | `AES-256-GCM`, `SHA-256` |
-| `key_length_bits` | Integer | Key length in bits (for cipher operations) | `128`, `256` |
-| `digest_length_bits` | Integer | Digest output length in bits | `256`, `512` |
-| `mode` | String | Cipher mode of operation | `CBC`, `GCM`, `ECB` |
-| `padding` | String | Cipher padding scheme | `PKCS5Padding`, `NoPadding` |
+| Field | Type | Log Level | Description | Example Values |
+|-------|------|-----------|-------------|----------------|
+| `fips_140_compliant` | Boolean | INFO | Whether the algorithm meets FIPS 140-2/3 requirements | `true`, `false` |
+| `fips_140_status` | String | INFO | Detailed FIPS compliance status | `approved`, `deprecated`, `not_approved` |
+| `pci_dss_compliant` | Boolean | INFO | Whether the configuration meets PCI-DSS requirements | `true`, `false` |
+| `pci_dss_notes` | String | INFO | PCI-DSS compliance notes | `Minimum 128-bit key required`, `Algorithm prohibited` |
+| `nist_status` | String | INFO | NIST recommendation status | `current`, `deprecated`, `prohibited` |
+| `nist_deprecation_year` | String | INFO | Year algorithm was deprecated by NIST | `2015`, `2020`, etc. |
+| `suggested_replacement` | String | INFO | Recommended alternative algorithm | `AES-256-GCM`, `SHA-256` |
+| `key_length_bits` | Integer | INFO | Key length in bits (for cipher operations) | `128`, `256` |
+| `digest_length_bits` | Integer | INFO | Digest output length in bits | `256`, `512` |
+| `mode` | String | INFO | Cipher mode of operation | `CBC`, `GCM`, `ECB` |
+| `padding` | String | INFO | Cipher padding scheme | `PKCS5Padding`, `NoPadding` |
 
 #### Compliance Status Reference
 
@@ -678,12 +671,12 @@ The CRYPTO sensor now includes regulatory compliance metadata:
 
 ---
 
-### HTTP Events (HTTP Sensor)
+### HTTP Sensor
 
-**Log File:** `agent-HTTP-events.log`
-**Namespaces:**
-- `org.jvmxray.events.http.request` - Incoming HTTP requests
-- `org.jvmxray.events.http.response` - Outgoing HTTP responses
+**Class:** `org.jvmxray.agent.sensor.http.HttpSensor`
+**Status:** Active by default.
+**Namespace(s):** `org.jvmxray.events.http.request`, `org.jvmxray.events.http.response`
+**Log file:** `agent-HTTP-events.log`
 
 Monitors HTTP servlet request/response cycles, capturing client information, URIs, status codes, and headers.
 
@@ -703,53 +696,53 @@ request_id=a1b2c3|request_uri=/api/users|status=200
 
 #### Field Reference
 
-| Field | Type | Description | Possible Values |
-|-------|------|-------------|-----------------|
-| `request_id` | String | Unique identifier for this request/response pair | Short GUID (e.g., `a1b2c3d4`) |
-| `client_ip` | String | IP address of the requesting client | IPv4 or IPv6 address |
-| `uri` | String | Request URI path (without query string) | `/api/users`, `/login`, etc. |
-| `request_uri` | String | Request URI (used in response to correlate back to request) | Same as `uri` |
-| `user-agent` | String | Client's User-Agent header (INFO level only) | Browser/client identification string |
-| `status` | Integer | HTTP response status code | `200`, `404`, `500`, etc. |
-| `Content-Type` | String | Response Content-Type header (DEBUG level) | `application/json`, `text/html` |
-| `Content-Length` | String | Response Content-Length header (DEBUG level) | Numeric string (bytes) |
+| Field | Type | Log Level | Description | Possible Values |
+|-------|------|-----------|-------------|-----------------|
+| `request_id` | String | INFO | Unique identifier for this request/response pair | Short GUID (e.g., `a1b2c3d4`) |
+| `client_ip` | String | INFO | IP address of the requesting client | IPv4 or IPv6 address |
+| `uri` | String | INFO | Request URI path (without query string) | `/api/users`, `/login`, etc. |
+| `request_uri` | String | INFO | Request URI (used in response to correlate back to request) | Same as `uri` |
+| `user-agent` | String | INFO | Client's User-Agent header (INFO level only) | Browser/client identification string |
+| `status` | Integer | INFO | HTTP response status code | `200`, `404`, `500`, etc. |
+| `Content-Type` | String | DEBUG | Response Content-Type header | `application/json`, `text/html` |
+| `Content-Length` | String | DEBUG | Response Content-Length header | Numeric string (bytes) |
 
-**Note:** At DEBUG log level, all HTTP headers are included in both request and response events.
+**Note:** At DEBUG log level, every HTTP header is added as a dynamic field on both request and response events (typically prefixed `hdr_<headername>`). These fields are not itemized in the table because the set is open-ended — anything the client or server sends.
 
 #### Enhanced Request Analysis Fields
 
-| Field | Type | Description | Example Values |
-|-------|------|-------------|----------------|
-| `request_method` | String | HTTP method of the request | `GET`, `POST`, `PUT`, `DELETE` |
-| `query_string_present` | Boolean | Whether the request has a query string | `true`, `false` |
-| `request_size_bytes` | Long | Size of the request body in bytes | `0`, `1024`, etc. |
-| `response_time_ms` | Long | Time to process the request in milliseconds | `125`, `1500`, etc. |
-| `status_class` | String | HTTP status classification | `success`, `redirect`, `client_error`, `server_error` |
-| `sensitive_content_type` | Boolean | Whether response contains sensitive data type | `true` for JSON, XML, form data |
+| Field | Type | Log Level | Description | Example Values |
+|-------|------|-----------|-------------|----------------|
+| `request_method` | String | INFO | HTTP method of the request | `GET`, `POST`, `PUT`, `DELETE` |
+| `query_string_present` | Boolean | INFO | Whether the request has a query string | `true`, `false` |
+| `request_size_bytes` | Long | INFO | Size of the request body in bytes | `0`, `1024`, etc. |
+| `response_time_ms` | Long | INFO | Time to process the request in milliseconds | `125`, `1500`, etc. |
+| `status_class` | String | INFO | HTTP status classification | `success`, `redirect`, `client_error`, `server_error` |
+| `sensitive_content_type` | Boolean | INFO | Whether response contains sensitive data type | `true` for JSON, XML, form data |
 
 #### Security Headers Analysis Fields
 
-| Field | Type | Description | Example Values |
-|-------|------|-------------|----------------|
-| `csp_present` | Boolean | Content-Security-Policy header present | `true`, `false` |
-| `hsts_present` | Boolean | Strict-Transport-Security header present | `true`, `false` |
-| `xss_protection_present` | Boolean | X-XSS-Protection header present | `true`, `false` |
-| `content_type_options` | String | X-Content-Type-Options header value | `nosniff`, `missing` |
-| `frame_options` | String | X-Frame-Options header value | `DENY`, `SAMEORIGIN`, `missing` |
-| `security_headers_missing` | String | Comma-separated list of missing security headers | `Content-Security-Policy,Strict-Transport-Security` |
-| `security_headers_missing_count` | Integer | Number of missing security headers | `0` to `7` |
+| Field | Type | Log Level | Description | Example Values |
+|-------|------|-----------|-------------|----------------|
+| `csp_present` | Boolean | INFO | Content-Security-Policy header present | `true`, `false` |
+| `hsts_present` | Boolean | INFO | Strict-Transport-Security header present | `true`, `false` |
+| `xss_protection_present` | Boolean | INFO | X-XSS-Protection header present | `true`, `false` |
+| `content_type_options` | String | INFO | X-Content-Type-Options header value | `nosniff`, `missing` |
+| `frame_options` | String | INFO | X-Frame-Options header value | `DENY`, `SAMEORIGIN`, `missing` |
+| `security_headers_missing` | String | INFO | Comma-separated list of missing security headers | `Content-Security-Policy,Strict-Transport-Security` |
+| `security_headers_missing_count` | Integer | INFO | Number of missing security headers | `0` to `7` |
 
 #### Attack Pattern Detection Fields
 
-| Field | Type | Description | Example Values |
-|-------|------|-------------|----------------|
-| `suspicious_user_agent` | Boolean | User-Agent matches known attack tool | `true` - Detected sqlmap, nikto, burp, etc. |
-| `path_traversal_attempt` | Boolean | Path contains traversal patterns (../) | `true` - Path traversal detected |
-| `sql_injection_pattern` | Boolean | Input contains SQL injection patterns | `true` - SQL keywords detected |
-| `xss_pattern` | Boolean | Input contains XSS attack patterns | `true` - Script tags or event handlers detected |
-| `command_injection_pattern` | Boolean | Input contains command injection patterns | `true` - Shell metacharacters detected |
-| `attack_patterns_detected` | String | Comma-separated list of detected patterns | `path_traversal,sql_injection,xss` |
-| `risk_indicators_count` | Integer | Number of attack patterns detected | `0` to `5` |
+| Field | Type | Log Level | Description | Example Values |
+|-------|------|-----------|-------------|----------------|
+| `suspicious_user_agent` | Boolean | INFO | User-Agent matches known attack tool | `true` - Detected sqlmap, nikto, burp, etc. |
+| `path_traversal_attempt` | Boolean | INFO | Path contains traversal patterns (../) | `true` - Path traversal detected |
+| `sql_injection_pattern` | Boolean | INFO | Input contains SQL injection patterns | `true` - SQL keywords detected |
+| `xss_pattern` | Boolean | INFO | Input contains XSS attack patterns | `true` - Script tags or event handlers detected |
+| `command_injection_pattern` | Boolean | INFO | Input contains command injection patterns | `true` - Shell metacharacters detected |
+| `attack_patterns_detected` | String | INFO | Comma-separated list of detected patterns | `path_traversal,sql_injection,xss` |
+| `risk_indicators_count` | Integer | INFO | Number of attack patterns detected | `0` to `5` |
 
 #### Detected Attack Tools
 The HTTP sensor detects user agents from known security/attack tools:
@@ -767,10 +760,12 @@ The HTTP sensor enriches the correlation context with:
 
 ---
 
-### IO Events (File I/O Sensor)
+### File I/O Sensor
 
-**Log File:** `agent-IO-events.log`
-**Namespace:** `org.jvmxray.events.io.fileio`
+**Class:** `org.jvmxray.agent.sensor.io.FileIOSensor`
+**Status:** Active by default.
+**Namespace(s):** `org.jvmxray.events.io.fileio`
+**Log file:** `agent-IO-events.log`
 
 Monitors file system operations including create, read, update, and delete operations. Supports aggregate statistics for high-volume operations.
 
@@ -791,68 +786,68 @@ bytes_read=1048576|bytes_written=0|read_operations=15|write_operations=0|duratio
 
 #### Field Reference
 
-| Field | Type | Description | Possible Values |
-|-------|------|-------------|-----------------|
-| `operation` | String | Type of file operation performed | `CREATE` - File or directory creation<br>`DELETE` - File deletion<br>`READ` - File read access<br>`UPDATE` - File write access<br>`RENAME` - File rename operation<br>`MOVE` - File move operation<br>`SYMLINK_CREATE` - Symbolic link creation<br>`CHMOD` - Permission change<br>`CHOWN` - Owner change<br>`read` - Aggregate read stats<br>`write` - Aggregate write stats<br>`read_write` - Mixed read/write stats<br>`open` - File opened without R/W |
-| `file` | String | Absolute path to the file | Full filesystem path |
-| `status` | String | Result of the operation | `created` - File successfully created<br>`created_dir` - Directory created<br>`deleted` - File successfully deleted<br>`create_failed` - Creation failed<br>`delete_failed` - Deletion failed<br>`read_access` - Read stream opened<br>`write_access` - Write stream opened<br>`read_string` - String read via Files.readString<br>`read_bytes` - Bytes read via Files.readAllBytes<br>`written` - Written via Files.write<br>`copied_from` / `copied_to` - Copy operation<br>`renamed`, `moved`, `symlink_created`, `permissions_changed`, `owner_changed` |
-| `is_new_file` | Boolean | Whether this was a newly created file | `true` - File did not exist before operation |
-| `is_sensitive` | Boolean | Whether file matches sensitive patterns | `true` - Matches monitor patterns (password, credential, key, etc.) |
-| `bytes_read` | Long | Total bytes read from the file | Numeric value (0 to file size) |
-| `bytes_written` | Long | Total bytes written to the file | Numeric value |
-| `read_operations` | Integer | Number of individual read() calls | Count of read operations |
-| `write_operations` | Integer | Number of individual write() calls | Count of write operations |
-| `duration_ms` | Long | Time from file open to close in milliseconds | Numeric value |
+| Field | Type | Log Level | Description | Possible Values |
+|-------|------|-----------|-------------|-----------------|
+| `operation` | String | INFO | Type of file operation performed | `CREATE` - File or directory creation<br>`DELETE` - File deletion<br>`READ` - File read access<br>`UPDATE` - File write access<br>`RENAME` - File rename operation<br>`MOVE` - File move operation<br>`SYMLINK_CREATE` - Symbolic link creation<br>`CHMOD` - Permission change<br>`CHOWN` - Owner change<br>`read` - Aggregate read stats<br>`write` - Aggregate write stats<br>`read_write` - Mixed read/write stats<br>`open` - File opened without R/W |
+| `file` | String | INFO | Absolute path to the file | Full filesystem path |
+| `status` | String | INFO | Result of the operation | `created` - File successfully created<br>`created_dir` - Directory created<br>`deleted` - File successfully deleted<br>`create_failed` - Creation failed<br>`delete_failed` - Deletion failed<br>`read_access` - Read stream opened<br>`write_access` - Write stream opened<br>`read_string` - String read via Files.readString<br>`read_bytes` - Bytes read via Files.readAllBytes<br>`written` - Written via Files.write<br>`copied_from` / `copied_to` - Copy operation<br>`renamed`, `moved`, `symlink_created`, `permissions_changed`, `owner_changed` |
+| `is_new_file` | Boolean | INFO | Whether this was a newly created file | `true` - File did not exist before operation |
+| `is_sensitive` | Boolean | INFO | Whether file matches sensitive patterns | `true` - Matches monitor patterns (password, credential, key, etc.) |
+| `bytes_read` | Long | INFO | Total bytes read from the file | Numeric value (0 to file size) |
+| `bytes_written` | Long | INFO | Total bytes written to the file | Numeric value |
+| `read_operations` | Integer | INFO | Number of individual read() calls | Count of read operations |
+| `write_operations` | Integer | INFO | Number of individual write() calls | Count of write operations |
+| `duration_ms` | Long | INFO | Time from file open to close in milliseconds | Numeric value |
 
 #### Path Resolution Fields
 
-| Field | Type | Description | Example Values |
-|-------|------|-------------|----------------|
-| `original_path` | String | Path as provided by the application | `./config/../secrets/key.pem` |
-| `absolute_path` | String | Absolute path (may contain ../) | `/app/config/../secrets/key.pem` |
-| `canonical_path` | String | Fully resolved path (symlinks and ../ resolved) | `/app/secrets/key.pem` |
-| `path_normalized` | Boolean | Whether path normalization changed the path | `true` - Path traversal sequences were resolved |
-| `is_symlink` | Boolean | Whether the file is a symbolic link | `true`, `false` |
-| `symlink_target` | String | Target of the symbolic link | `/etc/passwords` |
-| `file_name` | String | File name without directory | `key.pem` |
-| `parent_directory` | String | Parent directory path | `/app/secrets` |
-| `file_extension` | String | File extension (lowercase) | `pem`, `xml`, `properties` |
+| Field | Type | Log Level | Description | Example Values |
+|-------|------|-----------|-------------|----------------|
+| `original_path` | String | INFO | Path as provided by the application | `./config/../secrets/key.pem` |
+| `absolute_path` | String | INFO | Absolute path (may contain ../) | `/app/config/../secrets/key.pem` |
+| `canonical_path` | String | INFO | Fully resolved path (symlinks and ../ resolved) | `/app/secrets/key.pem` |
+| `path_normalized` | Boolean | INFO | Whether path normalization changed the path | `true` - Path traversal sequences were resolved |
+| `is_symlink` | Boolean | INFO | Whether the file is a symbolic link | `true`, `false` |
+| `symlink_target` | String | INFO | Target of the symbolic link | `/etc/passwords` |
+| `file_name` | String | INFO | File name without directory | `key.pem` |
+| `parent_directory` | String | INFO | Parent directory path | `/app/secrets` |
+| `file_extension` | String | INFO | File extension (lowercase) | `pem`, `xml`, `properties` |
 
 #### File Metadata Fields
 
-| Field | Type | Description | Example Values |
-|-------|------|-------------|----------------|
-| `file_exists` | Boolean | Whether the file exists | `true`, `false` |
-| `is_directory` | Boolean | Whether the path is a directory | `true`, `false` |
-| `is_regular_file` | Boolean | Whether the path is a regular file | `true`, `false` |
-| `is_readable` | Boolean | Whether the file is readable | `true`, `false` |
-| `is_writable` | Boolean | Whether the file is writable | `true`, `false` |
-| `is_executable` | Boolean | Whether the file is executable | `true`, `false` |
-| `is_hidden` | Boolean | Whether the file is hidden | `true`, `false` |
-| `file_size_bytes` | Long | File size in bytes | `0`, `1048576`, etc. |
-| `last_modified_time` | String | Last modification timestamp | `2024-09-15T14:30:25Z` |
-| `creation_time` | String | File creation timestamp | `2024-09-15T10:00:00Z` |
-| `last_access_time` | String | Last access timestamp | `2024-09-15T14:30:25Z` |
-| `posix_permissions` | String | POSIX permission string (Unix/Linux/Mac) | `rwxr-xr-x`, `rw-r--r--` |
-| `world_writable` | Boolean | Whether file is world-writable (security risk) | `true` - Others have write permission |
-| `file_owner` | String | File owner username | `root`, `appuser` |
+| Field | Type | Log Level | Description | Example Values |
+|-------|------|-----------|-------------|----------------|
+| `file_exists` | Boolean | INFO | Whether the file exists | `true`, `false` |
+| `is_directory` | Boolean | INFO | Whether the path is a directory | `true`, `false` |
+| `is_regular_file` | Boolean | INFO | Whether the path is a regular file | `true`, `false` |
+| `is_readable` | Boolean | INFO | Whether the file is readable | `true`, `false` |
+| `is_writable` | Boolean | INFO | Whether the file is writable | `true`, `false` |
+| `is_executable` | Boolean | INFO | Whether the file is executable | `true`, `false` |
+| `is_hidden` | Boolean | INFO | Whether the file is hidden | `true`, `false` |
+| `file_size_bytes` | Long | INFO | File size in bytes | `0`, `1048576`, etc. |
+| `last_modified_time` | String | INFO | Last modification timestamp | `2024-09-15T14:30:25Z` |
+| `creation_time` | String | INFO | File creation timestamp | `2024-09-15T10:00:00Z` |
+| `last_access_time` | String | INFO | Last access timestamp | `2024-09-15T14:30:25Z` |
+| `posix_permissions` | String | INFO | POSIX permission string (Unix/Linux/Mac) | `rwxr-xr-x`, `rw-r--r--` |
+| `world_writable` | Boolean | INFO | Whether file is world-writable (security risk) | `true` - Others have write permission |
+| `file_owner` | String | INFO | File owner username | `root`, `appuser` |
 
 #### Rename/Move Operation Fields
 
-| Field | Type | Description | Example Values |
-|-------|------|-------------|----------------|
-| `source_path` | String | Original file path | `/tmp/data/old.txt` |
-| `target_path` | String | Destination file path | `/var/data/new.txt` |
-| `source_canonical_path` | String | Resolved source path | `/tmp/data/old.txt` |
-| `target_canonical_path` | String | Resolved destination path | `/var/data/new.txt` |
-| `source_file_name` | String | Original file name | `old.txt` |
-| `target_file_name` | String | New file name | `new.txt` |
-| `extension_changed` | Boolean | Whether file extension changed | `true` - e.g., `.txt` to `.exe` |
-| `source_extension` | String | Original file extension | `txt` |
-| `target_extension` | String | New file extension | `exe` |
-| `directory_changed` | Boolean | Whether file was moved to different directory | `true` |
-| `source_directory` | String | Original parent directory | `/tmp/data` |
-| `target_directory` | String | New parent directory | `/var/data` |
+| Field | Type | Log Level | Description | Example Values |
+|-------|------|-----------|-------------|----------------|
+| `source_path` | String | INFO | Original file path | `/tmp/data/old.txt` |
+| `target_path` | String | INFO | Destination file path | `/var/data/new.txt` |
+| `source_canonical_path` | String | INFO | Resolved source path | `/tmp/data/old.txt` |
+| `target_canonical_path` | String | INFO | Resolved destination path | `/var/data/new.txt` |
+| `source_file_name` | String | INFO | Original file name | `old.txt` |
+| `target_file_name` | String | INFO | New file name | `new.txt` |
+| `extension_changed` | Boolean | INFO | Whether file extension changed | `true` - e.g., `.txt` to `.exe` |
+| `source_extension` | String | INFO | Original file extension | `txt` |
+| `target_extension` | String | INFO | New file extension | `exe` |
+| `directory_changed` | Boolean | INFO | Whether file was moved to different directory | `true` |
+| `source_directory` | String | INFO | Original parent directory | `/tmp/data` |
+| `target_directory` | String | INFO | New parent directory | `/var/data` |
 
 #### Filtering Tiers
 1. **Tier 1 (Ignore):** Files matching `jvmxray.io.ignore.patterns` are never logged
@@ -861,10 +856,12 @@ bytes_read=1048576|bytes_written=0|read_operations=15|write_operations=0|duratio
 
 ---
 
-### MONITOR Events (System Monitor Sensor)
+### Monitor Sensor
 
-**Log File:** `agent-MONITOR-events.log`
-**Namespace:** `org.jvmxray.events.monitor`
+**Class:** `org.jvmxray.agent.sensor.monitor.MonitorSensor`
+**Status:** Active by default. Emits one event every 60 seconds.
+**Namespace(s):** `org.jvmxray.events.monitor`
+**Log file:** `agent-MONITOR-events.log`
 
 Collects and logs JVM health metrics every 60 seconds including memory, threads, CPU, garbage collection, and sensor statistics.
 
@@ -883,134 +880,133 @@ lib_static_loaded=45|lib_dynamic_loaded=2|lib_total_packages=128|lib_cache_size=
 
 **Memory Metrics:**
 
-| Field | Type | Description | Format/Range |
-|-------|------|-------------|--------------|
-| `MemoryTotal` | String | Total memory allocated to JVM | `NNNmb` or `N.Ngb` |
-| `MemoryFree` | String | Free memory available in JVM heap | `NNNmb` or `N.Ngb` |
-| `MemoryMax` | String | Maximum memory JVM can allocate | `NNNmb` or `N.Ngb` |
-| `NonHeapUsed` | String | Non-heap memory usage (metaspace, code cache) | `NNNmb` or `N.Ngb` |
+| Field | Type | Log Level | Description | Format/Range |
+|-------|------|-----------|-------------|--------------|
+| `MemoryTotal` | String | INFO | Total memory allocated to JVM | `NNNmb` or `N.Ngb` |
+| `MemoryFree` | String | INFO | Free memory available in JVM heap | `NNNmb` or `N.Ngb` |
+| `MemoryMax` | String | INFO | Maximum memory JVM can allocate | `NNNmb` or `N.Ngb` |
+| `NonHeapUsed` | String | INFO | Non-heap memory usage (metaspace, code cache) | `NNNmb` or `N.Ngb` |
 
 **Thread Metrics:**
 
-| Field | Type | Description | Range |
-|-------|------|-------------|-------|
-| `ThreadNew` | Integer | Threads in NEW state (created but not started) | 0+ |
-| `ThreadRunnable` | Integer | Threads in RUNNABLE state (executing) | 0+ |
-| `ThreadBlocked` | Integer | Threads in BLOCKED state (waiting for monitor) | 0+ (high values indicate contention) |
-| `ThreadWaiting` | Integer | Threads in WAITING or TIMED_WAITING state | 0+ |
-| `ThreadTerminated` | Integer | Threads in TERMINATED state | 0+ |
-| `DeadlockedThreads` | Integer | Number of threads in deadlock | 0 (should always be 0 in healthy systems) |
+| Field | Type | Log Level | Description | Range |
+|-------|------|-----------|-------------|-------|
+| `ThreadNew` | Integer | INFO | Threads in NEW state (created but not started) | 0+ |
+| `ThreadRunnable` | Integer | INFO | Threads in RUNNABLE state (executing) | 0+ |
+| `ThreadBlocked` | Integer | INFO | Threads in BLOCKED state (waiting for monitor) | 0+ (high values indicate contention) |
+| `ThreadWaiting` | Integer | INFO | Threads in WAITING or TIMED_WAITING state | 0+ |
+| `ThreadTerminated` | Integer | INFO | Threads in TERMINATED state | 0+ |
+| `DeadlockedThreads` | Integer | INFO | Number of threads in deadlock | 0 (should always be 0 in healthy systems) |
 
 **System Metrics:**
 
-| Field | Type | Description | Range |
-|-------|------|-------------|-------|
-| `ProcessCpuLoad` | String | CPU usage percentage for JVM process | `0%` to `100%` (or multiple of 100% for multi-core) |
-| `OpenFiles` | String | Open file descriptor count (Unix only) | Numeric or `Unavailable` on Windows |
-| `GCCount` | Integer | Total garbage collection events since JVM start | 0+ (cumulative) |
-| `GCTime` | String | Total time spent in garbage collection | `NNNms` (cumulative) |
+| Field | Type | Log Level | Description | Range |
+|-------|------|-----------|-------------|-------|
+| `ProcessCpuLoad` | String | INFO | CPU usage percentage for JVM process | `0%` to `100%` (or multiple of 100% for multi-core) |
+| `OpenFiles` | String | INFO | Open file descriptor count (Unix only) | Numeric or `Unavailable` on Windows |
+| `GCCount` | Integer | INFO | Total garbage collection events since JVM start | 0+ (cumulative) |
+| `GCTime` | String | INFO | Total time spent in garbage collection | `NNNms` (cumulative) |
 
 **LogProxy Buffer Metrics:**
 
-| Field | Type | Description | Range |
-|-------|------|-------------|-------|
-| `LogBufferUtilization` | String | Percentage of log buffer currently in use | `0%` to `100%` |
-| `LogQueueSize` | String | Current number of events in buffer | 0 to buffer size (default 10000) |
-| `LogDiscardCount` | String | Number of events discarded due to buffer overflow | 0+ (should be 0 in healthy systems) |
-| `LogFlushRate` | String | Rate of log flushes per interval | Events per second |
-| `LogFlushTime` | String | Average time to flush log buffer | Milliseconds |
-| `LogOverflowStrategy` | String | Current overflow handling strategy | `wait`, `discard` |
-| `LogTotalEvents` | String | Total events processed since start | Cumulative count |
+| Field | Type | Log Level | Description | Range |
+|-------|------|-----------|-------------|-------|
+| `LogBufferUtilization` | String | INFO | Percentage of log buffer currently in use | `0%` to `100%` |
+| `LogQueueSize` | String | INFO | Current number of events in buffer | 0 to buffer size (default 10000) |
+| `LogDiscardCount` | String | INFO | Number of events discarded due to buffer overflow | 0+ (should be 0 in healthy systems) |
+| `LogFlushRate` | String | INFO | Rate of log flushes per interval | Events per second |
+| `LogFlushTime` | String | INFO | Average time to flush log buffer | Milliseconds |
+| `LogOverflowStrategy` | String | INFO | Current overflow handling strategy | `wait`, `discard` |
+| `LogTotalEvents` | String | INFO | Total events processed since start | Cumulative count |
 
 **MCC (Correlation Context) Metrics:**
 
-| Field | Type | Description | Expected Values |
-|-------|------|-------------|-----------------|
-| `mcc_contexts_created` | Integer | Total correlation contexts created (lifetime) | Cumulative count |
-| `mcc_active_contexts` | Integer | Currently active contexts across all threads | 0+ (matches concurrent requests) |
-| `mcc_max_context_size` | Integer | Largest context seen (max fields in any context) | Typically 5-20 |
-| `mcc_ttl_cleanups` | Integer | Defensive cleanups triggered for leaked contexts | **Should be 0** - non-zero indicates sensor bugs |
-| `mcc_ttl_seconds` | Integer | Configured TTL for defensive cleanup | Default: 300 |
+| Field | Type | Log Level | Description | Expected Values |
+|-------|------|-----------|-------------|-----------------|
+| `mcc_contexts_created` | Integer | INFO | Total correlation contexts created (lifetime) | Cumulative count |
+| `mcc_active_contexts` | Integer | INFO | Currently active contexts across all threads | 0+ (matches concurrent requests) |
+| `mcc_max_context_size` | Integer | INFO | Largest context seen (max fields in any context) | Typically 5-20 |
+| `mcc_ttl_cleanups` | Integer | INFO | Defensive cleanups triggered for leaked contexts | **Should be 0** - non-zero indicates sensor bugs |
+| `mcc_ttl_seconds` | Integer | INFO | Configured TTL for defensive cleanup | Default: 300 |
 
 **LibSensor (JAR Loading) Metrics:**
 
-| Field | Type | Description | Range |
-|-------|------|-------------|-------|
-| `lib_static_loaded` | Integer | Static classpath JARs detected at startup | Count of JARs on classpath |
-| `lib_dynamic_loaded` | Integer | JARs loaded dynamically at runtime | 0+ (runtime additions) |
-| `lib_total_packages` | Integer | Unique Java packages discovered | Count across all JARs |
-| `lib_cache_size` | Integer | Current size of known JARs cache | 0-10000 (bounded) |
+| Field | Type | Log Level | Description | Range |
+|-------|------|-----------|-------------|-------|
+| `lib_static_loaded` | Integer | INFO | Static classpath JARs detected at startup | Count of JARs on classpath |
+| `lib_dynamic_loaded` | Integer | INFO | JARs loaded dynamically at runtime | 0+ (runtime additions) |
+| `lib_total_packages` | Integer | INFO | Unique Java packages discovered | Count across all JARs |
+| `lib_cache_size` | Integer | INFO | Current size of known JARs cache | 0-10000 (bounded) |
 
 **Classloader Metrics:**
 
-| Field | Type | Description | Range |
-|-------|------|-------------|-------|
-| `classloader_loaded_count` | Integer | Currently loaded class count | 0+ |
-| `classloader_total_loaded` | Long | Total classes loaded since JVM start | Cumulative count |
-| `classloader_unloaded_count` | Long | Total classes unloaded since JVM start | Cumulative count |
+| Field | Type | Log Level | Description | Range |
+|-------|------|-----------|-------------|-------|
+| `classloader_loaded_count` | Integer | INFO | Currently loaded class count | 0+ |
+| `classloader_total_loaded` | Long | INFO | Total classes loaded since JVM start | Cumulative count |
+| `classloader_unloaded_count` | Long | INFO | Total classes unloaded since JVM start | Cumulative count |
 
 **Native Memory Metrics:**
 
-| Field | Type | Description | Range |
-|-------|------|-------------|-------|
-| `native_memory_used_bytes` | Long | Total native (direct + mapped) memory used | Bytes |
-| `direct_buffer_count` | Long | Number of direct byte buffers | 0+ |
-| `direct_buffer_memory_bytes` | Long | Memory used by direct buffers | Bytes |
-| `mapped_buffer_count` | Long | Number of memory-mapped buffers | 0+ |
-| `mapped_buffer_memory_bytes` | Long | Memory used by mapped buffers | Bytes |
+| Field | Type | Log Level | Description | Range |
+|-------|------|-----------|-------------|-------|
+| `native_memory_used_bytes` | Long | INFO | Total native (direct + mapped) memory used | Bytes |
+| `direct_buffer_count` | Long | INFO | Number of direct byte buffers | 0+ |
+| `direct_buffer_memory_bytes` | Long | INFO | Memory used by direct buffers | Bytes |
+| `mapped_buffer_count` | Long | INFO | Number of memory-mapped buffers | 0+ |
+| `mapped_buffer_memory_bytes` | Long | INFO | Memory used by mapped buffers | Bytes |
 
 **Rate-Based Metrics:**
 
-| Field | Type | Description | Range |
-|-------|------|-------------|-------|
-| `gc_frequency_per_minute` | String | Garbage collections per minute | `0.00` to `N.NN` |
-| `gc_time_percent` | String | Percentage of time spent in GC | `0.00` to `100.00` |
-| `thread_creation_rate_per_minute` | String | New threads created per minute | `0.00` to `N.NN` |
-| `total_threads_started` | Long | Total threads started since JVM start | Cumulative count |
+| Field | Type | Log Level | Description | Range |
+|-------|------|-----------|-------------|-------|
+| `gc_frequency_per_minute` | String | INFO | Garbage collections per minute | `0.00` to `N.NN` |
+| `gc_time_percent` | String | INFO | Percentage of time spent in GC | `0.00` to `100.00` |
+| `thread_creation_rate_per_minute` | String | INFO | New threads created per minute | `0.00` to `N.NN` |
+| `total_threads_started` | Long | INFO | Total threads started since JVM start | Cumulative count |
 
 **Anomaly Detection Metrics:**
 
-| Field | Type | Description | Range |
-|-------|------|-------------|-------|
-| `baseline_status` | String | Baseline establishment status | `establishing`, `established` |
-| `memory_leak_indicator` | String | Possible memory leak detected | `possible` if consistent heap growth |
-| `memory_increase_percent` | String | Heap increase percentage | `0.00` to `N.NN%` |
-| `memory_baseline_deviation` | String | Deviation from baseline heap usage | `0.00%` to `N.NN%` |
-| `cpu_baseline_deviation` | String | Deviation from baseline CPU load | `0.00%` to `N.NN%` |
-| `thread_baseline_deviation` | String | Deviation from baseline thread count | `0.00%` to `N.NN%` |
-| `anomaly_detected` | Boolean | Whether any anomaly was detected | `true`, `false` |
-| `anomaly_type` | String | Types of anomalies detected | `memory_spike`, `cpu_spike`, `thread_anomaly` |
+| Field | Type | Log Level | Description | Range |
+|-------|------|-----------|-------------|-------|
+| `baseline_status` | String | INFO | Baseline establishment status | `establishing`, `established` |
+| `memory_leak_indicator` | String | INFO | Possible memory leak detected | `possible` if consistent heap growth |
+| `memory_increase_percent` | String | INFO | Heap increase percentage | `0.00` to `N.NN%` |
+| `memory_baseline_deviation` | String | INFO | Deviation from baseline heap usage | `0.00%` to `N.NN%` |
+| `cpu_baseline_deviation` | String | INFO | Deviation from baseline CPU load | `0.00%` to `N.NN%` |
+| `thread_baseline_deviation` | String | INFO | Deviation from baseline thread count | `0.00%` to `N.NN%` |
+| `anomaly_detected` | Boolean | INFO | Whether any anomaly was detected | `true`, `false` |
+| `anomaly_type` | String | INFO | Types of anomalies detected | `memory_spike`, `cpu_spike`, `thread_anomaly` |
 
 **Security Metrics:**
 
-| Field | Type | Description | Range |
-|-------|------|-------------|-------|
-| `security_manager_present` | Boolean | Whether a SecurityManager is active | `true`, `false` |
-| `security_manager_class` | String | SecurityManager implementation class | Fully qualified class name |
-| `jmx_remote_enabled` | Boolean | Whether JMX remote access is enabled | `true`, `false` |
-| `debug_mode_enabled` | Boolean | Whether JVM debug mode is active | `true`, `false` |
+| Field | Type | Log Level | Description | Range |
+|-------|------|-----------|-------------|-------|
+| `security_manager_present` | Boolean | INFO | Whether a SecurityManager is active | `true`, `false` |
+| `security_manager_class` | String | INFO | SecurityManager implementation class | Fully qualified class name |
+| `jmx_remote_enabled` | Boolean | INFO | Whether JMX remote access is enabled | `true`, `false` |
+| `debug_mode_enabled` | Boolean | INFO | Whether JVM debug mode is active | `true`, `false` |
 
 **Agent Health Metrics:**
 
-| Field | Type | Description | Range |
-|-------|------|-------------|-------|
-| `agent_health_score` | Integer | Overall agent health score | `0` to `100` |
-| `agent_health_status` | String | Health status classification | `healthy` (80+), `degraded` (50-79), `critical` (<50) |
-| `agent_health_issues` | String | Comma-separated list of health issues | `high_memory_pressure`, `deadlocks_detected`, `high_gc_overhead`, `high_thread_count` |
-| `peak_thread_count` | Integer | Peak thread count since JVM start | 0+ |
-| `heap_utilization_percent` | String | Current heap utilization | `0.0` to `100.0` |
+| Field | Type | Log Level | Description | Range |
+|-------|------|-----------|-------------|-------|
+| `agent_health_score` | Integer | INFO | Overall agent health score | `0` to `100` |
+| `agent_health_status` | String | INFO | Health status classification | `healthy` (80+), `degraded` (50-79), `critical` (<50) |
+| `agent_health_issues` | String | INFO | Comma-separated list of health issues | `high_memory_pressure`, `deadlocks_detected`, `high_gc_overhead`, `high_thread_count` |
+| `peak_thread_count` | Integer | INFO | Peak thread count since JVM start | 0+ |
+| `heap_utilization_percent` | String | INFO | Current heap utilization | `0.0` to `100.0` |
 
 ---
 
-### NET Events (Network Sensor)
+### Socket (Network) Sensor
 
-**Log File:** `agent-NET-events.log`
-**Namespaces:**
-- `org.jvmxray.events.net.socket.connect` - Socket connect operations
-- `org.jvmxray.events.net.socket.bind` - Server socket bind operations
-- `org.jvmxray.events.net.socket.close` - Socket close operations
+**Class:** `org.jvmxray.agent.sensor.net.SocketSensor`
+**Status:** Active by default.
+**Namespace(s):** `org.jvmxray.events.net.socket.bind`, `.connect`, `.accept`, `.close`
+**Log file:** `agent-NET-events.log`
 
-Monitors network socket operations including connections, bindings, and closures.
+Monitors network socket operations including bind, connect, accept, and close.
 
 #### Sample Log Entries
 
@@ -1034,70 +1030,69 @@ bind_src=192.168.1.10:54321|dst=93.184.216.34:443|status=closed
 
 #### Field Reference
 
-| Field | Type | Description | Format |
-|-------|------|-------------|--------|
-| `bind_src` | String | Local address and port | `<ip_address>:<port>` or `localhost:0` if not bound |
-| `dst` | String | Remote/destination address and port | `<ip_address>:<port>` or `unknown:0` if not connected |
-| `status` | String | Result of the socket operation | `connected` - Successfully connected<br>`bound` - Server socket bound<br>`accepted` - Ready to accept connections<br>`closed` - Socket closed successfully<br>`threw <ExceptionClass>: <message>` - Operation failed |
+| Field | Type | Log Level | Description | Format |
+|-------|------|-----------|-------------|--------|
+| `bind_src` | String | INFO | Local address and port | `<ip_address>:<port>` or `localhost:0` if not bound |
+| `dst` | String | INFO | Remote/destination address and port | `<ip_address>:<port>` or `unknown:0` if not connected |
+| `status` | String | INFO | Result of the socket operation | `connected` - Successfully connected<br>`bound` - Server socket bound<br>`accepted` - Ready to accept connections<br>`closed` - Socket closed successfully<br>`threw <ExceptionClass>: <message>` - Operation failed |
 
 #### Enhanced Socket Metadata Fields
 
-| Field | Type | Description | Example Values |
-|-------|------|-------------|----------------|
-| `operation_type` | String | Type of socket operation | `CONNECT`, `BIND`, `ACCEPT` |
-| `protocol` | String | Network protocol | `TCP`, `SSL/TLS` |
-| `local_address` | String | Local IP address | `192.168.1.10` |
-| `local_port` | Integer | Local port number | `54321` |
-| `remote_address` | String | Remote IP address | `93.184.216.34` |
-| `remote_port` | Integer | Remote port number | `443`, `8080` |
-| `remote_hostname` | String | Remote hostname | `api.example.com` |
-| `connection_direction` | String | Direction of the connection | `OUTBOUND`, `INBOUND` |
-| `connection_time_ms` | Long | Time to establish connection | `150`, `2500` |
-| `socket_timeout_ms` | Integer | Socket timeout setting | `30000` |
+| Field | Type | Log Level | Description | Example Values |
+|-------|------|-----------|-------------|----------------|
+| `operation_type` | String | INFO | Type of socket operation | `CONNECT`, `BIND`, `ACCEPT` |
+| `protocol` | String | INFO | Network protocol | `TCP`, `SSL/TLS` |
+| `local_address` | String | INFO | Local IP address | `192.168.1.10` |
+| `local_port` | Integer | INFO | Local port number | `54321` |
+| `remote_address` | String | INFO | Remote IP address | `93.184.216.34` |
+| `remote_port` | Integer | INFO | Remote port number | `443`, `8080` |
+| `remote_hostname` | String | INFO | Remote hostname | `api.example.com` |
+| `connection_direction` | String | INFO | Direction of the connection | `OUTBOUND`, `INBOUND` |
+| `connection_time_ms` | Long | INFO | Time to establish connection | `150`, `2500` |
+| `socket_timeout_ms` | Integer | INFO | Socket timeout setting | `30000` |
 
 #### IP Classification Fields
 
-| Field | Type | Description | Example Values |
-|-------|------|-------------|----------------|
-| `is_loopback` | Boolean | Connection to localhost | `true`, `false` |
-| `is_private_ip` | Boolean | Connection to RFC 1918 private address | `true` for 10.x, 172.16-31.x, 192.168.x |
-| `is_ipv6` | Boolean | IPv6 address | `true`, `false` |
-| `is_multicast` | Boolean | Multicast address | `true`, `false` |
+| Field | Type | Log Level | Description | Example Values |
+|-------|------|-----------|-------------|----------------|
+| `is_loopback` | Boolean | INFO | Connection to localhost | `true`, `false` |
+| `is_private_ip` | Boolean | INFO | Connection to RFC 1918 private address | `true` for 10.x, 172.16-31.x, 192.168.x |
+| `is_ipv6` | Boolean | INFO | IPv6 address | `true`, `false` |
+| `is_multicast` | Boolean | INFO | Multicast address | `true`, `false` |
 
 #### TLS/SSL Metadata Fields
 
-| Field | Type | Description | Example Values |
-|-------|------|-------------|----------------|
-| `ssl_protocol` | String | TLS/SSL protocol version | `TLSv1.3`, `TLSv1.2`, `SSLv3` |
-| `ssl_protocol_deprecated` | Boolean | Whether protocol is deprecated | `true` for SSLv3, TLSv1, TLSv1.1 |
-| `ssl_cipher_suite` | String | Negotiated cipher suite | `TLS_AES_256_GCM_SHA384` |
-| `ssl_cipher_weak` | Boolean | Whether cipher is considered weak | `true` for NULL, EXPORT, DES, RC4, MD5 ciphers |
-| `ssl_handshake_success` | Boolean | Whether SSL handshake completed | `true`, `false` |
-| `ssl_peer_certificate_subject` | String | Peer certificate subject DN | `CN=example.com,O=Example Inc` |
-| `ssl_peer_certificate_issuer` | String | Peer certificate issuer DN | `CN=DigiCert,O=DigiCert Inc` |
-| `ssl_certificate_expiry` | String | Certificate expiration date | `Sat Dec 31 23:59:59 UTC 2025` |
-| `ssl_certificate_expired` | Boolean | Whether certificate is expired | `true`, `false` |
+| Field | Type | Log Level | Description | Example Values |
+|-------|------|-----------|-------------|----------------|
+| `ssl_protocol` | String | INFO | TLS/SSL protocol version | `TLSv1.3`, `TLSv1.2`, `SSLv3` |
+| `ssl_protocol_deprecated` | Boolean | INFO | Whether protocol is deprecated | `true` for SSLv3, TLSv1, TLSv1.1 |
+| `ssl_cipher_suite` | String | INFO | Negotiated cipher suite | `TLS_AES_256_GCM_SHA384` |
+| `ssl_cipher_weak` | Boolean | INFO | Whether cipher is considered weak | `true` for NULL, EXPORT, DES, RC4, MD5 ciphers |
+| `ssl_handshake_success` | Boolean | INFO | Whether SSL handshake completed | `true`, `false` |
+| `ssl_peer_certificate_subject` | String | INFO | Peer certificate subject DN | `CN=example.com,O=Example Inc` |
+| `ssl_peer_certificate_issuer` | String | INFO | Peer certificate issuer DN | `CN=DigiCert,O=DigiCert Inc` |
+| `ssl_certificate_expiry` | String | INFO | Certificate expiration date | `Sat Dec 31 23:59:59 UTC 2025` |
+| `ssl_certificate_expired` | Boolean | INFO | Whether certificate is expired | `true`, `false` |
 
 #### Inbound Connection Fields (ACCEPT operations)
 
-| Field | Type | Description | Example Values |
-|-------|------|-------------|----------------|
-| `client_address` | String | Connecting client IP | `192.168.1.50` |
-| `client_port` | Integer | Client source port | `51234` |
-| `server_address` | String | Server's listening IP | `0.0.0.0` |
-| `server_port` | Integer | Server's listening port | `8443` |
-| `is_client_loopback` | Boolean | Client is localhost | `true`, `false` |
-| `is_client_private_ip` | Boolean | Client is from private network | `true`, `false` |
+| Field | Type | Log Level | Description | Example Values |
+|-------|------|-----------|-------------|----------------|
+| `client_address` | String | INFO | Connecting client IP | `192.168.1.50` |
+| `client_port` | Integer | INFO | Client source port | `51234` |
+| `server_address` | String | INFO | Server's listening IP | `0.0.0.0` |
+| `server_port` | Integer | INFO | Server's listening port | `8443` |
+| `is_client_loopback` | Boolean | INFO | Client is localhost | `true`, `false` |
+| `is_client_private_ip` | Boolean | INFO | Client is from private network | `true`, `false` |
 
 ---
 
-### SERIALIZATION Events (Serialization Sensor)
+### Serialization Sensor
 
-**Log File:** `agent-SERIALIZATION-events.log`
-**Namespaces:**
-- `org.jvmxray.events.serialization.deserialize` - Object deserialization
-- `org.jvmxray.events.serialization.resolve` - Class resolution during deserialization
-- `org.jvmxray.events.serialization.json` - JSON deserialization (Jackson, Gson)
+**Class:** `org.jvmxray.agent.sensor.serialization.SerializationSensor`
+**Status:** Active by default.
+**Namespace(s):** `org.jvmxray.events.serialization.serialize`, `.deserialize`, `.resolve`, `.json`, `.gson`, `.xml`
+**Log file:** `agent-SERIALIZATION-events.log`
 
 Monitors serialization and deserialization operations to detect dangerous class loading and potential deserialization attacks.
 
@@ -1134,21 +1129,21 @@ result_class=com.example.UserData
 
 #### Field Reference
 
-| Field | Type | Description | Possible Values |
-|-------|------|-------------|-----------------|
-| `operation` | String | Type of serialization operation | `deserialize` - Reading object from stream/JSON<br>`serialize` - Writing object to stream<br>`resolve_class` - Resolving class during deserialization |
-| `serialization_type` | String | Serialization framework being used | `java_native` - Java ObjectInputStream/ObjectOutputStream<br>`json_jackson` - Jackson ObjectMapper<br>`json_gson` - Google Gson<br>`xml_xstream` - XStream XML |
-| `serialized_class` | String | Class being serialized (for serialize ops) | Fully qualified class name |
-| `deserialized_class` | String | Class of the deserialized object | Fully qualified class name |
-| `class_name` | String | Class being resolved (for resolve_class ops) | Class name with serialVersionUID |
-| `dangerous_class` | String | Name of dangerous/gadget class detected | Known gadget chain class name or `null` |
-| `suspicious_pattern` | Boolean | Whether class name matches suspicious patterns | `true` - Contains "Transformer", "Handler", or "Factory" |
-| `polymorphic_deserialization` | Boolean | JSON contains type info (@type or @class) | `true` - Polymorphic type handling detected (security risk) |
-| `dangerous_class_reference` | String | Dangerous class reference found in JSON input | Class name pattern matched |
-| `input_type` | String | Type of input being deserialized | `String`, `InputStream`, etc. |
-| `result_class` | String | Class of the deserialized result object | Fully qualified class name |
-| `potential_attack` | String | Classification of potential attack type | `gadget_chain_attempt` - ClassNotFoundException during deserialization (possible attack probe) |
-| `threat_type` | String | Specific threat classification | `deserialization_gadget` - Known gadget chain class |
+| Field | Type | Log Level | Description | Possible Values |
+|-------|------|-----------|-------------|-----------------|
+| `operation` | String | INFO | Type of serialization operation | `deserialize` - Reading object from stream/JSON<br>`serialize` - Writing object to stream<br>`resolve_class` - Resolving class during deserialization |
+| `serialization_type` | String | INFO | Serialization framework being used | `java_native` - Java ObjectInputStream/ObjectOutputStream<br>`json_jackson` - Jackson ObjectMapper<br>`json_gson` - Google Gson<br>`xml_xstream` - XStream XML |
+| `serialized_class` | String | INFO | Class being serialized (for serialize ops) | Fully qualified class name |
+| `deserialized_class` | String | INFO | Class of the deserialized object | Fully qualified class name |
+| `class_name` | String | INFO | Class being resolved (for resolve_class ops) | Class name with serialVersionUID |
+| `dangerous_class` | String | INFO | Name of dangerous/gadget class detected | Known gadget chain class name or `null` |
+| `suspicious_pattern` | Boolean | INFO | Whether class name matches suspicious patterns | `true` - Contains "Transformer", "Handler", or "Factory" |
+| `polymorphic_deserialization` | Boolean | INFO | JSON contains type info (@type or @class) | `true` - Polymorphic type handling detected (security risk) |
+| `dangerous_class_reference` | String | INFO | Dangerous class reference found in JSON input | Class name pattern matched |
+| `input_type` | String | INFO | Type of input being deserialized | `String`, `InputStream`, etc. |
+| `result_class` | String | INFO | Class of the deserialized result object | Fully qualified class name |
+| `potential_attack` | String | INFO | Classification of potential attack type | `gadget_chain_attempt` - ClassNotFoundException during deserialization (possible attack probe) |
+| `threat_type` | String | INFO | Specific threat classification | `deserialization_gadget` - Known gadget chain class |
 
 #### Dangerous Classes Detected
 The sensor detects known deserialization gadget chain classes including:
@@ -1161,14 +1156,14 @@ The sensor detects known deserialization gadget chain classes including:
 
 #### CVE and Gadget Chain Reference Fields
 
-| Field | Type | Description | Example Values |
-|-------|------|-------------|----------------|
-| `cve_id` | String | Associated CVE identifier | `CVE-2015-4852`, `CVE-2017-9805` |
-| `gadget_chain_name` | String | ysoserial payload name | `CommonsCollections1`, `Spring1`, `Hibernate1` |
-| `ysoserial_payload` | String | Associated ysoserial payload identifier | `CommonsCollections1-7`, `Spring1-2`, `Hibernate1-2` |
-| `is_jdk_class` | Boolean | Whether class is from JDK | `true`, `false` |
-| `class_package` | String | Package name of the class | `org.apache.commons.collections.functors` |
-| `untrusted_source` | String | Likely source of untrusted data | `network_stream`, `file_input`, `unknown` |
+| Field | Type | Log Level | Description | Example Values |
+|-------|------|-----------|-------------|----------------|
+| `cve_id` | String | INFO | Associated CVE identifier | `CVE-2015-4852`, `CVE-2017-9805` |
+| `gadget_chain_name` | String | INFO | ysoserial payload name | `CommonsCollections1`, `Spring1`, `Hibernate1` |
+| `ysoserial_payload` | String | INFO | Associated ysoserial payload identifier | `CommonsCollections1-7`, `Spring1-2`, `Hibernate1-2` |
+| `is_jdk_class` | Boolean | INFO | Whether class is from JDK | `true`, `false` |
+| `class_package` | String | INFO | Package name of the class | `org.apache.commons.collections.functors` |
+| `untrusted_source` | String | INFO | Likely source of untrusted data | `network_stream`, `file_input`, `unknown` |
 
 #### CVE Mapping Reference
 
@@ -1198,10 +1193,12 @@ The sensor detects known deserialization gadget chain classes including:
 
 ---
 
-### SQL Events (SQL Sensor)
+### SQL Sensor
 
-**Log File:** `agent-SQL-events.log`
-**Namespace:** `org.jvmxray.events.sql.query`
+**Class:** `org.jvmxray.agent.sensor.sql.SQLSensor`
+**Status:** Active by default. Emits separate entry / exit-success / exit-error events tied by `correlation_id`; optional DEBUG event for parameter values.
+**Namespace(s):** `org.jvmxray.events.sql.query`
+**Log file:** `agent-SQL-events.log`
 
 Monitors JDBC PreparedStatement executions including query metadata, execution duration, and results.
 
@@ -1231,41 +1228,41 @@ status=error|error_message=Table 'users' doesn't exist
 
 #### Field Reference
 
-| Field | Type | Description | Possible Values |
-|-------|------|-------------|-----------------|
-| `correlation_id` | String | Unique ID linking query start and completion events | GUID string |
-| `class` | String | JDBC PreparedStatement implementation class | Driver-specific class name |
-| `query` | String | Query representation from PreparedStatement | **Note:** Currently logs object reference, not SQL text |
-| `db_url` | String | JDBC connection URL | `jdbc:mysql://host:port/db`, etc. |
-| `db_user` | String | Database username from connection metadata | Database user name |
-| `duration_ms` | String | Query execution time in milliseconds | Decimal value (e.g., `12.50`) |
-| `status` | String | Query execution result | `success` - Query completed normally<br>`error` - Query threw exception |
-| `result_type` | String | Type of result returned (for successful queries) | `ResultSet` - Query returned a result set |
-| `update_count` | String | Number of rows affected (for DML statements) | Numeric string |
-| `error_message` | String | Exception message for failed queries | Database error message |
-| `parameters` | String | Bound parameter values (DEBUG level only) | `unavailable` or parameter details |
+| Field | Type | Log Level | Description | Possible Values |
+|-------|------|-----------|-------------|-----------------|
+| `correlation_id` | String | INFO | Unique ID linking query start and completion events | GUID string |
+| `class` | String | INFO | JDBC PreparedStatement implementation class | Driver-specific class name |
+| `query` | String | INFO | Query representation from PreparedStatement | **Note:** Currently logs object reference, not SQL text |
+| `db_url` | String | INFO | JDBC connection URL | `jdbc:mysql://host:port/db`, etc. |
+| `db_user` | String | INFO | Database username from connection metadata | Database user name |
+| `duration_ms` | String | INFO | Query execution time in milliseconds | Decimal value (e.g., `12.50`) |
+| `status` | String | INFO | Query execution result | `success` - Query completed normally<br>`error` - Query threw exception |
+| `result_type` | String | INFO | Type of result returned (for successful queries) | `ResultSet` - Query returned a result set |
+| `update_count` | String | INFO | Number of rows affected (for DML statements) | Numeric string |
+| `error_message` | String | ERROR | Exception message for failed queries | Database error message |
+| `parameters` | String | DEBUG | Bound parameter values | `unavailable` or parameter details |
 
 #### Enhanced SQL Metadata Fields
 
 The SQL sensor now captures actual SQL text and provides enhanced analysis:
 
-| Field | Type | Description | Example Values |
-|-------|------|-------------|----------------|
-| `sql_text` | String | The actual SQL statement text | `SELECT * FROM users WHERE id = ?` |
-| `sql_operation_type` | String | Type of SQL operation | `SELECT`, `INSERT`, `UPDATE`, `DELETE`, `DDL`, `CALL`, `UNKNOWN` |
-| `is_parameterized` | Boolean | Whether statement uses parameters | `true` for PreparedStatement with `?` placeholders |
-| `parameter_count` | Integer | Number of parameter placeholders | `0`, `3`, `10`, etc. |
-| `sql_hash` | String | SHA-256 hash of SQL text (first 16 chars) | `a1b2c3d4e5f6g7h8` |
-| `schema_name` | String | Database schema/catalog name | `mydb`, `information_schema` |
-| `batch_size` | Integer | Number of statements in batch execution | `1`, `100`, etc. |
+| Field | Type | Log Level | Description | Example Values |
+|-------|------|-----------|-------------|----------------|
+| `sql_text` | String | INFO | The actual SQL statement text | `SELECT * FROM users WHERE id = ?` |
+| `sql_operation_type` | String | INFO | Type of SQL operation | `SELECT`, `INSERT`, `UPDATE`, `DELETE`, `DDL`, `CALL`, `UNKNOWN` |
+| `is_parameterized` | Boolean | INFO | Whether statement uses parameters | `true` for PreparedStatement with `?` placeholders |
+| `parameter_count` | Integer | INFO | Number of parameter placeholders | `0`, `3`, `10`, etc. |
+| `sql_hash` | String | INFO | SHA-256 hash of SQL text (first 16 chars) | `a1b2c3d4e5f6g7h8` |
+| `schema_name` | String | INFO | Database schema/catalog name | `mydb`, `information_schema` |
+| `batch_size` | Integer | INFO | Number of statements in batch execution | `1`, `100`, etc. |
 
 #### Error Analysis Fields
 
-| Field | Type | Description | Example Values |
-|-------|------|-------------|----------------|
-| `error_class` | String | Exception class name | `SQLException`, `SQLSyntaxErrorException` |
-| `sql_state` | String | SQLSTATE error code | `42S02`, `23505` |
-| `error_code` | Integer | Vendor-specific error code | `1045`, `1146` |
+| Field | Type | Log Level | Description | Example Values |
+|-------|------|-----------|-------------|----------------|
+| `error_class` | String | ERROR | Exception class name | `SQLException`, `SQLSyntaxErrorException` |
+| `sql_state` | String | ERROR | SQLSTATE error code | `42S02`, `23505` |
+| `error_code` | Integer | ERROR | Vendor-specific error code | `1045`, `1146` |
 
 #### SQL Text Capture Mechanism
 
@@ -1289,101 +1286,15 @@ The SQL sensor uses a caching mechanism to capture SQL text:
 
 ---
 
-### SYSTEM Events (System Sensor)
-
-**Log File:** `agent-SYSTEM-events.log`
-**Namespace:** `org.jvmxray.events.system`
-
-Logs environment variables, system configuration, JVM context, and container/cloud detection at JVM startup.
-
-#### Sample Log Entry
-```
-C:AP | 2024.09.15 at 14:30:25 EDT | main | INFO | org.jvmxray.events.system |
-message=JAVA_HOME=/usr/lib/jvm/java-11-openjdk|AID=agent-001|CID=production
-```
-
-#### Field Reference
-
-| Field | Type | Description | Possible Values |
-|-------|------|-------------|-----------------|
-| `message` | String | Environment variable name and value | `ENV_NAME=value` format |
-| `AID` | String | Agent Instance ID | Configured agent identifier |
-| `CID` | String | Configuration ID | Configuration profile name |
-
-#### JVM Context Fields
-
-| Field | Type | Description | Example Values |
-|-------|------|-------------|----------------|
-| `jvm_vendor` | String | JVM vendor name | `Oracle Corporation`, `Eclipse Adoptium` |
-| `jvm_version` | String | JVM version | `17.0.8`, `11.0.20` |
-| `jvm_name` | String | JVM implementation name | `OpenJDK 64-Bit Server VM` |
-| `jvm_spec_version` | String | JVM specification version | `17`, `11` |
-| `jvm_start_time` | String | JVM start time (epoch ms) | `1694789425000` |
-| `jvm_start_time_iso` | String | JVM start time (ISO 8601) | `2024-09-15T14:30:25Z` |
-| `jvm_uptime_ms` | String | JVM uptime in milliseconds | `3600000` |
-| `jvm_args` | String | JVM command line arguments | `-Xmx2g -XX:+UseG1GC` |
-| `jvm_args_count` | Integer | Number of JVM arguments | `5` |
-| `debug_enabled` | Boolean | Whether JVM is in debug mode | `true` if `-agentlib:jdwp` or `-Xdebug` present |
-
-#### Process Context Fields
-
-| Field | Type | Description | Example Values |
-|-------|------|-------------|----------------|
-| `process_id` | String | Operating system process ID | `12345` |
-| `parent_process_id` | String | Parent process ID | `1`, `4567` |
-| `process_command` | String | Executable path | `/usr/bin/java` |
-| `command_line` | String | Full command line | `java -jar app.jar` |
-| `process_user` | String | User running the process | `appuser`, `root` |
-| `process_start_time` | String | Process start time (ISO 8601) | `2024-09-15T14:30:20Z` |
-| `working_directory` | String | Current working directory | `/app` |
-| `user_name` | String | System user name | `appuser` |
-| `user_home` | String | User home directory | `/home/appuser` |
-| `os_name` | String | Operating system name | `Linux`, `Windows 10` |
-| `os_version` | String | Operating system version | `5.15.0-82-generic` |
-| `os_arch` | String | System architecture | `amd64`, `aarch64` |
-
-#### Container Detection Fields
-
-| Field | Type | Description | Example Values |
-|-------|------|-------------|----------------|
-| `is_container` | Boolean | Whether running in a container | `true`, `false` |
-| `container_type` | String | Type of container runtime | `docker`, `kubernetes`, `containerd`, `cri-o` |
-| `container_id` | String | Container ID (from cgroup) | `abc123def456...` (up to 64 chars) |
-| `kubernetes_detected` | Boolean | Whether Kubernetes environment detected | `true`, `false` |
-| `kubernetes_namespace` | String | Kubernetes namespace | `default`, `production` |
-| `kubernetes_pod_name` | String | Kubernetes pod name | `myapp-deployment-abc123` |
-
-#### Cloud Provider Detection Fields
-
-| Field | Type | Description | Example Values |
-|-------|------|-------------|----------------|
-| `cloud_provider` | String | Detected cloud provider | `aws`, `gcp`, `azure` |
-| `aws_region` | String | AWS region | `us-east-1`, `eu-west-1` |
-| `gcp_project` | String | Google Cloud project ID | `my-project-123` |
-| `azure_subscription` | String | Azure subscription ID | `abc123-def456-...` |
-| `environment` | String | Environment type (from ENV vars) | `production`, `staging`, `development` |
-
-#### Security Context Fields
-
-| Field | Type | Description | Example Values |
-|-------|------|-------------|----------------|
-| `security_manager_present` | Boolean | Whether a SecurityManager is active | `true`, `false` |
-| `security_manager_class` | String | SecurityManager implementation | `java.lang.SecurityManager` |
-| `jmx_remote_enabled` | Boolean | Whether JMX remote is enabled | `true`, `false` |
-| `jmx_remote_port` | String | JMX remote port (if enabled) | `9010` |
-
-#### Sensitive Value Handling
-
-Environment variables containing sensitive information are automatically redacted:
-- Variables with names containing: `PASSWORD`, `SECRET`, `TOKEN`, `API_KEY`, `APIKEY`, `PRIVATE_KEY`, `CREDENTIAL`
-- Redacted values appear as: `***REDACTED***`
 
 ---
 
-### AUTH Events (Authentication Sensor)
+### Authentication Sensor
 
-**Log File:** `agent-AUTH-events.log`
-**Namespace:** `org.jvmxray.events.auth.session`
+**Class:** `org.jvmxray.agent.sensor.auth.AuthenticationSensor`
+**Status:** Active by default. Six sub-interceptors: SessionSet, SessionGet, SessionInvalidate, Login, Authenticate, Principal.
+**Namespace(s):** `org.jvmxray.events.auth`, `org.jvmxray.events.auth.session`
+**Log file:** `agent-AUTH-events.log`
 
 Monitors authentication operations including JAAS login, Spring Security authentication, session operations, and principal lookups.
 
@@ -1415,20 +1326,22 @@ auth_action=get_principal|principal_name=admin
 
 #### Field Reference
 
-| Field | Type | Description | Possible Values |
-|-------|------|-------------|-----------------|
-| `auth_action` | String | Type of authentication operation | `login` - JAAS login attempt<br>`authenticate` - Spring Security authentication<br>`get_principal` - Principal name lookup |
-| `auth_mechanism` | String | Authentication framework used | `jaas` - Java Authentication and Authorization Service<br>`spring_security` - Spring Security framework |
-| `auth_success` | Boolean | Whether authentication succeeded | `true`, `false` |
-| `auth_failure_reason` | String | Exception class on failure | Exception simple name (e.g., `BadCredentialsException`, `LoginException`) |
-| `principal_name` | String | Authenticated user identity | Username or principal name |
+| Field | Type | Log Level | Description | Possible Values |
+|-------|------|-----------|-------------|-----------------|
+| `auth_action` | String | INFO | Type of authentication operation | `login` - JAAS login attempt<br>`authenticate` - Spring Security authentication<br>`get_principal` - Principal name lookup |
+| `auth_mechanism` | String | INFO | Authentication framework used | `jaas` - Java Authentication and Authorization Service<br>`spring_security` - Spring Security framework |
+| `auth_success` | Boolean | INFO | Whether authentication succeeded | `true`, `false` |
+| `auth_failure_reason` | String | INFO | Exception class on failure | Exception simple name (e.g., `BadCredentialsException`, `LoginException`) |
+| `principal_name` | String | INFO | Authenticated user identity | Username or principal name |
 
 ---
 
-### APICALL Events (API Call Sensor)
+### APICall Sensor
 
-**Log File:** `agent-APICALL-events.log`
-**Namespace:** `org.jvmxray.events.api.call`
+**Class:** `org.jvmxray.agent.sensor.api.APICallSensor`
+**Status:** Active by default.
+**Namespace(s):** `org.jvmxray.events.api.call`
+**Log file:** `agent-APICALL-events.log`
 
 Monitors Java 11+ HttpClient.send() operations, capturing request details, response status, and timing.
 
@@ -1452,35 +1365,31 @@ error_class=ConnectException|error_message=Connection refused
 
 #### Field Reference
 
-| Field | Type | Description | Possible Values |
-|-------|------|-------------|-----------------|
-| `operation` | String | Type of API operation | `http_client_send` - HttpClient.send() call |
-| `request_uri` | String | Full request URI | Any valid URI (e.g., `https://api.example.com/v1/users`) |
-| `request_host` | String | Target hostname | Hostname from the URI |
-| `request_scheme` | String | Protocol scheme | `http`, `https` |
-| `request_port` | Integer | Target port | Port number (e.g., `443`, `8080`) |
-| `request_method` | String | HTTP method | `GET`, `POST`, `PUT`, `DELETE`, `PATCH`, `HEAD`, `OPTIONS` |
-| `uses_tls` | Boolean | Whether connection uses TLS | `true` for HTTPS, `false` for HTTP |
-| `response_time_ms` | Double | Response time in milliseconds | Execution duration (e.g., `142`) |
-| `response_status` | Integer | HTTP status code | `200`, `404`, `500`, etc. |
-| `status_class` | String | Response status classification | `success` - 2xx<br>`redirect` - 3xx<br>`client_error` - 4xx<br>`server_error` - 5xx |
-| `content_type` | String | Response Content-Type header | MIME type (e.g., `application/json`, `text/html`) |
-| `status` | String | Operation completion status | `completed` - Request finished normally<br>`failed` - Exception thrown |
-| `error_class` | String | Exception class on failure | Exception simple name (e.g., `ConnectException`, `SocketTimeoutException`) |
-| `error_message` | String | Error description | Exception message text |
+| Field | Type | Log Level | Description | Possible Values |
+|-------|------|-----------|-------------|-----------------|
+| `operation` | String | INFO | Type of API operation | `http_client_send` - HttpClient.send() call |
+| `request_uri` | String | INFO | Full request URI | Any valid URI (e.g., `https://api.example.com/v1/users`) |
+| `request_host` | String | INFO | Target hostname | Hostname from the URI |
+| `request_scheme` | String | INFO | Protocol scheme | `http`, `https` |
+| `request_port` | Integer | INFO | Target port | Port number (e.g., `443`, `8080`) |
+| `request_method` | String | INFO | HTTP method | `GET`, `POST`, `PUT`, `DELETE`, `PATCH`, `HEAD`, `OPTIONS` |
+| `uses_tls` | Boolean | INFO | Whether connection uses TLS | `true` for HTTPS, `false` for HTTP |
+| `response_time_ms` | Double | INFO | Response time in milliseconds | Execution duration (e.g., `142`) |
+| `response_status` | Integer | INFO | HTTP status code | `200`, `404`, `500`, etc. |
+| `status_class` | String | INFO | Response status classification | `success` - 2xx<br>`redirect` - 3xx<br>`client_error` - 4xx<br>`server_error` - 5xx |
+| `content_type` | String | INFO | Response Content-Type header | MIME type (e.g., `application/json`, `text/html`) |
+| `status` | String | INFO | Operation completion status | `completed` - Request finished normally<br>`failed` - Exception thrown |
+| `error_class` | String | INFO | Exception class on failure | Exception simple name (e.g., `ConnectException`, `SocketTimeoutException`) |
+| `error_message` | String | INFO | Error description | Exception message text |
 
 ---
 
-### REFLECTION Events (Reflection Sensor)
+### Reflection Sensor
 
-**Log File:** `agent-REFLECTION-events.log`
-**Namespaces:**
-- `org.jvmxray.events.reflection.class_forname` - Class.forName() operations
-- `org.jvmxray.events.reflection.method_invoke` - Method.invoke() operations
-- `org.jvmxray.events.reflection.constructor_invoke` - Constructor.newInstance() operations
-- `org.jvmxray.events.reflection.field_get` - Field.get() operations
-- `org.jvmxray.events.reflection.field_set` - Field.set() operations
-- `org.jvmxray.events.reflection.setAccessible` - setAccessible() calls
+**Class:** `org.jvmxray.agent.sensor.reflection.ReflectionSensor`
+**Status:** Disabled by default — commented out in `agent.properties` because of high overhead intercepting every reflective call. Enable per environment if reflection-based attacks are in scope.
+**Namespace(s):** `org.jvmxray.events.reflection.class_forname`, `.method_invoke`, `.constructor_invoke`, `.constructor_newInstance`, `.field_get`, `.field_set`, `.set_accessible`
+**Log file:** `agent-REFLECTION-events.log`
 
 Monitors reflective operations that can be used for code injection, privilege escalation, and access control bypass.
 
@@ -1510,33 +1419,35 @@ risk_level=HIGH
 
 #### Field Reference
 
-| Field | Type | Description | Possible Values |
-|-------|------|-------------|-----------------|
-| `operation` | String | Type of reflective operation | `class_forName`, `method_invoke`, `constructor_newInstance`, `field_get`, `field_set`, `setAccessible` |
-| `class_name` | String | Class being loaded via reflection | Fully qualified class name |
-| `method_name` | String | Method being invoked | Method name |
-| `declaring_class` | String | Class that declares the method/field | Fully qualified class name |
-| `field_name` | String | Field being accessed or modified | Field name |
-| `suspicious_class` | Boolean | Whether class matches known dangerous patterns | `true` for classes like `ProcessBuilder`, `Runtime`, `TemplatesImpl` |
-| `suspicious_method` | Boolean | Whether method is potentially dangerous | `true` for methods like `exec`, `invoke` |
-| `risk_level` | String | Threat risk assessment | `MEDIUM`, `HIGH`, `CRITICAL` |
-| `threat_type` | String | Classification of potential threat | `privilege_escalation`, `code_injection` |
-| `access_control_bypass` | Boolean | Whether setAccessible(true) was called | `true` if bypassing access control |
-| `command_execution` | Boolean | Whether Runtime.exec was detected | `true` if executing system commands |
-| `bytecode_framework` | Boolean | Whether a bytecode framework class was detected | `true` for ASM, ByteBuddy, CGLib, Javassist classes |
-| `loaded_successfully` | Boolean | Whether Class.forName succeeded | `true`, `false` |
-| `class_loader` | String | ClassLoader used to load the class | Class loader name or `bootstrap` |
-| `instance_provided` | Boolean | Whether an object instance was passed to invoke | `true`, `false` |
-| `arg_count` | Integer | Number of arguments passed | Argument count |
-| `error` | String | Exception class on failure | Exception simple name |
-| `error_message` | String | Error description | Exception message text |
+| Field | Type | Log Level | Description | Possible Values |
+|-------|------|-----------|-------------|-----------------|
+| `operation` | String | INFO | Type of reflective operation | `class_forName`, `method_invoke`, `constructor_newInstance`, `field_get`, `field_set`, `setAccessible` |
+| `class_name` | String | INFO | Class being loaded via reflection | Fully qualified class name |
+| `method_name` | String | INFO | Method being invoked | Method name |
+| `declaring_class` | String | INFO | Class that declares the method/field | Fully qualified class name |
+| `field_name` | String | INFO | Field being accessed or modified | Field name |
+| `suspicious_class` | Boolean | INFO | Whether class matches known dangerous patterns | `true` for classes like `ProcessBuilder`, `Runtime`, `TemplatesImpl` |
+| `suspicious_method` | Boolean | INFO | Whether method is potentially dangerous | `true` for methods like `exec`, `invoke` |
+| `risk_level` | String | INFO | Threat risk assessment | `MEDIUM`, `HIGH`, `CRITICAL` |
+| `threat_type` | String | INFO | Classification of potential threat | `privilege_escalation`, `code_injection` |
+| `access_control_bypass` | Boolean | INFO | Whether setAccessible(true) was called | `true` if bypassing access control |
+| `command_execution` | Boolean | INFO | Whether Runtime.exec was detected | `true` if executing system commands |
+| `bytecode_framework` | Boolean | INFO | Whether a bytecode framework class was detected | `true` for ASM, ByteBuddy, CGLib, Javassist classes |
+| `loaded_successfully` | Boolean | INFO | Whether Class.forName succeeded | `true`, `false` |
+| `class_loader` | String | INFO | ClassLoader used to load the class | Class loader name or `bootstrap` |
+| `instance_provided` | Boolean | INFO | Whether an object instance was passed to invoke | `true`, `false` |
+| `arg_count` | Integer | INFO | Number of arguments passed | Argument count |
+| `error` | String | INFO | Exception class on failure | Exception simple name |
+| `error_message` | String | INFO | Error description | Exception message text |
 
 ---
 
-### SCRIPT Events (Script Engine Sensor)
+### Script Engine Sensor
 
-**Log File:** `agent-SCRIPT-events.log`
-**Namespace:** `org.jvmxray.events.script.execution`
+**Class:** `org.jvmxray.agent.sensor.script.ScriptEngineSensor`
+**Status:** Active by default. Emits at INFO on successful eval, ERROR on failure.
+**Namespace(s):** `org.jvmxray.events.script.execution`
+**Log file:** `agent-SCRIPT-events.log`
 
 Monitors ScriptEngine.eval() operations and engine lookups, detecting suspicious script content and tracking execution.
 
@@ -1566,29 +1477,31 @@ operation=engine_lookup|engine_lookup=javascript
 
 #### Field Reference
 
-| Field | Type | Description | Possible Values |
-|-------|------|-------------|-----------------|
-| `operation` | String | Type of script operation | `script_eval` - Script execution<br>`engine_lookup` - Engine resolution by name/extension |
-| `engine_name` | String | Script engine implementation name | `Oracle Nashorn`, `GraalVM JavaScript`, etc. |
-| `script_language` | String | Scripting language | `JavaScript`, `Python`, `Groovy`, etc. |
-| `script_length` | Integer | Script content length in characters | Character count |
-| `script_hash` | String | SHA-256 hash prefix of script content | First 16 hex characters of hash |
-| `script_snippet` | String | Script content preview (truncated to 200 chars) | Beginning of script text |
-| `suspicious_patterns` | String | Detected dangerous patterns | Comma-separated list (e.g., `Runtime.exec,ProcessBuilder,Class.forName`) |
-| `risk_level` | String | Threat risk assessment | `LOW` - No suspicious patterns<br>`HIGH` - Suspicious patterns detected |
-| `script_source` | String | Input source type | `reader` if script provided via Reader |
-| `engine_lookup` | String | Engine name or extension being looked up | Engine identifier (e.g., `javascript`, `js`) |
-| `duration_ms` | Double | Execution time in milliseconds | Execution duration |
-| `status` | String | Execution result | `success`, `error` |
-| `error_class` | String | Exception class on failure | Exception simple name |
-| `error_message` | String | Error description | Exception message text |
+| Field | Type | Log Level | Description | Possible Values |
+|-------|------|-----------|-------------|-----------------|
+| `operation` | String | INFO, ERROR | Type of script operation | `script_eval` - Script execution<br>`engine_lookup` - Engine resolution by name/extension |
+| `engine_name` | String | INFO, ERROR | Script engine implementation name | `Oracle Nashorn`, `GraalVM JavaScript`, etc. |
+| `script_language` | String | INFO, ERROR | Scripting language | `JavaScript`, `Python`, `Groovy`, etc. |
+| `script_length` | Integer | INFO, ERROR | Script content length in characters | Character count |
+| `script_hash` | String | INFO, ERROR | SHA-256 hash prefix of script content | First 16 hex characters of hash |
+| `script_snippet` | String | INFO, ERROR | Script content preview (truncated to 200 chars) | Beginning of script text |
+| `suspicious_patterns` | String | INFO, ERROR | Detected dangerous patterns | Comma-separated list (e.g., `Runtime.exec,ProcessBuilder,Class.forName`) |
+| `risk_level` | String | INFO, ERROR | Threat risk assessment | `LOW` - No suspicious patterns<br>`HIGH` - Suspicious patterns detected |
+| `script_source` | String | INFO, ERROR | Input source type | `reader` if script provided via Reader |
+| `engine_lookup` | String | INFO | Engine name or extension being looked up | Engine identifier (e.g., `javascript`, `js`) |
+| `duration_ms` | Double | INFO, ERROR | Execution time in milliseconds | Execution duration |
+| `status` | String | INFO, ERROR | Execution result. Successful evals emit at INFO; failed evals emit at ERROR. | `success`, `error` |
+| `error_class` | String | ERROR | Exception class on failure | Exception simple name |
+| `error_message` | String | ERROR | Error description | Exception message text |
 
 ---
 
-### PROCESS Events (Process Sensor)
+### Process Sensor
 
-**Log File:** `agent-SYSTEM-events.log`
-**Namespace:** `org.jvmxray.events.system.process`
+**Class:** `org.jvmxray.agent.sensor.system.ProcessSensor`
+**Status:** Active by default. Hooks `ProcessBuilder.start()` and `Runtime.exec()`.
+**Namespace(s):** `org.jvmxray.events.system.process`
+**Log file:** `agent-SYSTEM-events.log`
 
 Monitors process execution via ProcessBuilder.start() and Runtime.exec(), capturing commands, arguments, and execution details.
 
@@ -1610,23 +1523,25 @@ status=failed|error_class=IOException|error_message=Cannot run program "/usr/bin
 
 #### Field Reference
 
-| Field | Type | Description | Possible Values |
-|-------|------|-------------|-----------------|
-| `operation` | String | Type of process operation | `EXECUTE` - Process execution |
-| `command` | String | Executable path or name | Path to executable (e.g., `/bin/sh`, `cmd.exe`) |
-| `args` | String | Command-line arguments | Space-separated arguments |
-| `working_dir` | String | Process working directory (if specified) | Absolute directory path |
-| `execution_time_ms` | Long | Execution time in milliseconds | Duration value |
-| `status` | String | Process launch result | `started` - Process launched successfully<br>`failed` - Exception during launch |
-| `error_class` | String | Exception class on failure | Exception simple name (e.g., `IOException`) |
-| `error_message` | String | Error description | Exception message text |
+| Field | Type | Log Level | Description | Possible Values |
+|-------|------|-----------|-------------|-----------------|
+| `operation` | String | INFO | Type of process operation | `EXECUTE` - Process execution |
+| `command` | String | INFO | Executable path or name | Path to executable (e.g., `/bin/sh`, `cmd.exe`) |
+| `args` | String | INFO | Command-line arguments | Space-separated arguments |
+| `working_dir` | String | INFO | Process working directory (if specified) | Absolute directory path |
+| `execution_time_ms` | Long | INFO | Execution time in milliseconds | Duration value |
+| `status` | String | INFO | Process launch result | `started` - Process launched successfully<br>`failed` - Exception during launch |
+| `error_class` | String | INFO | Exception class on failure | Exception simple name (e.g., `IOException`) |
+| `error_message` | String | INFO | Error description | Exception message text |
 
 ---
 
-### LIB Events (Library Sensor)
+### Library Sensor
 
-**Log File:** `agent-SYSTEM-events.log`
-**Namespace:** `org.jvmxray.events.system.lib`
+**Class:** `org.jvmxray.agent.sensor.system.LibSensor`
+**Status:** Active by default. See [Unresolved](#unresolved) for the polling-based dynamic detection gap.
+**Namespace(s):** `org.jvmxray.events.system.lib`
+**Log file:** `agent-SYSTEM-events.log`
 
 Monitors JAR library loading on the classpath, capturing SHA-256 hashes, Maven coordinates, and package inventories for supply chain security.
 
@@ -1669,25 +1584,27 @@ packages=com.example.plugin
 
 #### Field Reference
 
-| Field | Type | Description | Possible Values |
-|-------|------|-------------|-----------------|
-| `load_type` | String | How the JAR was loaded | `static` - Present on initial classpath<br>`dynamic` - Loaded at runtime |
-| `jar_path` | String | Absolute path to the JAR file | File system path |
-| `sha256` | String | SHA-256 hash of the JAR file | 64 hex character hash |
-| `groupId` | String | Maven group ID (if available from META-INF) | Maven group (e.g., `org.springframework`) |
-| `artifactId` | String | Maven artifact ID (if available) | Maven artifact name |
-| `version` | String | Maven version (if available) | Version string (e.g., `6.1.0`) |
-| `implTitle` | String | Implementation-Title from MANIFEST.MF | JAR title |
-| `implVersion` | String | Implementation-Version from MANIFEST.MF | Version string |
-| `implVendor` | String | Implementation-Vendor from MANIFEST.MF | Vendor name |
-| `packages` | String | Java packages found in the JAR | Comma-separated package names |
+| Field | Type | Log Level | Description | Possible Values |
+|-------|------|-----------|-------------|-----------------|
+| `load_type` | String | INFO | How the JAR was loaded | `static` - Present on initial classpath<br>`dynamic` - Loaded at runtime |
+| `jar_path` | String | INFO | Absolute path to the JAR file | File system path |
+| `sha256` | String | INFO | SHA-256 hash of the JAR file | 64 hex character hash |
+| `groupId` | String | INFO | Maven group ID (if available from META-INF) | Maven group (e.g., `org.springframework`) |
+| `artifactId` | String | INFO | Maven artifact ID (if available) | Maven artifact name |
+| `version` | String | INFO | Maven version (if available) | Version string (e.g., `6.1.0`) |
+| `implTitle` | String | INFO | Implementation-Title from MANIFEST.MF | JAR title |
+| `implVersion` | String | INFO | Implementation-Version from MANIFEST.MF | Version string |
+| `implVendor` | String | INFO | Implementation-Vendor from MANIFEST.MF | Vendor name |
+| `packages` | String | INFO | Java packages found in the JAR | Comma-separated package names |
 
 ---
 
-### UNCAUGHTEXCEPTION Events (Uncaught Exception Sensor)
+### Uncaught Exception Sensor
 
-**Log File:** `agent-SYSTEM-events.log`
-**Namespace:** `org.jvmxray.events.system.uncaughtexception`
+**Class:** `org.jvmxray.agent.sensor.uncaughtexception.UncaughtExceptionSensor`
+**Status:** Active by default. Fires once per uncaught throwable on any thread.
+**Namespace(s):** `org.jvmxray.events.system.uncaughtexception`
+**Log file:** `agent-SYSTEM-events.log`
 
 Captures crash diagnostics when threads terminate with uncaught exceptions, including stack traces, memory state, and incident identification.
 
@@ -1705,32 +1622,91 @@ stack_trace=com.example.service.OrderService.processOrder(OrderService.java:127)
 
 #### Field Reference
 
-| Field | Type | Description | Possible Values |
-|-------|------|-------------|-----------------|
-| `thread_name` | String | Name of thread where exception occurred | Thread name (e.g., `main`, `pool-1-thread-3`) |
-| `thread_id` | Long | Thread ID | Numeric thread identifier |
-| `thread_state` | String | Thread state at time of exception | `RUNNABLE`, `WAITING`, `TIMED_WAITING`, `BLOCKED` |
-| `thread_priority` | Integer | Thread priority | `1`-`10` (default `5`) |
-| `thread_daemon` | Boolean | Whether thread is a daemon thread | `true`, `false` |
-| `thread_group` | String | Thread group name | Thread group (e.g., `main`, `system`) |
-| `exception_type` | String | Fully qualified exception class | Exception class name (e.g., `java.lang.NullPointerException`) |
-| `exception_message` | String | Exception message | Exception detail text |
-| `exception_location` | String | First non-JDK stack frame | `ClassName:lineNumber` format |
-| `exception_method` | String | Method where exception occurred | Method name |
-| `stack_depth` | Integer | Total stack trace depth | Number of frames |
-| `stack_trace` | String | Simplified stack trace | First 10 frames (INFO) or all frames (DEBUG), separated by ` > ` |
-| `root_cause_type` | String | Root cause exception class (if chained) | Exception class name |
-| `root_cause_message` | String | Root cause message | Exception detail text |
-| `incident_id` | String | Unique incident identifier | UUID string |
-| `timestamp` | Long | Time of exception (epoch milliseconds) | Milliseconds since epoch |
-| `jvm_uptime_ms` | Long | JVM uptime at time of exception | Uptime in milliseconds |
+UncaughtExceptionSensor emits one event per uncaught throwable. The `priority` field on the log line is either `INFO` or `DEBUG` depending on which loggers are enabled. INFO carries the minimum useful diagnostic; DEBUG adds substantial system-state and forensic detail. Fields below are grouped by the level at which they first appear.
+
+**Always present (INFO and DEBUG)**
+
+| Field | Type | Log Level | Description | Possible Values |
+|-------|------|-----------|-------------|-----------------|
+| `thread_name` | String | INFO | Name of thread where exception occurred | Thread name (e.g., `main`, `pool-1-thread-3`) |
+| `thread_id` | Long | INFO | Thread ID | Numeric thread identifier |
+| `thread_state` | String | INFO | Thread state at time of exception | `RUNNABLE`, `WAITING`, `TIMED_WAITING`, `BLOCKED` |
+| `thread_priority` | Integer | INFO | Thread priority | `1`-`10` (default `5`) |
+| `thread_daemon` | Boolean | INFO | Whether thread is a daemon thread | `true`, `false` |
+| `thread_group` | String | INFO | Thread group name | Thread group (e.g., `main`, `system`) |
+| `exception_type` | String | INFO | Fully qualified exception class | Exception class name (e.g., `java.lang.NullPointerException`) |
+| `exception_message` | String | INFO | Exception message | Exception detail text |
+| `exception_location` | String | INFO | First non-JDK stack frame | `ClassName:lineNumber` format |
+| `exception_method` | String | INFO | Method where exception occurred | Method name |
+| `stack_depth` | Integer | INFO | Total stack trace depth | Number of frames |
+| `stack_trace` | String | INFO, DEBUG | Simplified stack trace. Field appears at both levels but content differs by verbosity. | First 10 frames at INFO; all frames at DEBUG; separated by ` > ` |
+| `root_cause_type` | String | INFO | Root cause exception class (only when chained) | Exception class name |
+| `root_cause_message` | String | INFO | Root cause message (only when chained) | Exception detail text |
+| `command_line` | String | INFO | Full command line that started this JVM | Reconstructed from `RuntimeMXBean.getInputArguments()` |
+| `main_class` | String | INFO | Main class from `sun.java.command` | Fully qualified class name or `unknown` |
+| `heap_used_mb` | Double | INFO | Heap memory currently used | MB, formatted to 2 decimals (e.g., `412.34`) |
+| `heap_max_mb` | Double | INFO | Heap maximum size | MB |
+| `heap_committed_mb` | Double | INFO | Heap committed by the JVM | MB |
+| `heap_utilization_pct` | Double | INFO | Heap used as a percentage of max | `0.00`-`100.00` |
+| `non_heap_used_mb` | Double | INFO | Non-heap (metaspace, code cache) used | MB |
+| `non_heap_committed_mb` | Double | INFO | Non-heap committed | MB |
+| `thread_count` | Integer | INFO | Live thread count at time of exception | Numeric |
+| `peak_thread_count` | Integer | INFO | Peak thread count since JVM start | Numeric |
+| `daemon_thread_count` | Integer | INFO | Live daemon thread count | Numeric |
+| `total_started_threads` | Long | INFO | Lifetime count of threads ever started | Numeric |
+| `jvm_uptime_ms` | Long | INFO | JVM uptime at time of exception | Milliseconds |
+| `incident_id` | String | INFO | Unique incident identifier | UUID string |
+| `timestamp` | Long | INFO | Time of exception (epoch milliseconds) | Milliseconds since epoch |
+
+**Added only at DEBUG**
+
+When the namespace's logger is at DEBUG, the sensor adds an extensive system-state and forensic dump. Fields below appear *only* when DEBUG is enabled.
+
+| Field | Type | Log Level | Description | Possible Values |
+|-------|------|-----------|-------------|-----------------|
+| `cause_N_type` | String | DEBUG | Exception class at depth `N` in the cause chain (`N` = 1..10) | Exception class name |
+| `cause_N_message` | String | DEBUG | Exception message at depth `N` | Exception detail text |
+| `cause_N_location` | String | DEBUG | First stack frame at depth `N` | `ClassName.method(File.java:42)` |
+| `cause_chain_length` | Integer | DEBUG | Number of nested causes traversed (max 10) | `0`-`10` |
+| `suppressed_count` | Integer | DEBUG | Count of suppressed exceptions on the throwable | Numeric |
+| `suppressed_exceptions` | String | DEBUG | Class + message for up to 5 suppressed exceptions | Semicolon-separated |
+| `pool_<poolname>_used_mb` | Double | DEBUG | Per-pool memory usage (dynamic field per memory pool) | One field per pool: `pool_g1_eden_space_used_mb`, `pool_metaspace_used_mb`, etc. |
+| `memory_pools_error` | String | DEBUG | Set only if collecting pool stats throws | Exception message |
+| `gc_<gcname>_collections` | Long | DEBUG | Per-collector collection count (dynamic field per GC) | One field per collector: `gc_g1 young generation_collections`, etc. |
+| `gc_<gcname>_time_ms` | Long | DEBUG | Per-collector total GC time in ms | Numeric |
+| `gc_stats_error` | String | DEBUG | Set only if collecting GC stats throws | Exception message |
+| `loaded_class_count` | Integer | DEBUG | Currently loaded class count | Numeric |
+| `total_loaded_class_count` | Long | DEBUG | Lifetime loaded class count | Numeric |
+| `unloaded_class_count` | Long | DEBUG | Lifetime unloaded class count | Numeric |
+| `os_name` | String | DEBUG | OS name from `OperatingSystemMXBean` | `Linux`, `Mac OS X`, `Windows 10` |
+| `os_version` | String | DEBUG | OS version | OS-specific |
+| `os_arch` | String | DEBUG | OS architecture | `amd64`, `aarch64`, `x86` |
+| `available_processors` | Integer | DEBUG | CPU count visible to JVM | Numeric |
+| `system_load_average` | Double | DEBUG | 1-minute load average (`-1` if unavailable) | Numeric or `-1.00` |
+| `security_manager` | String | DEBUG | Installed SecurityManager class, or `none` | FQCN or `none` |
+| `java_security_policy` | String | DEBUG | Value of `java.security.policy` system property | Policy file path or `default` |
+| `temp_dir_free_space_mb` | Double | DEBUG | Free space on `java.io.tmpdir` partition | MB |
+| `temp_dir_total_space_mb` | Double | DEBUG | Total space on `java.io.tmpdir` partition | MB |
+| `target_thread_group` | String | DEBUG | Thread group of the failing thread | Group name or `null` |
+| `target_thread_context_classloader` | String | DEBUG | Context classloader class of the failing thread | FQCN |
+| `target_thread_interrupted` | Boolean | DEBUG | Whether the failing thread had been interrupted | `true`, `false` |
+| `current_thread_cpu_time_ms` | Long | DEBUG | CPU time consumed by the current thread (when supported) | Milliseconds |
+| `jvm_name` | String | DEBUG | JVM implementation name | `OpenJDK 64-Bit Server VM`, etc. |
+| `jvm_vendor` | String | DEBUG | JVM vendor | `Eclipse Adoptium`, `Oracle Corporation` |
+| `java_version` | String | DEBUG | Java runtime version | `17.0.10`, `21.0.2` |
+| `uptime_ms` | Long | DEBUG | JVM uptime (alternate key paired with `jvm_uptime_ms` at INFO) | Milliseconds |
+| `start_time` | Long | DEBUG | JVM start time (epoch milliseconds) | Numeric |
+| `system_*` | String | DEBUG | Open-ended set of management-bean fields prefixed `system_` (process info, threads, etc., contributed by `ManagementProxy`) | Field names vary by JVM and OS |
+| `management_error` | String | DEBUG | Set only if `ManagementProxy.getManagementInfo()` throws | Exception class summary |
 
 ---
 
-### APPINIT Events (App Init Sensor)
+### App Init Sensor
 
-**Log File:** `agent-SYSTEM-events.log`
-**Namespace:** `org.jvmxray.events.system.settings`
+**Class:** `org.jvmxray.agent.sensor.system.AppInitSensor`
+**Status:** Active by default. Fires once at agent premain time.
+**Namespace(s):** `org.jvmxray.events.system.settings`
+**Log file:** `agent-SYSTEM-events.log`
 
 One-time startup capture of JVM version, OS details, container detection, environment variables (with sensitive value redaction), and system properties.
 
@@ -1757,11 +1733,11 @@ message=DB_PASSWORD=***REDACTED***|is_redacted=true
 
 #### Field Reference
 
-| Field | Type | Description | Possible Values |
-|-------|------|-------------|-----------------|
-| `event_type` | String | Type of initialization event | `system_context` - JVM and environment snapshot |
-| `message` | String | Individual environment variable or system property | `KEY=VALUE` format (e.g., `JAVA_HOME=/usr/lib/jvm/java-17-openjdk`) |
-| `is_redacted` | Boolean | Whether the value was redacted for security | `true` for variables containing PASSWORD, SECRET, TOKEN, API_KEY, PRIVATE_KEY, CREDENTIAL |
+| Field | Type | Log Level | Description | Possible Values |
+|-------|------|-----------|-------------|-----------------|
+| `event_type` | String | INFO | Type of initialization event | `system_context` - JVM and environment snapshot |
+| `message` | String | INFO | Individual environment variable or system property | `KEY=VALUE` format (e.g., `JAVA_HOME=/usr/lib/jvm/java-17-openjdk`) |
+| `is_redacted` | Boolean | INFO | Whether the value was redacted for security | `true` for variables containing PASSWORD, SECRET, TOKEN, API_KEY, PRIVATE_KEY, CREDENTIAL |
 
 ---
 
@@ -1775,6 +1751,24 @@ All sensors use a consistent risk level classification:
 | `HIGH` | Significant security risk, likely exploitable | Priority investigation within 24 hours |
 | `MEDIUM` | Potential risk, context-dependent | Review and remediate in normal cycle |
 | `LOW` | Informational, best practice deviation | Document and address as capacity allows |
+
+---
+
+## Database Tables
+
+The agent emits every event as a Logback log record, so persistence is whatever Logback appenders you wire up — rolling files, sockets to a remote log server, syslog, JDBC, Kafka, or any other Logback-compatible sink. **There is no required database.**
+
+JVMXRay ships with a `ShadedSQLiteAppender` and a `SchemaManager` CLI that handles SQLite, MySQL, and Cassandra schemas. These exist for **testing and demos**: they let you spin up a working event store locally without standing up a log pipeline first. Production deployments typically route events through existing log infrastructure (Splunk, ELK, Datadog, OpenSearch) via Logback appenders rather than the bundled SQL stores.
+
+### Schema reference
+
+If you do use the bundled SQL appender, the single table written by the agent is `STAGE0_EVENT`, holding raw events with metadata and a `KEYPAIRS` payload. Indexes on `TIMESTAMP`, `NAMESPACE`, `AID`/`CID`, and `TRACE_ID` support time-based, sensor-type, agent-instance, and correlation queries.
+
+The full schema — column types, indexes, and the parallel `STAGE0_EVENT_KEYPAIR` table for parsed pipelines — is documented in [docs/prj-common.md](prj-common.md) alongside the `SchemaManager` CLI. Read that doc if you are setting up storage; this section exists only to point you to it.
+
+### Event format
+
+Every emitted log line follows: `CONFIG_FILE | timestamp | thread | priority | namespace | keypairs`. The `KEYPAIRS` segment is pipe-separated `key=value` pairs whose contents depend on the sensor — see [Sensor Reference](#sensor-reference) for per-sensor field documentation.
 
 ---
 
@@ -2044,3 +2038,111 @@ Choose metric names with your sensor's prefix (`my_sensor_*`) so they're easy to
 Non-zero `mcc_ttl_cleanups` is the canonical signal of a sensor with mismatched `enterScope` / `exitScope` calls.
 
 ---
+
+---
+
+## Unresolved
+
+Open issues and known gaps that ship with the agent. Each entry names the
+code that owns the problem, what currently happens, why it matters, and
+sketches possible fixes. Update or remove an entry as the issue is closed.
+
+### MemorySensor — recursive logging
+
+**Where:** `src/main/java/org/jvmxray/agent/sensor/memory/MemorySensor.java`
+and its interceptors.
+
+**Behavior today:** The sensor is wired in `agent.properties` and would
+emit events for `ByteBuffer.allocateDirect`, `sun.misc.Unsafe`
+allocate/free calls, `System.gc()` invocations, and `Runtime.totalMemory`
+queries. Its logger is removed from the default `logback.xml` so events
+never reach an appender.
+
+**Gap:** Memory operations performed by the agent's own logging pipeline
+(allocation of byte buffers in appenders, GC induced by event objects)
+re-enter the sensor, which emits another event, which allocates more
+memory, and so on — a feedback loop that can OOM the JVM. MCC scope
+guards are not yet implemented for this sensor.
+
+**Why it matters:** Without MemorySensor, per-event memory diagnostics
+are unavailable. Aggregate memory metrics over time are still emitted
+by `MonitorSensor` every 60 seconds, which covers most operational
+needs but not per-allocation forensics.
+
+**Possible fixes:**
+- Apply the `executeSafely(...)` sensor guard to all advice paths and
+  any code the sensor calls inside event emission.
+- Move event emission off the allocating thread (queue + worker thread
+  bypassing the sensor scope).
+- Document the sensor as informational-only and route its events to a
+  separate, non-Logback sink that does not allocate on the hot path.
+
+**Status:** Open.
+
+### ThreadSensor — recursive logging
+
+**Where:** `src/main/java/org/jvmxray/agent/sensor/thread/ThreadSensor.java`
+and its interceptor.
+
+**Behavior today:** The sensor is wired in `agent.properties` and would
+emit events for thread lifecycle operations (`Thread.start()`,
+`Thread.interrupt()`, etc.). Its logger is removed from the default
+`logback.xml` so events never reach an appender.
+
+**Gap:** Same shape as MemorySensor — the logging pipeline itself
+creates and uses threads (worker pool inside `AgentLogger`,
+asynchronous flush threads in appenders). Those thread operations
+re-enter the sensor and produce another event, which spawns or
+schedules more thread work, and so on. MCC scope guards are not yet
+implemented for this sensor.
+
+**Why it matters:** Without ThreadSensor, per-thread lifecycle
+forensics are unavailable. Thread counts and basic stats over time
+are still emitted by `MonitorSensor`.
+
+**Possible fixes:** Same approaches as MemorySensor — apply the sensor
+guard everywhere the logging path touches threads, or move emission
+off-thread.
+
+**Status:** Open.
+
+### LibSensor — dynamic JAR detection is polling-based, not event-driven
+
+**Where:** `src/main/java/org/jvmxray/agent/sensor/system/LibSensor.java`,
+`detectDynamicJars()` (around line 240), called on an interval by a
+background thread (see line 100–114).
+
+**Behavior today:** Detection works by periodically calling
+`instrumentation.getAllLoadedClasses()`, walking each class's
+`ProtectionDomain → CodeSource → location`, and emitting a
+`load_type=dynamic` event for any JAR path not already in `knownJars`.
+Interval is configured by `DYNAMIC_JAR_CHECK_INTERVAL_SECONDS` (line 44)
+and is tunable via the `lib.interval=<seconds>` agent argument.
+
+**Gap:** Between the moment the JVM loads a class from a new JAR and
+the next poll tick, there is an observability window in which:
+1. Code from the new JAR can execute without LibSensor having logged
+   its presence, SHA-256, Maven coordinates, or package inventory.
+2. Other sensors emitting events caused by that code will reference
+   classes whose backing JAR has no corresponding `Lib` event yet —
+   telemetry consumers correlating runtime events to library
+   provenance will see a temporary "unknown origin" state.
+3. If the JAR is loaded and its classes are GC'd before the next
+   poll, the JAR may never be observed at all (depends on whether
+   `getAllLoadedClasses()` still surfaces it; worth verifying).
+
+**Why it matters:** Polling means the runtime telemetry stream is
+*eventually consistent* with the artifact inventory, not strictly
+consistent. For most use cases this is fine; for incident response
+where the question is "what JAR was responsible for the action at
+timestamp T," it is a soft edge.
+
+**Possible fixes:**
+- Instrument `ClassLoader.defineClass` (or `URLClassLoader.addURL`)
+  via bytecode transformation so JAR appearance is event-driven.
+- Keep polling but tighten the interval, accepting the CPU cost.
+- Hybrid: keep the polling sweep as a backstop, add an instrumented
+  hook for the common dynamic-load paths (URLClassLoader, Spring Boot
+  `LaunchedURLClassLoader`, OSGi, Tomcat `WebappClassLoader`).
+
+**Status:** Open. Found 2026-05-13.
