@@ -1,6 +1,6 @@
 # JVMXRay: Java Application Security Monitoring
 
-[![Black Hat Arsenal](https://raw.githubusercontent.com/toolswatch/badges/master/arsenal/usa/2020.svg?sanitize=true)](https://www.toolswatch.org/blackhat-arsenal-us-2020-archive/)
+[![Black Hat Arsenal USA 2020](https://img.shields.io/badge/Black_Hat_Arsenal-USA_2020-black)](https://www.toolswatch.org/blackhat-arsenal-us-2020-archive/)
 [![Java](https://img.shields.io/badge/Java-17+-orange.svg)](https://openjdk.java.net/)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](http://www.apache.org/licenses/LICENSE-2.0.txt)
 [![Development Status](https://img.shields.io/badge/Status-POC-red.svg)](#)
