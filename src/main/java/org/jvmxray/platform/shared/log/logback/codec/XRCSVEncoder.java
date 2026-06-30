@@ -2,9 +2,7 @@ package org.jvmxray.platform.shared.log.logback.codec;
 
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.encoder.LayoutWrappingEncoder;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.gson.JsonObject;
 
 import java.nio.charset.Charset;
 import java.util.Arrays;
@@ -30,15 +28,15 @@ public class XRCSVEncoder extends LayoutWrappingEncoder {
         return (toCsv(formattedMessage, toJson(event, event.getMDCPropertyMap()), event) + "\n").getBytes(charset);
     }
 
-    private String toCsv(String formattedMessage, JsonNode node, ILoggingEvent event) {
+    private String toCsv(String formattedMessage, JsonObject node, ILoggingEvent event) {
         StringBuilder builder = new StringBuilder();
-        builder.append(node.get("timestamp").asLong()).append(CSV_DELIMITER);
-        builder.append(node.get("level").asText()).append(CSV_DELIMITER);
-        builder.append(node.get("thread").asText()).append(CSV_DELIMITER);
-        builder.append(node.get("logger").asText()).append(CSV_DELIMITER);
+        builder.append(node.get("timestamp").getAsLong()).append(CSV_DELIMITER);
+        builder.append(node.get("level").getAsString()).append(CSV_DELIMITER);
+        builder.append(node.get("thread").getAsString()).append(CSV_DELIMITER);
+        builder.append(node.get("logger").getAsString()).append(CSV_DELIMITER);
         builder.append(formattedMessage.replace(",", "\\,")).append(CSV_DELIMITER); // use formattedMessage here
         if (node.has("exception")) {
-            builder.append(node.get("exception").asText().replace(",", "\\,")).append(CSV_DELIMITER);
+            builder.append(node.get("exception").getAsString().replace(",", "\\,")).append(CSV_DELIMITER);
         } else {
             builder.append(CSV_DELIMITER);
         }
@@ -52,20 +50,26 @@ public class XRCSVEncoder extends LayoutWrappingEncoder {
         return builder.toString();
     }
 
-    private JsonNode toJson(ILoggingEvent event, Map<String, String> mdcProperties) {
-        ObjectMapper mapper = new ObjectMapper();
-        ObjectNode node = mapper.createObjectNode();
-        node.put("timestamp", event.getTimeStamp());
-        node.put("level", event.getLevel().toString());
-        node.put("thread", event.getThreadName());
-        node.put("logger", event.getLoggerName());
-        node.put("message", event.getFormattedMessage());
+    private JsonObject toJson(ILoggingEvent event, Map<String, String> mdcProperties) {
+        JsonObject node = new JsonObject();
+        node.addProperty("timestamp", event.getTimeStamp());
+        node.addProperty("level", event.getLevel().toString());
+        node.addProperty("thread", event.getThreadName());
+        node.addProperty("logger", event.getLoggerName());
+        node.addProperty("message", event.getFormattedMessage());
         if (event.getThrowableProxy() != null) {
-            node.put("exception", event.getThrowableProxy().getMessage());
+            // Gson's addProperty(String, null) stores JsonNull, and getAsString() on it
+            // throws (unlike Jackson, which stored a NullNode). A throwable with a null
+            // message (e.g. new NullPointerException()) would otherwise crash the encoder.
+            // Omitting the field yields a byte-identical empty exception column.
+            String exceptionMessage = event.getThrowableProxy().getMessage();
+            if (exceptionMessage != null) {
+                node.addProperty("exception", exceptionMessage);
+            }
         }
         if (mdcProperties != null) {
             for (Map.Entry<String, String> entry : mdcProperties.entrySet()) {
-                node.put(entry.getKey(), entry.getValue());
+                node.addProperty(entry.getKey(), entry.getValue());
             }
         }
         return node;
