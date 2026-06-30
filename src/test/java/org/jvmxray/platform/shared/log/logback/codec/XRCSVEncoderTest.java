@@ -76,4 +76,25 @@ public class XRCSVEncoderTest {
         assertTrue("exception column should carry the throwable message",
                 csv.endsWith("kaboom\n"));
     }
+
+    @Test
+    public void nullExceptionMessageDoesNotCrash() {
+        LoggerContext context = new LoggerContext();
+        Logger logger = context.getLogger("test.logger");
+        XRCSVEncoder encoder = newStartedEncoder(context);
+
+        // A throwable whose getMessage() is null. Under Gson, addProperty(k, null) stores
+        // JsonNull and getAsString() throws — so the encoder must guard this. The exception
+        // column is emitted empty (byte-identical to the no-exception else branch).
+        LoggingEvent event = new LoggingEvent(
+                "org.jvmxray.Fqcn", logger, Level.ERROR, "boom", new RuntimeException(), null);
+        event.setThreadName("worker-1");
+        event.setTimeStamp(7L);
+        event.setMDCPropertyMap(Collections.emptyMap());
+
+        String csv = new String(encoder.encode(event));
+
+        assertTrue("prefix", csv.startsWith("7,ERROR,worker-1,test.logger,"));
+        assertTrue("line terminated", csv.endsWith("\n"));
+    }
 }

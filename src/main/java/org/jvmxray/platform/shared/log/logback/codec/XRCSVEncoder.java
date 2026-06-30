@@ -58,7 +58,14 @@ public class XRCSVEncoder extends LayoutWrappingEncoder {
         node.addProperty("logger", event.getLoggerName());
         node.addProperty("message", event.getFormattedMessage());
         if (event.getThrowableProxy() != null) {
-            node.addProperty("exception", event.getThrowableProxy().getMessage());
+            // Gson's addProperty(String, null) stores JsonNull, and getAsString() on it
+            // throws (unlike Jackson, which stored a NullNode). A throwable with a null
+            // message (e.g. new NullPointerException()) would otherwise crash the encoder.
+            // Omitting the field yields a byte-identical empty exception column.
+            String exceptionMessage = event.getThrowableProxy().getMessage();
+            if (exceptionMessage != null) {
+                node.addProperty("exception", exceptionMessage);
+            }
         }
         if (mdcProperties != null) {
             for (Map.Entry<String, String> entry : mdcProperties.entrySet()) {
