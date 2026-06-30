@@ -98,20 +98,27 @@ public class XRCSVEncoderTest {
     }
 
     @Test
-    public void emptyExceptionColumnWhenNoThrowable() {
+    public void includesExceptionMessageWhenThrowablePresent() {
         LoggerContext context = new LoggerContext();
         Logger logger = context.getLogger("test.logger");
         XRCSVEncoder encoder = newStartedEncoder(context);
 
         LoggingEvent event = new LoggingEvent(
-                "org.jvmxray.Fqcn", logger, Level.WARN, "no throwable here", null, null);
+                "org.jvmxray.Fqcn", logger, Level.ERROR, "boom occurred",
+                new RuntimeException("kaboom"), null);
         event.setThreadName("worker-1");
         event.setTimeStamp(42L);
         event.setMDCPropertyMap(Collections.emptyMap());
 
         String csv = new String(encoder.encode(event));
 
-        assertTrue(csv.startsWith("42,WARN,worker-1,test.logger,"));
+        // Column order: timestamp,level,thread,logger,message,exception(,mdc...).
+        // With no MDC, the exception field is the last column, so the line ends with it.
+        // This exercises the JSON exception branch (the only path that reads
+        // node.has("exception") + the exception value back out).
+        assertTrue("prefix", csv.startsWith("42,ERROR,worker-1,test.logger,"));
+        assertTrue("exception column should carry the throwable message",
+                csv.endsWith("kaboom\n"));
     }
 }
 ```
