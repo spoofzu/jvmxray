@@ -51,6 +51,8 @@ import ch.qos.logback.classic.PatternLayout;
 import ch.qos.logback.classic.spi.LoggingEvent;
 import org.junit.Test;
 
+import java.util.Collections;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -79,6 +81,9 @@ public class XRCSVEncoderTest {
                 "org.jvmxray.Fqcn", logger, Level.INFO, "hello world", null, null);
         event.setThreadName("main");
         event.setTimeStamp(1234567890L);
+        // A hand-built LoggingEvent has no MDC map; real logback always sets one.
+        // Without this, encode() NPEs iterating a null MDC map.
+        event.setMDCPropertyMap(Collections.emptyMap());
 
         String csv = new String(encoder.encode(event));
         // CSV column order: timestamp,level,thread,logger,message,exception,<mdc...>
@@ -102,6 +107,7 @@ public class XRCSVEncoderTest {
                 "org.jvmxray.Fqcn", logger, Level.WARN, "no throwable here", null, null);
         event.setThreadName("worker-1");
         event.setTimeStamp(42L);
+        event.setMDCPropertyMap(Collections.emptyMap());
 
         String csv = new String(encoder.encode(event));
 
