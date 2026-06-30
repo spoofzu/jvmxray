@@ -120,8 +120,33 @@ public class XRCSVEncoderTest {
         assertTrue("exception column should carry the throwable message",
                 csv.endsWith("kaboom\n"));
     }
+
+    @Test
+    public void nullExceptionMessageDoesNotCrash() {
+        LoggerContext context = new LoggerContext();
+        Logger logger = context.getLogger("test.logger");
+        XRCSVEncoder encoder = newStartedEncoder(context);
+
+        // A throwable whose getMessage() is null. Under Gson, addProperty(k, null) stores
+        // JsonNull and getAsString() throws — so the encoder must guard this. The exception
+        // column is emitted empty (byte-identical to the no-exception else branch).
+        LoggingEvent event = new LoggingEvent(
+                "org.jvmxray.Fqcn", logger, Level.ERROR, "boom", new RuntimeException(), null);
+        event.setThreadName("worker-1");
+        event.setTimeStamp(7L);
+        event.setMDCPropertyMap(Collections.emptyMap());
+
+        String csv = new String(encoder.encode(event));
+
+        assertTrue("prefix", csv.startsWith("7,ERROR,worker-1,test.logger,"));
+        assertTrue("line terminated", csv.endsWith("\n"));
+    }
 }
 ```
+
+Note (added during execution): this third test is a true regression guard — it fails (throws
+`UnsupportedOperationException`) against an unguarded Gson port and passes once the null-message
+guard in `toJson` is in place.
 
 - [ ] **Step 2: Run the test against the current (Jackson) implementation**
 
@@ -293,7 +318,14 @@ public class XRCSVEncoder extends LayoutWrappingEncoder {
         node.addProperty("logger", event.getLoggerName());
         node.addProperty("message", event.getFormattedMessage());
         if (event.getThrowableProxy() != null) {
-            node.addProperty("exception", event.getThrowableProxy().getMessage());
+            // Gson's addProperty(String, null) stores JsonNull, and getAsString() on it
+            // throws (unlike Jackson, which stored a NullNode). A throwable with a null
+            // message (e.g. new NullPointerException()) would otherwise crash the encoder.
+            // Omitting the field yields a byte-identical empty exception column.
+            String exceptionMessage = event.getThrowableProxy().getMessage();
+            if (exceptionMessage != null) {
+                node.addProperty("exception", exceptionMessage);
+            }
         }
         if (mdcProperties != null) {
             for (Map.Entry<String, String> entry : mdcProperties.entrySet()) {
@@ -307,7 +339,7 @@ public class XRCSVEncoder extends LayoutWrappingEncoder {
 }
 ```
 
-Note: the only changes from the original are the three import lines (`com.fasterxml.jackson.databind.*` → `com.google.gson.JsonObject`), the `JsonNode`/`ObjectNode` types → `JsonObject`, `mapper.createObjectNode()` → `new JsonObject()`, `put(...)` → `addProperty(...)`, `asLong()` → `getAsLong()`, and `asText()` → `getAsString()`. The pre-existing unused `key` local is left as-is (surgical change — do not clean up pre-existing code).
+Note: the changes from the original are the three import lines (`com.fasterxml.jackson.databind.*` → `com.google.gson.JsonObject`), the `JsonNode`/`ObjectNode` types → `JsonObject`, `mapper.createObjectNode()` → `new JsonObject()`, `put(...)` → `addProperty(...)`, `asLong()` → `getAsLong()`, `asText()` → `getAsString()`, and the null-message guard on the exception field (Gson's `addProperty(k, null)` stores `JsonNull`, whose `getAsString()` throws — unlike Jackson's `NullNode`). The pre-existing unused `key` local is left as-is (surgical change — do not clean up pre-existing code).
 
 - [ ] **Step 3: Verify zero FasterXML Jackson remains in the build**
 
