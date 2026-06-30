@@ -5,9 +5,20 @@
 
 ## Goal
 
-Remove all **FasterXML Jackson** (`com.fasterxml.jackson.*`) from the build, replacing the
-one real consumer with Gson. After this change, `mvn dependency:tree` shows zero
-`com.fasterxml.jackson` entries.
+Remove the project's **direct** dependency on FasterXML Jackson, replacing the one real
+consumer with Gson. After this change, the project declares no Jackson dependency of its own
+and no project code imports the Jackson API.
+
+> **Scope clarification (added during execution):** The original goal stated "`mvn
+> dependency:tree` shows zero `com.fasterxml.jackson` entries." That is not achievable here and
+> is not the real objective. Removing our direct `jackson-databind:2.17.1` unmasked a
+> *transitive* FasterXML Jackson (`jackson-core`/`jackson-databind:2.12.2`) that the Cassandra
+> driver (`com.datastax.oss:java-driver-core:4.13.0`) declares for its own use — Maven's
+> nearest-wins mediation had hidden it behind our direct, newer copy. Per project policy,
+> **direct** Jackson dependencies are removed (this migration); **transitive** Jackson owned by
+> 3rd-party jars is a *separate* effort addressed by upgrading or replacing the offending jar,
+> proposed and reviewed with the user as a tradeoff — not by blanket Maven exclusions. See
+> "Follow-up: transitive Jackson" below.
 
 ## Scope
 
@@ -18,12 +29,14 @@ one real consumer with Gson. After this change, `mvn dependency:tree` shows zero
   layout: `logback-jackson` and `logback-json-classic`.
 - Add `com.google.code.gson:gson` (version `2.10.1`, matching the mcp-server worktree).
 
-### Out of scope
-- **Legacy Codehaus Jackson** (`org.codehaus.jackson:jackson-core-asl:1.9.12`). This is a
-  different, unrelated library pulled in transitively through the Cassandra driver
-  (`com.datastax.oss:java-driver-core` → `com.esri.geometry:esri-geometry-api`). Removing it
-  would require an exclusion on the Cassandra driver and risks breaking `esri-geometry-api` at
-  runtime. Left untouched by explicit decision.
+### Out of scope (transitive Jackson — see follow-up)
+- **FasterXML Jackson `2.12.2` via the Cassandra driver** (`com.datastax.oss:java-driver-core:4.13.0`
+  → `jackson-core`/`jackson-databind`). The driver depends on Jackson for its own JSON handling.
+  Transitive; addressed separately by upgrading/replacing the driver, not by this migration.
+- **Legacy Codehaus Jackson** (`org.codehaus.jackson:jackson-core-asl:1.9.12`). A different,
+  unrelated library pulled in transitively through the Cassandra driver
+  (`com.datastax.oss:java-driver-core` → `com.esri.geometry:esri-geometry-api`). Transitive;
+  same follow-up strategy.
 - **The `serialization` sensor package** (`JacksonInterceptor`, `SerializationInterceptor`,
   `SerializationSensor`). These reference Jackson by *string class name* to bytecode-instrument
   and detect Jackson usage in monitored target applications. Jackson is not a library
@@ -106,10 +119,30 @@ work to the POM changes alone; not chosen.)
 
 ## Success criteria / verification
 
-1. `mvn dependency:tree` shows **zero `com.fasterxml.jackson`** entries. (Codehaus 1.x may
-   remain — out of scope.)
-2. `mvn compile` succeeds.
-3. The full `mvn test` suite passes. This exercises every logback config during initialization,
+1. `pom.xml` declares **no** `com.fasterxml.jackson` dependency and no project code imports the
+   Jackson API. (`grep -rn "com.fasterxml.jackson" src/main pom.xml` returns only the
+   `serialization` sensor's string class-name references, which are out of scope.) Any remaining
+   `com.fasterxml.jackson` in `mvn dependency:tree` is transitive via 3rd-party jars (Cassandra
+   driver) — tracked under Follow-up, not a blocker here.
+2. `mvn dependency:tree` shows `com.google.code.gson:gson:2.10.1` present.
+3. `mvn compile` succeeds.
+4. The full `mvn test` suite passes. This exercises every logback config during initialization,
    empirically confirming the contrib removal broke nothing.
-4. A small unit test for `XRCSVEncoder` asserts the produced CSV is correct (the class currently
+5. A small unit test for `XRCSVEncoder` asserts the produced CSV is correct (the class currently
    has no test and its only consumer is being rewritten).
+
+## Follow-up: transitive Jackson (separate effort)
+
+After this migration, FasterXML Jackson `2.12.2` (and legacy Codehaus `jackson-core-asl:1.9.12`)
+remain in the tree transitively, both owned by `com.datastax.oss:java-driver-core:4.13.0` (the
+Codehaus one via its `esri-geometry-api` dependency). Project policy is to treat Jackson as
+systemically vulnerable and avoid it where practical, but transitive copies are not removed by
+blanket Maven `<exclusion>`s. They are addressed as a **separate, user-reviewed tradeoff**:
+
+- **Option A — upgrade the Cassandra driver** to a newer `java-driver-core` that bundles a newer,
+  less-vulnerable Jackson (and may drop the Codehaus path). Lower-risk, stays on DataStax.
+- **Option B — replace the driver** with an equivalent Cassandra client that doesn't pull Jackson.
+  Larger change; eliminates Jackson but higher migration cost/risk.
+
+This is to be proposed and reviewed with the user before any action; it is intentionally **not**
+part of this migration.
