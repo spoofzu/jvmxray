@@ -106,7 +106,7 @@ java -javaagent:jvmxray-agent.jar -jar app.jar
     +----------+----------+----------+
 ```
 
-- **Java 17**, **ByteBuddy 1.14.17** for bytecode injection
+- **Java 17**, **ByteBuddy 1.18.17** for bytecode injection
 - **Logback + SLF4J** for enterprise logging (Splunk, ELK, DataDog compatible)
 - **Multi-database**: SQLite (dev), MySQL, Cassandra (production)
 - **MCC** (Mapped Correlation Context): thread-local scope tracking with TTL cleanup
